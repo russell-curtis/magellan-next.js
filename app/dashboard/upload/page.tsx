@@ -290,7 +290,34 @@ export default function UploadPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        onClick={() => navigator.clipboard.writeText(file.url)}
+                        onClick={async () => {
+                          try {
+                            if (navigator.clipboard && window.isSecureContext) {
+                              await navigator.clipboard.writeText(file.url);
+                              toast.success("URL copied to clipboard!");
+                            } else {
+                              // Fallback for older browsers or non-secure contexts
+                              const textArea = document.createElement("textarea");
+                              textArea.value = file.url;
+                              textArea.style.position = "fixed";
+                              textArea.style.left = "-999999px";
+                              textArea.style.top = "-999999px";
+                              document.body.appendChild(textArea);
+                              textArea.focus();
+                              textArea.select();
+                              const successful = document.execCommand('copy');
+                              document.body.removeChild(textArea);
+                              if (successful) {
+                                toast.success("URL copied to clipboard!");
+                              } else {
+                                throw new Error("Copy command failed");
+                              }
+                            }
+                          } catch (error) {
+                            console.error("Failed to copy:", error);
+                            toast.error("Failed to copy URL. Please copy manually: " + file.url);
+                          }
+                        }}
                         className="flex-1 text-xs"
                       >
                         Copy URL

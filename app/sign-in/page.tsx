@@ -59,7 +59,6 @@ function SignInContent() {
                         },
                         onError: (ctx) => {
                           setLoading(false);
-                          // Add user-friendly error handling here
                           console.error("Sign-in failed:", ctx.error);
                         },
                       },

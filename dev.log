@@ -1,0 +1,32 @@
+
+> apple-pass@0.1.0 dev
+> next dev --turbopack
+
+   ▲ Next.js 15.3.1 (Turbopack)
+   - Local:        http://localhost:3000
+   - Network:      http://192.168.1.238:3000
+   - Environments: .env.local
+
+ ✓ Starting...
+ ✓ Compiled middleware in 106ms
+ ✓ Ready in 995ms
+ ○ Compiling / ...
+ ✓ Compiled / in 2.9s
+ GET / 200 in 3488ms
+ GET / 200 in 312ms
+ ○ Compiling /favicon.ico ...
+ GET /favicon.ico?favicon.38b46880.ico 200 in 1436ms
+ GET /favicon.ico?favicon.38b46880.ico 200 in 268ms
+ ✓ Compiled /favicon.ico in 1767ms
+ GET /api/auth/get-session 200 in 2519ms
+ ○ Compiling /sign-in ...
+ ✓ Compiled /sign-in in 845ms
+ GET /sign-in 200 in 863ms
+ POST /api/auth/sign-in/social 200 in 655ms
+ GET /api/auth/callback/google?state=E5qEMQtcUVc4QIfgfS7zlSRsXyD2CwXB&code=4%2F0AVMBsJjtLzrbtYgwxIhAr0iSY4gKMUq4Tgc8hWKXlx3ioEFSaRpRmPJdOOkTZzwrbXln2g&scope=email+profile+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.email+https%3A%2F%2Fwww.googleapis.com%2Fauth%2Fuserinfo.profile+openid&authuser=0&prompt=none 302 in 624ms
+ ○ Compiling /dashboard ...
+ ✓ Compiled /dashboard in 1880ms
+ GET /dashboard 200 in 2139ms
+ GET /favicon.ico?favicon.38b46880.ico 200 in 227ms
+ GET /api/auth/get-session 200 in 148ms
+ GET /api/auth/get-session 200 in 142ms

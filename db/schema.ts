@@ -1,5 +1,6 @@
 import {
   boolean,
+  index,
   integer,
   pgTable,
   text,
@@ -15,7 +16,9 @@ export const user = pgTable("user", {
   image: text("image"),
   createdAt: timestamp("createdAt").notNull().defaultNow(),
   updatedAt: timestamp("updatedAt").notNull().defaultNow(),
-});
+}, (table) => ({
+  emailIdx: index("user_email_idx").on(table.email),
+}));
 
 export const session = pgTable("session", {
   id: text("id").primaryKey(),
@@ -28,7 +31,10 @@ export const session = pgTable("session", {
   userId: text("userId")
     .notNull()
     .references(() => user.id, { onDelete: "cascade" }),
-});
+}, (table) => ({
+  userIdIdx: index("session_user_id_idx").on(table.userId),
+  tokenIdx: index("session_token_idx").on(table.token),
+}));
 
 export const account = pgTable("account", {
   id: text("id").primaryKey(),
@@ -82,4 +88,8 @@ export const subscription = pgTable("subscription", {
   metadata: text("metadata"), // JSON string
   customFieldData: text("customFieldData"), // JSON string
   userId: text("userId").references(() => user.id),
-});
+}, (table) => ({
+  userIdIdx: index("subscription_user_id_idx").on(table.userId),
+  statusIdx: index("subscription_status_idx").on(table.status),
+  userStatusIdx: index("subscription_user_status_idx").on(table.userId, table.status),
+}));

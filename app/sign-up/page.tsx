@@ -56,10 +56,13 @@ function SignInContent() {
                         onResponse: () => {
                           setLoading(false);
                         },
-                        onError: (error) => {
+                        onError: (ctx) => {
                           setLoading(false);
-                          console.error("Sign-in error:", error);
-                          // Consider showing user-friendly error message
+                          console.error("Sign-up failed:", ctx);
+                          const errorMessage = ctx.error?.message || ctx.error || "Unable to create account. Please try again.";
+                          toast.error(errorMessage, {
+                            duration: 5000,
+                          });
                         },
                       },
                     );
