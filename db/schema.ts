@@ -247,7 +247,7 @@ export const applicationMilestones = pgTable('application_milestones', {
 }))
 
 // Documents
-export const documents = pgTable('documents', {
+export const documents: any = pgTable('documents', {
   id: uuid('id').defaultRandom().primaryKey(),
   firmId: uuid('firm_id').notNull().references(() => firms.id, { onDelete: 'cascade' }),
   clientId: uuid('client_id').references(() => clients.id, { onDelete: 'cascade' }),
@@ -272,7 +272,7 @@ export const documents = pgTable('documents', {
   // Version Control
   version: integer('version').default(1),
   isLatestVersion: boolean('is_latest_version').default(true),
-  replacedById: uuid('replaced_by_id').references(() => documents.id),
+  replacedById: uuid('replaced_by_id').references((): any => documents.id),
   
   // Metadata
   uploadedById: uuid('uploaded_by_id').references(() => users.id),
@@ -478,10 +478,6 @@ export const documentsRelations = relations(documents, ({ one }) => ({
   uploadedBy: one(users, {
     fields: [documents.uploadedById],
     references: [users.id],
-  }),
-  replacedBy: one(documents, {
-    fields: [documents.replacedById],
-    references: [documents.id],
   }),
 }))
 
