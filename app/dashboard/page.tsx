@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { SectionCards } from "./_components/section-cards";
 import { ChartAreaInteractive } from "./_components/chart-interactive";
+import { CRBIPrograms } from "./_components/crbi-programs";
 
 export default async function Dashboard() {
   const result = await auth.api.getSession({
@@ -18,15 +19,16 @@ export default async function Dashboard() {
       <div className="w-full">
         <div className="flex flex-col items-start justify-center gap-2">
           <h1 className="text-3xl font-semibold tracking-tight">
-            Interactive Chart
+            CRBI Dashboard
           </h1>
           <p className="text-muted-foreground">
-            Interactive chart with data visualization and interactive elements.
+            Citizenship & Residency by Investment platform overview and analytics.
           </p>
         </div>
         <div className="@container/main flex flex-1 flex-col gap-2">
           <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
             <SectionCards />
+            <CRBIPrograms />
             <ChartAreaInteractive />
           </div>
         </div>
