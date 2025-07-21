@@ -6,7 +6,8 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "seed": "tsx scripts/seed-crbi-programs.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "^1.3.22",
@@ -87,6 +88,7 @@
     "eslint": "^9",
     "eslint-config-next": "15.3.1",
     "tailwindcss": "^4.1.7",
+    "tsx": "^4.19.2",
     "tw-animate-css": "^1.3.0",
     "typescript": "^5"
   }
