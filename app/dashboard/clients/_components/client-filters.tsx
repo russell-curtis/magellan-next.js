@@ -55,12 +55,12 @@ export function ClientFilters({
       </form>
 
       <div className="flex gap-2">
-        <Select value={currentFilters.status} onValueChange={onStatusChange}>
+        <Select value={currentFilters.status || 'all'} onValueChange={onStatusChange}>
           <SelectTrigger className="w-[140px]">
             <SelectValue placeholder="All Statuses" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Statuses</SelectItem>
+            <SelectItem value="all">All Statuses</SelectItem>
             {CLIENT_STATUSES.map((status) => (
               <SelectItem key={status} value={status}>
                 {status.charAt(0).toUpperCase() + status.slice(1)}
@@ -69,12 +69,12 @@ export function ClientFilters({
           </SelectContent>
         </Select>
 
-        <Select value={currentFilters.advisorId} onValueChange={onAdvisorChange}>
+        <Select value={currentFilters.advisorId || 'all'} onValueChange={onAdvisorChange}>
           <SelectTrigger className="w-[160px]">
             <SelectValue placeholder="All Advisors" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="">All Advisors</SelectItem>
+            <SelectItem value="all">All Advisors</SelectItem>
             {advisors.map((advisor) => (
               <SelectItem key={advisor.id} value={advisor.id}>
                 {advisor.name}

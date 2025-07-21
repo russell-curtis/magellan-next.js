@@ -141,11 +141,11 @@ export default function ClientsPage() {
   }
 
   const handleStatusChange = (status: string) => {
-    setFilters(prev => ({ ...prev, status, page: 1 }))
+    setFilters(prev => ({ ...prev, status: status === 'all' ? '' : status, page: 1 }))
   }
 
   const handleAdvisorChange = (advisorId: string) => {
-    setFilters(prev => ({ ...prev, advisorId, page: 1 }))
+    setFilters(prev => ({ ...prev, advisorId: advisorId === 'all' ? '' : advisorId, page: 1 }))
   }
 
   const handleClearFilters = () => {
