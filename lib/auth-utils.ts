@@ -34,7 +34,13 @@ export async function getCurrentUser(): Promise<AuthenticatedUser | null> {
       .where(eq(users.id, session.session.userId))
       .limit(1)
 
-    return user[0] || null
+    const foundUser = user[0];
+    if (!foundUser) return null;
+    
+    return {
+      ...foundUser,
+      role: foundUser.role || 'user' // Default role if null
+    };
   } catch (error) {
     console.error('Error getting current user:', error)
     return null
