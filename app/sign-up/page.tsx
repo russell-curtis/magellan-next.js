@@ -59,8 +59,9 @@ function SignInContent() {
                         onError: (ctx) => {
                           setLoading(false);
                           console.error("Sign-up failed:", ctx);
-                          const errorMessage = ctx.error?.message || ctx.error || "Unable to create account. Please try again.";
-                          toast.error(errorMessage, {
+                          const errorMessage = ctx.error?.message || 
+                            (typeof ctx.error === 'string' ? ctx.error : "Unable to create account. Please try again.");
+                          toast.error(String(errorMessage), {
                             duration: 5000,
                           });
                         },
