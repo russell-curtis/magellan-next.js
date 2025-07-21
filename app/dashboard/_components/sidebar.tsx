@@ -9,6 +9,7 @@ import {
   MessageCircleIcon,
   Settings,
   Upload,
+  Users,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -24,6 +25,11 @@ const navItems: NavItem[] = [
     label: "Overview",
     href: "/dashboard",
     icon: HomeIcon,
+  },
+  {
+    label: "Clients",
+    href: "/dashboard/clients",
+    icon: Users,
   },
   {
     label: "Chat",
@@ -55,7 +61,7 @@ export default function DashboardSideBar() {
             className="flex items-center font-semibold hover:cursor-pointer"
             href="/"
           >
-            <span>Nextjs Starter Kit</span>
+            <span>Magellan CRBI</span>
           </Link>
         </div>
 
@@ -67,7 +73,7 @@ export default function DashboardSideBar() {
                 onClick={() => router.push(item.href)}
                 className={clsx(
                   "flex items-center gap-2 w-full rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:cursor-pointer",
-                  pathname === item.href
+                  (pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href)))
                     ? "bg-primary/10 text-primary hover:bg-primary/20"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
