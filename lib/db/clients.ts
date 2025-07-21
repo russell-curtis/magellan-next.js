@@ -217,7 +217,9 @@ export class ClientService {
     ])
 
     const statsByStatus = statsResult.reduce((acc, item) => {
-      acc[item.status] = item.count
+      if (item.status && item.status !== null) {
+        acc[item.status as string] = item.count
+      }
       return acc
     }, {} as Record<string, number>)
 
