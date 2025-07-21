@@ -8,6 +8,7 @@ import { ClientStats } from './_components/client-stats'
 import { ClientFilters } from './_components/client-filters'
 import { ClientTable } from './_components/client-table'
 import { ClientEditModal } from './_components/client-edit-modal'
+import { ClientCreateModal } from './_components/client-create-modal'
 import { useToast } from '@/hooks/use-toast'
 
 interface ClientWithAdvisor {
@@ -65,6 +66,7 @@ export default function ClientsPage() {
   const [loading, setLoading] = useState(true)
   const [editingClient, setEditingClient] = useState<ClientWithAdvisor | null>(null)
   const [editModalOpen, setEditModalOpen] = useState(false)
+  const [createModalOpen, setCreateModalOpen] = useState(false)
   const [filters, setFilters] = useState({
     search: '',
     status: '',
@@ -215,7 +217,7 @@ export default function ClientsPage() {
             <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
             Refresh
           </Button>
-          <Button>
+          <Button onClick={() => setCreateModalOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Add Client
           </Button>
@@ -286,6 +288,16 @@ export default function ClientsPage() {
         open={editModalOpen}
         onOpenChange={setEditModalOpen}
         onClientUpdated={() => {
+          fetchClients()
+          fetchStats()
+        }}
+        advisors={advisors}
+      />
+
+      <ClientCreateModal
+        open={createModalOpen}
+        onOpenChange={setCreateModalOpen}
+        onClientCreated={() => {
           fetchClients()
           fetchStats()
         }}
