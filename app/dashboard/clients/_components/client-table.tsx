@@ -17,8 +17,12 @@ interface ClientWithAdvisor {
   email: string | null
   phone: string | null
   status: string
+  nationality: string | null
   netWorthEstimate: string | null
   investmentBudget: string | null
+  sourceOfFunds: string | null
+  notes: string | null
+  tags: string[] | null
   assignedAdvisor?: {
     id: string
     name: string

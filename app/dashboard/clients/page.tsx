@@ -7,6 +7,7 @@ import { Plus, RefreshCw } from 'lucide-react'
 import { ClientStats } from './_components/client-stats'
 import { ClientFilters } from './_components/client-filters'
 import { ClientTable } from './_components/client-table'
+import { ClientEditModal } from './_components/client-edit-modal'
 import { useToast } from '@/hooks/use-toast'
 
 interface ClientWithAdvisor {
@@ -16,8 +17,12 @@ interface ClientWithAdvisor {
   email: string | null
   phone: string | null
   status: string
+  nationality: string | null
   netWorthEstimate: string | null
   investmentBudget: string | null
+  sourceOfFunds: string | null
+  notes: string | null
+  tags: string[] | null
   assignedAdvisor?: {
     id: string
     name: string
@@ -58,6 +63,8 @@ export default function ClientsPage() {
   })
   const [advisors, setAdvisors] = useState<Advisor[]>([])
   const [loading, setLoading] = useState(true)
+  const [editingClient, setEditingClient] = useState<ClientWithAdvisor | null>(null)
+  const [editModalOpen, setEditModalOpen] = useState(false)
   const [filters, setFilters] = useState({
     search: '',
     status: '',
@@ -158,8 +165,8 @@ export default function ClientsPage() {
   }
 
   const handleEdit = (client: ClientWithAdvisor) => {
-    // TODO: Open edit modal or navigate to edit page
-    console.log('Edit client:', client)
+    setEditingClient(client)
+    setEditModalOpen(true)
   }
 
   const handleDelete = async (clientId: string) => {
@@ -273,6 +280,17 @@ export default function ClientsPage() {
           )}
         </CardContent>
       </Card>
+
+      <ClientEditModal
+        client={editingClient}
+        open={editModalOpen}
+        onOpenChange={setEditModalOpen}
+        onClientUpdated={() => {
+          fetchClients()
+          fetchStats()
+        }}
+        advisors={advisors}
+      />
     </div>
   )
 }
