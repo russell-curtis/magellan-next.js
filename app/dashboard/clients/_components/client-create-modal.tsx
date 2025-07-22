@@ -154,7 +154,7 @@ export function ClientCreateModal({
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Personal Information</h3>
             <div className="grid grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="firstName">First Name *</Label>
                 <Input
                   id="firstName"
@@ -163,7 +163,7 @@ export function ClientCreateModal({
                   required
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="lastName">Last Name *</Label>
                 <Input
                   id="lastName"
@@ -172,7 +172,7 @@ export function ClientCreateModal({
                   required
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
@@ -181,7 +181,7 @@ export function ClientCreateModal({
                   onChange={(e) => handleInputChange('email', e.target.value)}
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="phone">Phone</Label>
                 <Input
                   id="phone"
@@ -189,7 +189,7 @@ export function ClientCreateModal({
                   onChange={(e) => handleInputChange('phone', e.target.value)}
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="nationality">Nationality</Label>
                 <Input
                   id="nationality"
@@ -197,7 +197,7 @@ export function ClientCreateModal({
                   onChange={(e) => handleInputChange('nationality', e.target.value)}
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="dateOfBirth">Date of Birth</Label>
                 <Input
                   id="dateOfBirth"
@@ -206,7 +206,7 @@ export function ClientCreateModal({
                   onChange={(e) => handleInputChange('dateOfBirth', e.target.value)}
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="passportNumber">Passport Number</Label>
                 <Input
                   id="passportNumber"
@@ -214,7 +214,7 @@ export function ClientCreateModal({
                   onChange={(e) => handleInputChange('passportNumber', e.target.value)}
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
                 <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
                   <SelectTrigger>
@@ -236,7 +236,7 @@ export function ClientCreateModal({
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Financial Information</h3>
             <div className="grid grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="netWorthEstimate">Net Worth Estimate (USD)</Label>
                 <Input
                   id="netWorthEstimate"
@@ -247,7 +247,7 @@ export function ClientCreateModal({
                   onChange={(e) => handleInputChange('netWorthEstimate', e.target.value)}
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="investmentBudget">Investment Budget (USD)</Label>
                 <Input
                   id="investmentBudget"
@@ -258,7 +258,7 @@ export function ClientCreateModal({
                   onChange={(e) => handleInputChange('investmentBudget', e.target.value)}
                 />
               </div>
-              <div className="col-span-2">
+              <div className="col-span-2 space-y-2">
                 <Label htmlFor="sourceOfFunds">Source of Funds</Label>
                 <Textarea
                   id="sourceOfFunds"
@@ -274,7 +274,7 @@ export function ClientCreateModal({
           {/* Assignment & Notes */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Assignment & Notes</h3>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="assignedAdvisor">Assigned Advisor</Label>
               <Select 
                 value={formData.assignedAdvisorId} 
@@ -295,7 +295,7 @@ export function ClientCreateModal({
             </div>
 
             {/* Tags */}
-            <div>
+            <div className="space-y-2">
               <Label>Tags</Label>
               <div className="space-y-2">
                 <div className="flex gap-2">
@@ -325,7 +325,7 @@ export function ClientCreateModal({
               </div>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="notes">Notes</Label>
               <Textarea
                 id="notes"

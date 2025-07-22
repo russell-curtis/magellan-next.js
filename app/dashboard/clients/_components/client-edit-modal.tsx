@@ -163,7 +163,7 @@ export function ClientEditModal({
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Personal Information</h3>
             <div className="grid grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="firstName">First Name *</Label>
                 <Input
                   id="firstName"
@@ -172,7 +172,7 @@ export function ClientEditModal({
                   required
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="lastName">Last Name *</Label>
                 <Input
                   id="lastName"
@@ -181,7 +181,7 @@ export function ClientEditModal({
                   required
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
                 <Input
                   id="email"
@@ -190,7 +190,7 @@ export function ClientEditModal({
                   onChange={(e) => handleInputChange('email', e.target.value)}
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="phone">Phone</Label>
                 <Input
                   id="phone"
@@ -198,7 +198,7 @@ export function ClientEditModal({
                   onChange={(e) => handleInputChange('phone', e.target.value)}
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="nationality">Nationality</Label>
                 <Input
                   id="nationality"
@@ -206,7 +206,7 @@ export function ClientEditModal({
                   onChange={(e) => handleInputChange('nationality', e.target.value)}
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="status">Status</Label>
                 <Select value={formData.status} onValueChange={(value) => handleInputChange('status', value)}>
                   <SelectTrigger>
@@ -228,7 +228,7 @@ export function ClientEditModal({
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Financial Information</h3>
             <div className="grid grid-cols-2 gap-4">
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="netWorthEstimate">Net Worth Estimate</Label>
                 <Input
                   id="netWorthEstimate"
@@ -238,7 +238,7 @@ export function ClientEditModal({
                   onChange={(e) => handleInputChange('netWorthEstimate', e.target.value)}
                 />
               </div>
-              <div>
+              <div className="space-y-2">
                 <Label htmlFor="investmentBudget">Investment Budget</Label>
                 <Input
                   id="investmentBudget"
@@ -248,7 +248,7 @@ export function ClientEditModal({
                   onChange={(e) => handleInputChange('investmentBudget', e.target.value)}
                 />
               </div>
-              <div className="col-span-2">
+              <div className="col-span-2 space-y-2">
                 <Label htmlFor="sourceOfFunds">Source of Funds</Label>
                 <Textarea
                   id="sourceOfFunds"
@@ -263,7 +263,7 @@ export function ClientEditModal({
           {/* Assignment & Notes */}
           <div className="space-y-4">
             <h3 className="text-lg font-medium">Assignment & Notes</h3>
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="assignedAdvisor">Assigned Advisor</Label>
               <Select 
                 value={formData.assignedAdvisorId} 
@@ -284,7 +284,7 @@ export function ClientEditModal({
             </div>
 
             {/* Tags */}
-            <div>
+            <div className="space-y-2">
               <Label>Tags</Label>
               <div className="space-y-2">
                 <div className="flex gap-2">
@@ -312,7 +312,7 @@ export function ClientEditModal({
               </div>
             </div>
 
-            <div>
+            <div className="space-y-2">
               <Label htmlFor="notes">Notes</Label>
               <Textarea
                 id="notes"
