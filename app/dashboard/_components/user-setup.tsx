@@ -56,7 +56,8 @@ export function UserSetup({ onSetupComplete }: UserSetupProps) {
 
       if (!response.ok) {
         const error = await response.json()
-        throw new Error(error.message || 'Setup failed')
+        console.error('Setup API error:', error)
+        throw new Error(error.details || error.error || 'Setup failed')
       }
 
       toast({

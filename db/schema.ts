@@ -128,7 +128,7 @@ export const firms = pgTable('firms', {
 
 // Users (Advisors within firms)
 export const users = pgTable('users', {
-  id: uuid('id').defaultRandom().primaryKey(),
+  id: text('id').primaryKey(), // Use Better Auth user ID
   firmId: uuid('firm_id').notNull().references(() => firms.id, { onDelete: 'cascade' }),
   email: varchar('email', { length: 255 }).unique().notNull(),
   name: varchar('name', { length: 255 }).notNull(),
@@ -147,7 +147,7 @@ export const users = pgTable('users', {
 export const clients = pgTable('clients', {
   id: uuid('id').defaultRandom().primaryKey(),
   firmId: uuid('firm_id').notNull().references(() => firms.id, { onDelete: 'cascade' }),
-  assignedAdvisorId: uuid('assigned_advisor_id').references(() => users.id),
+  assignedAdvisorId: text('assigned_advisor_id').references(() => users.id),
   
   // Personal Information
   firstName: varchar('first_name', { length: 255 }).notNull(),
@@ -201,7 +201,7 @@ export const applications = pgTable('applications', {
   firmId: uuid('firm_id').notNull().references(() => firms.id, { onDelete: 'cascade' }),
   clientId: uuid('client_id').notNull().references(() => clients.id, { onDelete: 'cascade' }),
   programId: uuid('program_id').notNull().references(() => crbiPrograms.id),
-  assignedAdvisorId: uuid('assigned_advisor_id').references(() => users.id),
+  assignedAdvisorId: text('assigned_advisor_id').references(() => users.id),
   
   // Application Details
   applicationNumber: varchar('application_number', { length: 100 }),
@@ -275,7 +275,7 @@ export const documents: any = pgTable('documents', {
   replacedById: uuid('replaced_by_id').references((): any => documents.id),
   
   // Metadata
-  uploadedById: uuid('uploaded_by_id').references(() => users.id),
+  uploadedById: text('uploaded_by_id').references(() => users.id),
   expiresAt: timestamp('expires_at'),
   
   createdAt: timestamp('created_at').defaultNow(),
@@ -303,8 +303,8 @@ export const documentTypes = pgTable('document_types', {
 export const tasks = pgTable('tasks', {
   id: uuid('id').defaultRandom().primaryKey(),
   firmId: uuid('firm_id').notNull().references(() => firms.id, { onDelete: 'cascade' }),
-  createdById: uuid('created_by_id').references(() => users.id),
-  assignedToId: uuid('assigned_to_id').references(() => users.id),
+  createdById: text('created_by_id').references(() => users.id),
+  assignedToId: text('assigned_to_id').references(() => users.id),
   clientId: uuid('client_id').references(() => clients.id),
   applicationId: uuid('application_id').references(() => applications.id),
   
@@ -334,7 +334,7 @@ export const tasks = pgTable('tasks', {
 export const activityLogs = pgTable('activity_logs', {
   id: uuid('id').defaultRandom().primaryKey(),
   firmId: uuid('firm_id').notNull().references(() => firms.id, { onDelete: 'cascade' }),
-  userId: uuid('user_id').references(() => users.id),
+  userId: text('user_id').references(() => users.id),
   clientId: uuid('client_id').references(() => clients.id),
   applicationId: uuid('application_id').references(() => applications.id),
   
@@ -364,7 +364,7 @@ export const communications = pgTable('communications', {
   firmId: uuid('firm_id').notNull().references(() => firms.id, { onDelete: 'cascade' }),
   clientId: uuid('client_id').notNull().references(() => clients.id),
   applicationId: uuid('application_id').references(() => applications.id),
-  userId: uuid('user_id').references(() => users.id),
+  userId: text('user_id').references(() => users.id),
   
   // Communication Details
   type: varchar('type', { length: 50 }).notNull(), // email, call, meeting, message

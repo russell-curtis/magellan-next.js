@@ -15,6 +15,13 @@
       "when": 1753125314633,
       "tag": "0001_flowery_brother_voodoo",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1753162903205,
+      "tag": "0002_public_lilith",
+      "breakpoints": true
     }
   ]
 }
