@@ -8,7 +8,6 @@ import { MoreHorizontal, Eye, Edit, Trash2 } from 'lucide-react'
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu'
 import { formatCurrency, formatClientName, formatDate, getInitials, getStatusColor } from '@/lib/utils/client-utils'
 import type { ClientStatus } from '@/db/schema'
-import Link from 'next/link'
 
 interface ClientWithAdvisor {
   id: string
@@ -37,9 +36,10 @@ interface ClientTableProps {
   clients: ClientWithAdvisor[]
   onEdit: (client: ClientWithAdvisor) => void
   onDelete: (clientId: string) => void
+  onViewProfile?: (clientId: string) => void
 }
 
-export function ClientTable({ clients, onEdit, onDelete }: ClientTableProps) {
+export function ClientTable({ clients, onEdit, onDelete, onViewProfile }: ClientTableProps) {
   if (clients.length === 0) {
     return (
       <div className="rounded-md border">
@@ -116,11 +116,9 @@ export function ClientTable({ clients, onEdit, onDelete }: ClientTableProps) {
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem asChild>
-                      <Link href={`/dashboard/clients/${client.id}`}>
-                        <Eye className="mr-2 h-4 w-4" />
-                        View Details
-                      </Link>
+                    <DropdownMenuItem onClick={() => onViewProfile?.(client.id)}>
+                      <Eye className="mr-2 h-4 w-4" />
+                      View Profile
                     </DropdownMenuItem>
                     <DropdownMenuItem onClick={() => onEdit(client)}>
                       <Edit className="mr-2 h-4 w-4" />

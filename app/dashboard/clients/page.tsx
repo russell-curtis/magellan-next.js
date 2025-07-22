@@ -9,6 +9,7 @@ import { ClientFilters } from './_components/client-filters'
 import { ClientTable } from './_components/client-table'
 import { ClientEditModal } from './_components/client-edit-modal'
 import { ClientCreateModal } from './_components/client-create-modal'
+import { ClientProfileModal } from './_components/client-profile-modal'
 import { useToast } from '@/hooks/use-toast'
 
 interface ClientWithAdvisor {
@@ -67,6 +68,8 @@ export default function ClientsPage() {
   const [editingClient, setEditingClient] = useState<ClientWithAdvisor | null>(null)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [createModalOpen, setCreateModalOpen] = useState(false)
+  const [profileClientId, setProfileClientId] = useState<string | null>(null)
+  const [profileModalOpen, setProfileModalOpen] = useState(false)
   const [filters, setFilters] = useState({
     search: '',
     status: '',
@@ -171,6 +174,11 @@ export default function ClientsPage() {
     setEditModalOpen(true)
   }
 
+  const handleViewProfile = (clientId: string) => {
+    setProfileClientId(clientId)
+    setProfileModalOpen(true)
+  }
+
   const handleDelete = async (clientId: string) => {
     try {
       const response = await fetch(`/api/clients/${clientId}`, {
@@ -252,6 +260,7 @@ export default function ClientsPage() {
               clients={clients}
               onEdit={handleEdit}
               onDelete={handleDelete}
+              onViewProfile={handleViewProfile}
             />
           )}
           
@@ -302,6 +311,12 @@ export default function ClientsPage() {
           fetchStats()
         }}
         advisors={advisors}
+      />
+
+      <ClientProfileModal
+        clientId={profileClientId}
+        open={profileModalOpen}
+        onOpenChange={setProfileModalOpen}
       />
     </div>
   )

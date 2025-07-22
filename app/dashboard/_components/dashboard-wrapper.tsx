@@ -5,6 +5,8 @@ import { UserSetup } from './user-setup'
 import { SectionCards } from './section-cards'
 import { ChartAreaInteractive } from './chart-interactive'
 import { CRBIPrograms } from './crbi-programs'
+import { DashboardAnalytics } from './dashboard-analytics'
+import { TaskManagement } from './task-management'
 import { Skeleton } from '@/components/ui/skeleton'
 
 export function DashboardWrapper() {
@@ -64,18 +66,28 @@ export function DashboardWrapper() {
   return (
     <section className="flex flex-col items-start justify-start p-6 w-full">
       <div className="w-full">
-        <div className="flex flex-col items-start justify-center gap-2">
+        <div className="flex flex-col items-start justify-center gap-2 mb-6">
           <h1 className="text-3xl font-semibold tracking-tight">
-            CRBI Dashboard
+            Client Management Dashboard
           </h1>
           <p className="text-muted-foreground">
-            Citizenship & Residency by Investment platform overview and analytics.
+            Comprehensive view of your CRBI client portfolio, application progress, and key performance metrics.
           </p>
         </div>
-        <div className="@container/main flex flex-1 flex-col gap-2">
-          <div className="flex flex-col gap-4 py-4 md:gap-6 md:py-6">
-            <SectionCards />
+        
+        <div className="space-y-8">
+          {/* Dashboard Analytics - KPIs and Charts */}
+          <DashboardAnalytics />
+          
+          {/* Task Management and CRBI Programs */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <TaskManagement />
             <CRBIPrograms />
+          </div>
+          
+          {/* Legacy Components - TODO: Integrate or Replace */}
+          <div className="space-y-6">
+            <SectionCards />
             <ChartAreaInteractive />
           </div>
         </div>

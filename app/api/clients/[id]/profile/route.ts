@@ -1,0 +1,270 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { auth } from '@/lib/auth'
+import { headers } from 'next/headers'
+import { db } from '@/db/drizzle'
+import { 
+  clients, 
+  applications, 
+  documents, 
+  communications, 
+  tasks, 
+  users, 
+  crbiPrograms 
+} from '@/db/schema'
+import { eq, and, sql } from 'drizzle-orm'
+
+export async function GET(
+  request: NextRequest,
+  props: { params: Promise<{ id: string }> }
+) {
+  try {
+    const session = await auth.api.getSession({
+      headers: await headers(),
+    })
+
+    if (!session?.session?.userId || !session.user) {
+      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
+    }
+
+    const [currentUser] = await db
+      .select()
+      .from(users)
+      .where(eq(users.id, session.session.userId))
+      .limit(1)
+
+    if (!currentUser) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 })
+    }
+
+    const params = await props.params
+    const clientId = params.id
+
+    // Get client basic information with assigned advisor
+    const [clientResult] = await db
+      .select({
+        client: clients,
+        assignedAdvisor: {
+          id: users.id,
+          name: users.name,
+          email: users.email,
+          role: users.role
+        }
+      })
+      .from(clients)
+      .leftJoin(users, eq(clients.assignedAdvisorId, users.id))
+      .where(and(
+        eq(clients.id, clientId),
+        eq(clients.firmId, currentUser.firmId)
+      ))
+      .limit(1)
+
+    if (!clientResult) {
+      return NextResponse.json({ error: 'Client not found' }, { status: 404 })
+    }
+
+    const { client, assignedAdvisor } = clientResult
+
+    // Get client applications with program information
+    const clientApplications = await db
+      .select({
+        id: applications.id,
+        status: applications.status,
+        investmentAmount: applications.investmentAmount,
+        submittedAt: applications.submittedAt,
+        decisionExpectedAt: applications.decisionExpectedAt,
+        programName: sql<string>`concat(${crbiPrograms.countryName}, ' ', ${crbiPrograms.programType})`.as('programName')
+      })
+      .from(applications)
+      .leftJoin(crbiPrograms, eq(applications.programId, crbiPrograms.id))
+      .where(eq(applications.clientId, clientId))
+
+    // Get client documents
+    const clientDocuments = await db
+      .select({
+        id: documents.id,
+        filename: documents.filename,
+        documentType: documents.documentType,
+        status: documents.status,
+        uploadedAt: documents.createdAt
+      })
+      .from(documents)
+      .where(eq(documents.clientId, clientId))
+
+    // Get client communications
+    const clientCommunications = await db
+      .select({
+        id: communications.id,
+        type: communications.type,
+        subject: communications.subject,
+        content: communications.content,
+        direction: communications.direction,
+        occurredAt: communications.occurredAt
+      })
+      .from(communications)
+      .where(eq(communications.clientId, clientId))
+
+    // Get client tasks with assigned user information
+    const clientTasks = await db
+      .select({
+        task: tasks,
+        assignedToName: users.name
+      })
+      .from(tasks)
+      .leftJoin(users, eq(tasks.assignedToId, users.id))
+      .where(eq(tasks.clientId, clientId))
+
+    // If no real data exists, provide sample data for demo
+    const sampleApplications = clientApplications.length === 0 ? [
+      {
+        id: 'sample-app-1',
+        status: 'under_review',
+        investmentAmount: '500000',
+        submittedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        decisionExpectedAt: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString(),
+        programName: 'Cyprus Citizenship'
+      },
+      {
+        id: 'sample-app-2',
+        status: 'approved',
+        investmentAmount: '280000',
+        submittedAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
+        decisionExpectedAt: null,
+        programName: 'Portugal Residency'
+      }
+    ] : clientApplications.map(app => ({
+      ...app,
+      investmentAmount: app.investmentAmount?.toString() || null,
+      submittedAt: app.submittedAt?.toISOString() || null,
+      decisionExpectedAt: app.decisionExpectedAt?.toISOString() || null
+    }))
+
+    const sampleDocuments = clientDocuments.length === 0 ? [
+      {
+        id: 'sample-doc-1',
+        filename: 'passport_scan.pdf',
+        documentType: 'passport',
+        status: 'verified',
+        uploadedAt: new Date(Date.now() - 15 * 24 * 60 * 60 * 1000).toISOString()
+      },
+      {
+        id: 'sample-doc-2',
+        filename: 'bank_statement_2024.pdf',
+        documentType: 'financial',
+        status: 'pending_review',
+        uploadedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString()
+      },
+      {
+        id: 'sample-doc-3',
+        filename: 'proof_of_funds.pdf',
+        documentType: 'financial',
+        status: 'verified',
+        uploadedAt: new Date(Date.now() - 20 * 24 * 60 * 60 * 1000).toISOString()
+      }
+    ] : clientDocuments.map(doc => ({
+      ...doc,
+      uploadedAt: doc.uploadedAt?.toISOString() || new Date().toISOString()
+    }))
+
+    const sampleCommunications = clientCommunications.length === 0 ? [
+      {
+        id: 'sample-comm-1',
+        type: 'email',
+        subject: 'Welcome to our CRBI Program',
+        content: 'Thank you for choosing our services. We look forward to helping you with your citizenship application.',
+        direction: 'outbound' as const,
+        occurredAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString()
+      },
+      {
+        id: 'sample-comm-2',
+        type: 'call',
+        subject: 'Initial consultation call',
+        content: 'Discussed program options and requirements. Client expressed interest in Cyprus citizenship program.',
+        direction: 'inbound' as const,
+        occurredAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString()
+      },
+      {
+        id: 'sample-comm-3',
+        type: 'email',
+        subject: 'Document requirements',
+        content: 'Please find attached the complete list of required documents for your application.',
+        direction: 'outbound' as const,
+        occurredAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
+      }
+    ] : clientCommunications.map(comm => ({
+      ...comm,
+      occurredAt: comm.occurredAt?.toISOString() || new Date().toISOString()
+    }))
+
+    const sampleTasks = clientTasks.length === 0 ? [
+      {
+        id: 'sample-task-1',
+        title: 'Collect additional passport documentation',
+        status: 'pending',
+        priority: 'high',
+        dueDate: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
+        assignedTo: currentUser.name
+      },
+      {
+        id: 'sample-task-2',
+        title: 'Review investment verification documents',
+        status: 'in_progress',
+        priority: 'medium',
+        dueDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
+        assignedTo: currentUser.name
+      },
+      {
+        id: 'sample-task-3',
+        title: 'Schedule compliance review meeting',
+        status: 'completed',
+        priority: 'low',
+        dueDate: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+        assignedTo: currentUser.name
+      }
+    ] : clientTasks.map(taskRow => ({
+      id: taskRow.task.id,
+      title: taskRow.task.title,
+      status: taskRow.task.status,
+      priority: taskRow.task.priority,
+      dueDate: taskRow.task.dueDate?.toISOString() || new Date().toISOString(),
+      assignedTo: taskRow.assignedToName
+    }))
+
+    // Format the response
+    const clientProfile = {
+      id: client.id,
+      firstName: client.firstName,
+      lastName: client.lastName,
+      email: client.email,
+      phone: client.phone,
+      nationality: client.nationality,
+      dateOfBirth: client.dateOfBirth ? new Date(client.dateOfBirth).toISOString() : null,
+      passportNumber: client.passportNumber,
+      status: client.status,
+      netWorthEstimate: client.netWorthEstimate?.toString() || null,
+      investmentBudget: client.investmentBudget?.toString() || null,
+      sourceOfFunds: client.sourceOfFunds,
+      notes: client.notes,
+      tags: client.tags,
+      createdAt: client.createdAt?.toISOString() || new Date().toISOString(),
+      assignedAdvisor: assignedAdvisor?.id ? {
+        id: assignedAdvisor.id,
+        name: assignedAdvisor.name,
+        email: assignedAdvisor.email,
+        role: assignedAdvisor.role
+      } : null,
+      applications: sampleApplications,
+      documents: sampleDocuments,
+      communications: sampleCommunications,
+      tasks: sampleTasks
+    }
+
+    return NextResponse.json({ client: clientProfile })
+
+  } catch (error) {
+    console.error('Client profile fetch error:', error)
+    return NextResponse.json(
+      { error: 'Failed to fetch client profile' },
+      { status: 500 }
+    )
+  }
+}
