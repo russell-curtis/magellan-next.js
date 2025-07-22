@@ -79,7 +79,7 @@ export function ClientEditModal({
         netWorthEstimate: client.netWorthEstimate || '',
         investmentBudget: client.investmentBudget || '',
         sourceOfFunds: client.sourceOfFunds || '',
-        assignedAdvisorId: client.assignedAdvisor?.id || '',
+        assignedAdvisorId: client.assignedAdvisor?.id || 'unassigned',
         notes: client.notes || '',
         tags: client.tags || []
       })
@@ -122,7 +122,7 @@ export function ClientEditModal({
           ...formData,
           netWorthEstimate: formData.netWorthEstimate ? parseFloat(formData.netWorthEstimate) : null,
           investmentBudget: formData.investmentBudget ? parseFloat(formData.investmentBudget) : null,
-          assignedAdvisorId: formData.assignedAdvisorId || null
+          assignedAdvisorId: formData.assignedAdvisorId === 'unassigned' ? null : formData.assignedAdvisorId || null
         }),
       })
 
@@ -273,7 +273,7 @@ export function ClientEditModal({
                   <SelectValue placeholder="Select advisor" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Unassigned</SelectItem>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
                   {advisors.map((advisor) => (
                     <SelectItem key={advisor.id} value={advisor.id}>
                       {advisor.name}

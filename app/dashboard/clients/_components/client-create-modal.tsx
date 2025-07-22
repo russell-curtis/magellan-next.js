@@ -107,7 +107,7 @@ export function ClientCreateModal({
           investmentBudget: formData.investmentBudget || null,
           sourceOfFunds: formData.sourceOfFunds || null,
           notes: formData.notes || null,
-          assignedAdvisorId: formData.assignedAdvisorId || null,
+          assignedAdvisorId: formData.assignedAdvisorId === 'unassigned' ? null : formData.assignedAdvisorId || null,
           tags: formData.tags.length > 0 ? formData.tags : null
         }),
       })
@@ -284,7 +284,7 @@ export function ClientCreateModal({
                   <SelectValue placeholder="Select advisor (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Unassigned</SelectItem>
+                  <SelectItem value="unassigned">Unassigned</SelectItem>
                   {advisors.map((advisor) => (
                     <SelectItem key={advisor.id} value={advisor.id}>
                       {advisor.name}
