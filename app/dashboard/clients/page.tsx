@@ -212,25 +212,26 @@ export default function ClientsPage() {
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
-          <p className="text-muted-foreground">
-            Manage your CRBI clients and track their applications
-          </p>
+    <section className="flex flex-col items-start justify-start p-6 w-full">
+      <div className="w-full space-y-6">
+        <div className="flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
+            <p className="text-muted-foreground">
+              Manage your CRBI clients and track their applications
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="outline" onClick={handleRefresh} disabled={loading}>
+              <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+              Refresh
+            </Button>
+            <Button onClick={() => setCreateModalOpen(true)}>
+              <Plus className="h-4 w-4 mr-2" />
+              Add Client
+            </Button>
+          </div>
         </div>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleRefresh} disabled={loading}>
-            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-            Refresh
-          </Button>
-          <Button onClick={() => setCreateModalOpen(true)}>
-            <Plus className="h-4 w-4 mr-2" />
-            Add Client
-          </Button>
-        </div>
-      </div>
 
       <ClientStats stats={stats} />
 
@@ -313,11 +314,12 @@ export default function ClientsPage() {
         advisors={advisors}
       />
 
-      <ClientProfileModal
-        clientId={profileClientId}
-        open={profileModalOpen}
-        onOpenChange={setProfileModalOpen}
-      />
-    </div>
+        <ClientProfileModal
+          clientId={profileClientId}
+          open={profileModalOpen}
+          onOpenChange={setProfileModalOpen}
+        />
+      </div>
+    </section>
   )
 }
