@@ -17,8 +17,6 @@ export async function POST(req: NextRequest) {
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
     const clientId = formData.get("clientId") as string | null;
-    const documentTypeId = formData.get("documentTypeId") as string | null;
-    const description = formData.get("description") as string | null;
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
@@ -78,24 +76,30 @@ export async function POST(req: NextRequest) {
     // Upload the file to R2 storage
     const url = await uploadImageAssets(buffer, filename);
 
-    // Get document type or create default
-    let docTypeId = documentTypeId;
-    if (!docTypeId) {
-      // Future enhancement: determine document type based on file extension
-      // const extension = fileExt.toLowerCase();
-      // const typeMapping: Record<string, string> = {
-      //   'pdf': 'PDF Document', 'doc': 'Word Document', 'docx': 'Word Document',
-      //   'xls': 'Excel Spreadsheet', 'xlsx': 'Excel Spreadsheet',
-      //   'ppt': 'PowerPoint Presentation', 'pptx': 'PowerPoint Presentation',
-      //   'jpg': 'Image', 'jpeg': 'Image', 'png': 'Image', 'gif': 'Image',
-      //   'webp': 'Image', 'svg': 'Image', 'txt': 'Text Document',
-      //   'csv': 'CSV File', 'zip': 'Archive', 'rar': 'Archive', '7z': 'Archive'
-      // };
-      // const docTypeName = typeMapping[extension] || 'Other Document';
-      
-      // Try to find existing document type or use a default ID
-      docTypeId = 'default-type'; // This should be a valid UUID in production
-    }
+    // Get document type - determine from file extension
+    const extension = fileExt.toLowerCase();
+    const typeMapping: Record<string, string> = {
+      'pdf': 'PDF Document',
+      'doc': 'Word Document', 
+      'docx': 'Word Document',
+      'xls': 'Excel Spreadsheet',
+      'xlsx': 'Excel Spreadsheet',
+      'ppt': 'PowerPoint Presentation',
+      'pptx': 'PowerPoint Presentation',
+      'jpg': 'Image',
+      'jpeg': 'Image',
+      'png': 'Image',
+      'gif': 'Image',
+      'webp': 'Image',
+      'svg': 'Image',
+      'txt': 'Text Document',
+      'csv': 'CSV File',
+      'zip': 'Archive',
+      'rar': 'Archive',
+      '7z': 'Archive'
+    };
+    
+    const docType = typeMapping[extension] || 'Other Document';
 
     // Save document metadata to database  
     const documentId = crypto.randomUUID();
@@ -103,22 +107,16 @@ export async function POST(req: NextRequest) {
       id: documentId,
       clientId: clientId,
       applicationId: null, // Can be set later if needed
-      userId: user.id,
       firmId: user.firmId,
-      documentTypeId: docTypeId,
       filename: originalName,
-      storedFilename: filename,
+      originalFilename: originalName,
       fileUrl: url,
       fileSize: file.size,
       contentType: file.type,
+      documentType: docType,
       status: 'uploaded',
       complianceStatus: 'pending_review',
-      description: description || null,
-      metadata: {
-        uploadedBy: user.id,
-        uploadedAt: new Date().toISOString(),
-        originalFilename: originalName
-      },
+      uploadedById: user.id,
       createdAt: new Date(),
       updatedAt: new Date()
     });

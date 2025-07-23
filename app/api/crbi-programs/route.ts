@@ -11,7 +11,7 @@ export async function GET() {
       .where(eq(crbiPrograms.isActive, true))
       .orderBy(desc(crbiPrograms.minInvestment))
     
-    return NextResponse.json(programs)
+    return NextResponse.json({ programs })
   } catch (error) {
     console.error('Error fetching CRBI programs:', error)
     return NextResponse.json(

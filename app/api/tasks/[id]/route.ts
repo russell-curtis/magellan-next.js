@@ -1,43 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
-import { headers } from 'next/headers'
+import { requireAuth } from '@/lib/auth-utils'
 import { db } from '@/db/drizzle'
-import { tasks, users } from '@/db/schema'
+import { tasks } from '@/db/schema'
 import { eq, and } from 'drizzle-orm'
-import { z } from 'zod'
-
-const updateTaskSchema = z.object({
-  title: z.string().optional(),
-  description: z.string().optional(),
-  priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
-  status: z.enum(['pending', 'in_progress', 'completed', 'cancelled']).optional(),
-  dueDate: z.string().optional(),
-  assignedToId: z.string().optional(),
-  completedAt: z.string().optional()
-})
+import { updateTaskSchema } from '@/lib/validations/tasks'
 
 export async function PUT(
   request: NextRequest,
   props: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    })
-
-    if (!session?.session?.userId || !session.user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-    }
-
-    const [currentUser] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, session.session.userId))
-      .limit(1)
-
-    if (!currentUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
+    const user = await requireAuth()
 
     const params = await props.params
     const taskId = params.id
@@ -50,7 +23,7 @@ export async function PUT(
       .from(tasks)
       .where(and(
         eq(tasks.id, taskId),
-        eq(tasks.firmId, currentUser.firmId)
+        eq(tasks.firmId, user.firmId)
       ))
       .limit(1)
 
@@ -103,23 +76,7 @@ export async function DELETE(
   props: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    })
-
-    if (!session?.session?.userId || !session.user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-    }
-
-    const [currentUser] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, session.session.userId))
-      .limit(1)
-
-    if (!currentUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
+    const user = await requireAuth()
 
     const params = await props.params
     const taskId = params.id
@@ -130,7 +87,7 @@ export async function DELETE(
       .from(tasks)
       .where(and(
         eq(tasks.id, taskId),
-        eq(tasks.firmId, currentUser.firmId)
+        eq(tasks.firmId, user.firmId)
       ))
       .limit(1)
 

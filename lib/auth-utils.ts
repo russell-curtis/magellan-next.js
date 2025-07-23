@@ -54,5 +54,9 @@ export async function requireAuth(): Promise<AuthenticatedUser> {
     throw new Error('Unauthorized')
   }
   
+  if (!user.firmId) {
+    throw new Error('User setup required')
+  }
+  
   return user
 }

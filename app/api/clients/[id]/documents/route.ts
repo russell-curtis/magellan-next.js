@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth-utils";
 import { db } from "@/db/drizzle";
-import { documents, documentTypes } from "@/db/schema";
+import { documents } from "@/db/schema";
 import { eq, and, desc } from "drizzle-orm";
 
 export async function GET(
@@ -20,29 +20,23 @@ export async function GET(
       );
     }
 
-    // Fetch client documents with document type info
+    // Fetch client documents
     const clientDocuments = await db
       .select({
         id: documents.id,
         filename: documents.filename,
-        storedFilename: documents.storedFilename,
+        originalFilename: documents.originalFilename,
         fileUrl: documents.fileUrl,
         fileSize: documents.fileSize,
         contentType: documents.contentType,
+        documentType: documents.documentType,
         status: documents.status,
         complianceStatus: documents.complianceStatus,
-        description: documents.description,
-        metadata: documents.metadata,
+        uploadedAt: documents.createdAt,
         createdAt: documents.createdAt,
-        updatedAt: documents.updatedAt,
-        documentType: {
-          id: documentTypes.id,
-          name: documentTypes.name,
-          category: documentTypes.category
-        }
+        updatedAt: documents.updatedAt
       })
       .from(documents)
-      .leftJoin(documentTypes, eq(documents.documentTypeId, documentTypes.id))
       .where(
         and(
           eq(documents.clientId, clientId),

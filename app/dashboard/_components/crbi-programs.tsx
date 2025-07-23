@@ -58,10 +58,11 @@ export function CRBIPrograms({
       const response = await fetch('/api/crbi-programs')
       if (response.ok) {
         const data = await response.json()
-        setPrograms(data)
+        setPrograms(data.programs || [])
       }
     } catch (error) {
       console.error('Error fetching CRBI programs:', error)
+      setPrograms([])
     } finally {
       setLoading(false)
     }

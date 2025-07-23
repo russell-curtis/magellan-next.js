@@ -1,11 +1,9 @@
 'use client'
 
 import { useState, useCallback } from 'react'
-import { useDropzone } from 'react-dropzone'
+import { useDropzone, FileRejection } from 'react-dropzone'
 import { Button } from '@/components/ui/button'
 import { Progress } from '@/components/ui/progress'
-import { Textarea } from '@/components/ui/textarea'
-import { Label } from '@/components/ui/label'
 import { 
   Upload, 
   X, 
@@ -35,7 +33,6 @@ export function DocumentUpload({
   const [uploading, setUploading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [selectedFile, setSelectedFile] = useState<File | null>(null)
-  const [description, setDescription] = useState('')
   const [uploadResult, setUploadResult] = useState<{
     success: boolean
     message: string
@@ -50,30 +47,65 @@ export function DocumentUpload({
 
   const { toast } = useToast()
 
-  const onDrop = useCallback((acceptedFiles: File[]) => {
+  const onDrop = useCallback((acceptedFiles: File[], rejectedFiles: FileRejection[]) => {
+    console.log('=== DROPZONE DEBUG ===')
+    console.log('Accepted files:', acceptedFiles)
+    console.log('Accepted files count:', acceptedFiles.length)
+    console.log('Rejected files:', rejectedFiles)
+    console.log('Rejected files count:', rejectedFiles.length)
+    
     if (acceptedFiles.length > 0) {
-      setSelectedFile(acceptedFiles[0])
+      const file = acceptedFiles[0]
+      console.log('File details:', {
+        name: file.name,
+        type: file.type,
+        size: file.size,
+        lastModified: file.lastModified
+      })
+      setSelectedFile(file)
       setUploadResult(null)
+      console.log('File selected successfully!')
+    } else if (rejectedFiles.length > 0) {
+      console.error('File rejected:', rejectedFiles[0])
+      const errors = rejectedFiles[0].errors.map(e => `${e.code}: ${e.message}`).join(', ')
+      console.error('Rejection reasons:', errors)
+      toast({
+        title: 'File Upload Error',
+        description: `File rejected: ${errors}`,
+        variant: 'destructive'
+      })
+    } else {
+      console.warn('No files accepted or rejected - this is unexpected')
     }
-  }, [])
+    console.log('=== END DROPZONE DEBUG ===')
+  }, [toast])
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
     multiple: false,
-    accept: {
-      'application/pdf': ['.pdf'],
-      'application/msword': ['.doc'],
-      'application/vnd.openxmlformats-officedocument.wordprocessingml.document': ['.docx'],
-      'application/vnd.ms-excel': ['.xls'],
-      'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet': ['.xlsx'],
-      'application/vnd.ms-powerpoint': ['.ppt'],
-      'application/vnd.openxmlformats-officedocument.presentationml.presentation': ['.pptx'],
-      'text/plain': ['.txt'],
-      'text/csv': ['.csv'],
-      'image/*': ['.jpg', '.jpeg', '.png', '.gif', '.webp', '.svg'],
-      'application/zip': ['.zip'],
-      'application/x-rar-compressed': ['.rar'],
-      'application/x-7z-compressed': ['.7z']
+    // Accept all files - no restrictions
+    accept: undefined,
+    maxSize: undefined, // Remove size limit for now to test
+    onDropRejected: (fileRejections) => {
+      console.log('File rejections:', fileRejections)
+      const rejection = fileRejections[0]
+      if (rejection) {
+        const errorMessage = rejection.errors.map(e => e.message).join(', ')
+        console.error('Rejection reason:', errorMessage)
+        toast({
+          title: 'File Upload Error',
+          description: errorMessage,
+          variant: 'destructive'
+        })
+      }
+    },
+    onError: (error) => {
+      console.error('Dropzone error:', error)
+      toast({
+        title: 'Dropzone Error',
+        description: error.message,
+        variant: 'destructive'
+      })
     }
   })
 
@@ -87,9 +119,6 @@ export function DocumentUpload({
       const formData = new FormData()
       formData.append('file', selectedFile)
       formData.append('clientId', clientId)
-      if (description) {
-        formData.append('description', description)
-      }
 
       // Simulate progress updates
       const progressInterval = setInterval(() => {
@@ -126,7 +155,6 @@ export function DocumentUpload({
       // Reset form
       setTimeout(() => {
         setSelectedFile(null)
-        setDescription('')
         setUploadProgress(0)
         setUploadResult(null)
       }, 2000)
@@ -162,7 +190,6 @@ export function DocumentUpload({
 
   const clearSelection = () => {
     setSelectedFile(null)
-    setDescription('')
     setUploadResult(null)
     setUploadProgress(0)
   }
@@ -178,6 +205,9 @@ export function DocumentUpload({
               ? 'border-blue-400 bg-blue-50' 
               : 'border-gray-300 hover:border-gray-400'
             }`}
+          onClick={() => {
+            console.log('Dropzone clicked!')
+          }}
         >
           <input {...getInputProps()} />
           <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
@@ -187,7 +217,7 @@ export function DocumentUpload({
             <div>
               <p className="text-lg mb-2">Drag & drop a document here, or click to select</p>
               <p className="text-sm text-gray-500">
-                Supported: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, images, TXT, CSV, ZIP, RAR, 7Z
+                Supported: <strong>PDF</strong>, DOC, DOCX, XLS, XLSX, PPT, PPTX, images, TXT, CSV, ZIP, RAR, 7Z
               </p>
               <p className="text-xs text-gray-400 mt-1">Maximum file size: 25MB</p>
             </div>
@@ -218,19 +248,6 @@ export function DocumentUpload({
             </Button>
           </div>
 
-          {/* Description Input */}
-          <div className="space-y-2">
-            <Label htmlFor="description">Description (Optional)</Label>
-            <Textarea
-              id="description"
-              placeholder="Add a description for this document..."
-              value={description}
-              onChange={(e) => setDescription(e.target.value)}
-              disabled={uploading}
-              className="resize-none"
-              rows={3}
-            />
-          </div>
 
           {/* Upload Progress */}
           {uploading && (

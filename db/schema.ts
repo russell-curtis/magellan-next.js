@@ -589,7 +589,17 @@ export const USER_ROLES = ['admin', 'advisor', 'junior'] as const
 export const CLIENT_STATUSES = ['prospect', 'active', 'approved', 'rejected'] as const
 export const APPLICATION_STATUSES = ['draft', 'submitted', 'under_review', 'approved', 'rejected'] as const
 export const TASK_PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const
-export const TASK_STATUSES = ['pending', 'in_progress', 'completed', 'cancelled'] as const
+export const TASK_STATUSES = ['pending', 'in_progress', 'completed', 'cancelled', 'blocked'] as const
+export const TASK_TYPES = [
+  'document_review', 
+  'client_communication', 
+  'application_preparation', 
+  'compliance_check', 
+  'due_diligence', 
+  'follow_up', 
+  'meeting', 
+  'other'
+] as const
 export const DOCUMENT_CATEGORIES = ['identity', 'financial', 'legal', 'medical'] as const
 export const COMMUNICATION_TYPES = ['email', 'call', 'meeting', 'message'] as const
 
@@ -598,5 +608,6 @@ export type ClientStatus = typeof CLIENT_STATUSES[number]
 export type ApplicationStatus = typeof APPLICATION_STATUSES[number]
 export type TaskPriority = typeof TASK_PRIORITIES[number]
 export type TaskStatus = typeof TASK_STATUSES[number]
+export type TaskType = typeof TASK_TYPES[number]
 export type DocumentCategory = typeof DOCUMENT_CATEGORIES[number]
 export type CommunicationType = typeof COMMUNICATION_TYPES[number]

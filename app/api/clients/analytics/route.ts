@@ -16,6 +16,10 @@ export async function GET() {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
+    if (error instanceof Error && error.message === 'User setup required') {
+      return NextResponse.json({ error: 'User setup required' }, { status: 403 })
+    }
+    
     return NextResponse.json(
       { error: 'Failed to fetch client analytics' },
       { status: 500 }

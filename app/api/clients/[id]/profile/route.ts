@@ -11,7 +11,7 @@ import {
   users, 
   crbiPrograms 
 } from '@/db/schema'
-import { eq, and, sql } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 
 export async function GET(
   request: NextRequest,
@@ -68,11 +68,22 @@ export async function GET(
     const clientApplications = await db
       .select({
         id: applications.id,
+        applicationNumber: applications.applicationNumber,
         status: applications.status,
+        priority: applications.priority,
         investmentAmount: applications.investmentAmount,
+        investmentType: applications.investmentType,
         submittedAt: applications.submittedAt,
         decisionExpectedAt: applications.decisionExpectedAt,
-        programName: sql<string>`concat(${crbiPrograms.countryName}, ' ', ${crbiPrograms.programType})`.as('programName')
+        decidedAt: applications.decidedAt,
+        notes: applications.notes,
+        internalNotes: applications.internalNotes,
+        programId: applications.programId,
+        programName: crbiPrograms.programName,
+        countryName: crbiPrograms.countryName,
+        programType: crbiPrograms.programType,
+        minInvestment: crbiPrograms.minInvestment,
+        processingTimeMonths: crbiPrograms.processingTimeMonths
       })
       .from(applications)
       .leftJoin(crbiPrograms, eq(applications.programId, crbiPrograms.id))
@@ -117,25 +128,66 @@ export async function GET(
     const sampleApplications = clientApplications.length === 0 ? [
       {
         id: 'sample-app-1',
+        applicationNumber: 'APP-SAMPLE-001',
         status: 'under_review',
+        priority: 'medium',
         investmentAmount: '500000',
+        investmentType: 'real_estate',
         submittedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
         decisionExpectedAt: new Date(Date.now() + 45 * 24 * 60 * 60 * 1000).toISOString(),
-        programName: 'Cyprus Citizenship'
+        decidedAt: null,
+        notes: 'Sample application for demonstration',
+        internalNotes: null,
+        program: {
+          id: 'sample-program-1',
+          countryName: 'Cyprus',
+          programName: 'Cyprus Permanent Residency',
+          programType: 'residency',
+          minInvestment: '300000',
+          processingTimeMonths: 3
+        }
       },
       {
         id: 'sample-app-2',
+        applicationNumber: 'APP-SAMPLE-002',
         status: 'approved',
+        priority: 'high',
         investmentAmount: '280000',
+        investmentType: 'real_estate',
         submittedAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
-        decisionExpectedAt: null,
-        programName: 'Portugal Residency'
+        decisionExpectedAt: new Date(Date.now() - 45 * 24 * 60 * 60 * 1000).toISOString(),
+        decidedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
+        notes: 'Successfully completed application',
+        internalNotes: 'Fast-tracked due to complete documentation',
+        program: {
+          id: 'sample-program-2',
+          countryName: 'Portugal',
+          programName: 'Portugal Golden Visa',
+          programType: 'residency',
+          minInvestment: '500000',
+          processingTimeMonths: 6
+        }
       }
     ] : clientApplications.map(app => ({
-      ...app,
+      id: app.id,
+      applicationNumber: app.applicationNumber,
+      status: app.status,
+      priority: app.priority,
       investmentAmount: app.investmentAmount?.toString() || null,
+      investmentType: app.investmentType,
       submittedAt: app.submittedAt?.toISOString() || null,
-      decisionExpectedAt: app.decisionExpectedAt?.toISOString() || null
+      decisionExpectedAt: app.decisionExpectedAt?.toISOString() || null,
+      decidedAt: app.decidedAt?.toISOString() || null,
+      notes: app.notes,
+      internalNotes: app.internalNotes,
+      program: {
+        id: app.programId,
+        countryName: app.countryName,
+        programName: app.programName,
+        programType: app.programType,
+        minInvestment: app.minInvestment,
+        processingTimeMonths: app.processingTimeMonths
+      }
     }))
 
     const sampleDocuments = clientDocuments.length === 0 ? [

@@ -9,7 +9,6 @@ import { ClientFilters } from './_components/client-filters'
 import { ClientTable } from './_components/client-table'
 import { ClientEditModal } from './_components/client-edit-modal'
 import { ClientCreateModal } from './_components/client-create-modal'
-import { ClientProfileModal } from './_components/client-profile-modal'
 import { useToast } from '@/hooks/use-toast'
 
 interface ClientWithAdvisor {
@@ -68,8 +67,6 @@ export default function ClientsPage() {
   const [editingClient, setEditingClient] = useState<ClientWithAdvisor | null>(null)
   const [editModalOpen, setEditModalOpen] = useState(false)
   const [createModalOpen, setCreateModalOpen] = useState(false)
-  const [profileClientId, setProfileClientId] = useState<string | null>(null)
-  const [profileModalOpen, setProfileModalOpen] = useState(false)
   const [filters, setFilters] = useState({
     search: '',
     status: '',
@@ -88,15 +85,16 @@ export default function ClientsPage() {
       setLoading(true)
       const params = new URLSearchParams()
       
-      if (filters.search) params.append('search', filters.search)
-      if (filters.status) params.append('status', filters.status)
-      if (filters.advisorId) params.append('advisorId', filters.advisorId)
+      if (filters.search && filters.search.trim()) params.append('search', filters.search.trim())
+      if (filters.status && filters.status !== '' && filters.status !== 'all') params.append('status', filters.status)
+      if (filters.advisorId && filters.advisorId !== '' && filters.advisorId !== 'all') params.append('advisorId', filters.advisorId)
       params.append('page', filters.page.toString())
       
       const response = await fetch(`/api/clients?${params}`)
       
       if (!response.ok) {
-        throw new Error('Failed to fetch clients')
+        const errorData = await response.json().catch(() => ({ error: 'Failed to fetch clients' }))
+        throw new Error(errorData.error || 'Failed to fetch clients')
       }
       
       const data = await response.json()
@@ -107,11 +105,24 @@ export default function ClientsPage() {
       })
     } catch (error) {
       console.error('Error fetching clients:', error)
-      toast({
-        title: 'Error',
-        description: 'Failed to fetch clients',
-        variant: 'destructive'
-      })
+      
+      if (error instanceof Error) {
+        const errorMessage = error.message.includes('User setup required') 
+          ? 'Please complete your account setup first'
+          : 'Failed to fetch clients'
+          
+        toast({
+          title: 'Error',
+          description: errorMessage,
+          variant: 'destructive'
+        })
+      } else {
+        toast({
+          title: 'Error',
+          description: 'Failed to fetch clients',
+          variant: 'destructive'
+        })
+      }
     } finally {
       setLoading(false)
     }
@@ -174,10 +185,6 @@ export default function ClientsPage() {
     setEditModalOpen(true)
   }
 
-  const handleViewProfile = (clientId: string) => {
-    setProfileClientId(clientId)
-    setProfileModalOpen(true)
-  }
 
   const handleDelete = async (clientId: string) => {
     try {
@@ -261,7 +268,6 @@ export default function ClientsPage() {
               clients={clients}
               onEdit={handleEdit}
               onDelete={handleDelete}
-              onViewProfile={handleViewProfile}
             />
           )}
           
@@ -314,11 +320,6 @@ export default function ClientsPage() {
         advisors={advisors}
       />
 
-        <ClientProfileModal
-          clientId={profileClientId}
-          open={profileModalOpen}
-          onOpenChange={setProfileModalOpen}
-        />
       </div>
     </section>
   )

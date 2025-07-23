@@ -67,13 +67,10 @@ interface ClientWithFullDetails {
     fileSize: number
     status: string
     complianceStatus: string
-    description?: string
     uploadedAt: string
-    documentType?: {
-      id: string
-      name: string
-      category: string
-    }
+    documentType: string
+    createdAt: string
+    updatedAt: string
   }>
   communications?: Array<{
     id: string
@@ -591,13 +588,8 @@ export function ClientProfileModal({
                         <div className="flex-1 min-w-0">
                           <div className="font-medium truncate">{doc.filename}</div>
                           <div className="text-sm text-muted-foreground">
-                            {doc.documentType?.name || 'Document'} • {formatFileSize(doc.fileSize)} • Uploaded {formatDate(doc.uploadedAt)}
+                            {doc.documentType || 'Document'} • {formatFileSize(doc.fileSize)} • Uploaded {formatDate(doc.uploadedAt)}
                           </div>
-                          {doc.description && (
-                            <div className="text-sm text-gray-600 mt-1">
-                              {doc.description}
-                            </div>
-                          )}
                         </div>
                       </div>
                       <div className="flex items-center space-x-2">

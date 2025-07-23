@@ -26,6 +26,10 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
+    if (error instanceof Error && error.message === 'User setup required') {
+      return NextResponse.json({ error: 'User setup required' }, { status: 403 })
+    }
+    
     return NextResponse.json(
       { error: 'Failed to fetch client' },
       { status: 500 }
@@ -66,6 +70,10 @@ export async function PUT(request: NextRequest, { params }: RouteContext) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
+    if (error instanceof Error && error.message === 'User setup required') {
+      return NextResponse.json({ error: 'User setup required' }, { status: 403 })
+    }
+    
     return NextResponse.json(
       { error: 'Failed to update client' },
       { status: 500 }
@@ -90,6 +98,10 @@ export async function DELETE(request: NextRequest, { params }: RouteContext) {
     
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    
+    if (error instanceof Error && error.message === 'User setup required') {
+      return NextResponse.json({ error: 'User setup required' }, { status: 403 })
     }
     
     return NextResponse.json(

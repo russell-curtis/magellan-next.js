@@ -1,5 +1,6 @@
 'use client'
 
+import { useRouter } from 'next/navigation'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -36,10 +37,10 @@ interface ClientTableProps {
   clients: ClientWithAdvisor[]
   onEdit: (client: ClientWithAdvisor) => void
   onDelete: (clientId: string) => void
-  onViewProfile?: (clientId: string) => void
 }
 
-export function ClientTable({ clients, onEdit, onDelete, onViewProfile }: ClientTableProps) {
+export function ClientTable({ clients, onEdit, onDelete }: ClientTableProps) {
+  const router = useRouter()
   if (clients.length === 0) {
     return (
       <div className="rounded-md border">
@@ -116,7 +117,7 @@ export function ClientTable({ clients, onEdit, onDelete, onViewProfile }: Client
                     </Button>
                   </DropdownMenuTrigger>
                   <DropdownMenuContent align="end">
-                    <DropdownMenuItem onClick={() => onViewProfile?.(client.id)}>
+                    <DropdownMenuItem onClick={() => router.push(`/dashboard/clients/${client.id}`)}>
                       <Eye className="mr-2 h-4 w-4" />
                       View Profile
                     </DropdownMenuItem>

@@ -37,6 +37,10 @@ export async function GET(request: NextRequest) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
     
+    if (error instanceof Error && error.message === 'User setup required') {
+      return NextResponse.json({ error: 'User setup required' }, { status: 403 })
+    }
+    
     return NextResponse.json(
       { error: 'Failed to fetch clients' },
       { status: 500 }
@@ -70,6 +74,10 @@ export async function POST(request: NextRequest) {
     
     if (error instanceof Error && error.message === 'Unauthorized') {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+    }
+    
+    if (error instanceof Error && error.message === 'User setup required') {
+      return NextResponse.json({ error: 'User setup required' }, { status: 403 })
     }
     
     return NextResponse.json(

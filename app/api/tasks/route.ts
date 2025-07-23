@@ -1,44 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { auth } from '@/lib/auth'
-import { headers } from 'next/headers'
+import { requireAuth } from '@/lib/auth-utils'
 import { db } from '@/db/drizzle'
 import { tasks, clients, applications, users, crbiPrograms } from '@/db/schema'
 import { eq, desc, sql } from 'drizzle-orm'
 import { z } from 'zod'
-
-const createTaskSchema = z.object({
-  title: z.string().min(1, 'Title is required'),
-  description: z.string().optional(),
-  priority: z.enum(['low', 'medium', 'high', 'urgent']).default('medium'),
-  dueDate: z.string(),
-  assignedToId: z.string().optional(),
-  clientId: z.string().optional(),
-  applicationId: z.string().optional(),
-  taskType: z.string().optional()
-})
+import { createTaskSchema } from '@/lib/validations/tasks'
 
 export async function GET() {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    })
-
-    if (!session?.session?.userId || !session.user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-    }
-
-    // Get user's firm
-    const [currentUser] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, session.session.userId))
-      .limit(1)
-
-    if (!currentUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
-
-    const firmId = currentUser.firmId
+    const user = await requireAuth()
+    
+    // TODO: Implement filtering in future iteration
+    // const url = new URL(req.url)
+    // const filters = taskFilterSchema.parse(Object.fromEntries(url.searchParams))
 
     // Get tasks with related data
     const tasksWithRelations = await db
@@ -63,7 +37,7 @@ export async function GET() {
       .leftJoin(users, eq(tasks.assignedToId, users.id))
       .leftJoin(applications, eq(tasks.applicationId, applications.id))
       .leftJoin(crbiPrograms, eq(applications.programId, crbiPrograms.id))
-      .where(eq(tasks.firmId, firmId))
+      .where(eq(tasks.firmId, user.firmId))
       .orderBy(desc(tasks.createdAt))
       .limit(50)
 
@@ -105,7 +79,7 @@ export async function GET() {
           taskType: 'document_collection',
           createdAt: new Date().toISOString(),
           client: { id: 'sample-client-1', name: 'Emma Brown' },
-          assignedTo: { id: currentUser.id, name: currentUser.name, email: currentUser.email },
+          assignedTo: { id: user.id, name: user.name, email: user.email },
           application: { id: 'sample-app-1', programName: 'Cyprus Citizenship' }
         },
         {
@@ -118,7 +92,7 @@ export async function GET() {
           taskType: 'compliance_review',
           createdAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
           client: { id: 'sample-client-2', name: 'John Smith' },
-          assignedTo: { id: currentUser.id, name: currentUser.name, email: currentUser.email },
+          assignedTo: { id: user.id, name: user.name, email: user.email },
           application: { id: 'sample-app-2', programName: 'Portugal Residency' }
         },
         {
@@ -144,7 +118,7 @@ export async function GET() {
           taskType: 'application_submission',
           createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
           client: { id: 'sample-client-4', name: 'David Chen' },
-          assignedTo: { id: currentUser.id, name: currentUser.name, email: currentUser.email },
+          assignedTo: { id: user.id, name: user.name, email: user.email },
           application: { id: 'sample-app-4', programName: 'Cyprus Residency' }
         },
         {
@@ -157,7 +131,7 @@ export async function GET() {
           taskType: 'client_meeting',
           createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
           client: { id: 'sample-client-5', name: 'Sarah Wilson' },
-          assignedTo: { id: currentUser.id, name: currentUser.name, email: currentUser.email },
+          assignedTo: { id: user.id, name: user.name, email: user.email },
           application: null
         }
       ]
@@ -178,23 +152,7 @@ export async function GET() {
 
 export async function POST(request: NextRequest) {
   try {
-    const session = await auth.api.getSession({
-      headers: await headers(),
-    })
-
-    if (!session?.session?.userId || !session.user) {
-      return NextResponse.json({ error: 'Not authenticated' }, { status: 401 })
-    }
-
-    const [currentUser] = await db
-      .select()
-      .from(users)
-      .where(eq(users.id, session.session.userId))
-      .limit(1)
-
-    if (!currentUser) {
-      return NextResponse.json({ error: 'User not found' }, { status: 404 })
-    }
+    const user = await requireAuth()
 
     const body = await request.json()
     const validatedData = createTaskSchema.parse(body)
@@ -202,17 +160,20 @@ export async function POST(request: NextRequest) {
     const [newTask] = await db
       .insert(tasks)
       .values({
-        firmId: currentUser.firmId,
-        createdById: currentUser.id,
-        assignedToId: validatedData.assignedToId || currentUser.id,
+        firmId: user.firmId,
+        createdById: user.id,
+        assignedToId: validatedData.assignedToId || user.id,
         clientId: validatedData.clientId || null,
         applicationId: validatedData.applicationId || null,
         title: validatedData.title,
         description: validatedData.description || null,
         priority: validatedData.priority,
         status: 'pending',
-        dueDate: new Date(validatedData.dueDate),
-        taskType: validatedData.taskType || null
+        dueDate: validatedData.dueDate ? new Date(validatedData.dueDate) : null,
+        reminderAt: validatedData.reminderAt ? new Date(validatedData.reminderAt) : null,
+        taskType: validatedData.taskType || null,
+        createdAt: new Date(),
+        updatedAt: new Date()
       })
       .returning()
 
