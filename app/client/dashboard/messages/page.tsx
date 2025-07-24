@@ -3,11 +3,18 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { useClientAuth } from '@/lib/client-auth-context'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Avatar, AvatarFallback, AvatarInitials } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
-import { MessageSquare, User, Clock } from 'lucide-react'
+import { OnlineStatusAvatar } from '@/components/ui/status-indicator'
+import { PriorityBadge } from '@/components/ui/priority-badge'
+import { ConversationNotificationBadge, ConversationItemWrapper } from '@/components/ui/conversation-notification-badge'
+import { formatConversationDate, isRecent } from '@/lib/date-utils'
+import { useConversationUnreadCounts } from '@/hooks/use-conversation-unread-counts'
+import { MessageSquare, User, Clock, Search, X, Archive, ArchiveRestore } from 'lucide-react'
 import { MessagingInterface } from '@/components/messaging/messaging-interface'
 
 interface Conversation {
@@ -29,6 +36,24 @@ export default function ClientMessagesPage() {
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [selectedConversation, setSelectedConversation] = useState<string | null>(null)
   const [loadingConversations, setLoadingConversations] = useState(false)
+  
+  // Enhanced filtering state
+  const [searchTerm, setSearchTerm] = useState('')
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [priorityFilter, setPriorityFilter] = useState('all')
+
+  // Get conversation IDs for unread count tracking
+  const conversationIds = conversations.map(conv => conv.id)
+  
+  // Individual conversation unread counts
+  const {
+    unreadCounts,
+    markConversationAsRead,
+  } = useConversationUnreadCounts({
+    userType: 'client',
+    conversationIds,
+    pollingInterval: 5000, // Poll every 5 seconds for conversation-level updates
+  })
 
   useEffect(() => {
     if (!isLoading && !client) {
@@ -42,7 +67,25 @@ export default function ClientMessagesPage() {
     setLoadingConversations(true)
     try {
       const token = localStorage.getItem('clientToken')
-      const response = await fetch('/api/conversations?userType=client', {
+      
+      // Build query parameters
+      const params = new URLSearchParams({
+        userType: 'client'
+      })
+      
+      if (statusFilter !== 'all') {
+        params.append('status', statusFilter)
+      }
+      
+      if (priorityFilter !== 'all') {
+        params.append('priority', priorityFilter)
+      }
+      
+      if (searchTerm.trim()) {
+        params.append('search', searchTerm.trim())
+      }
+
+      const response = await fetch(`/api/conversations?${params.toString()}`, {
         headers: token ? {
           'Authorization': `Bearer ${token}`,
         } : {},
@@ -53,8 +96,8 @@ export default function ClientMessagesPage() {
         setConversations(data.conversations || [])
         
         // Auto-select first conversation if available and none selected
-        if (data.conversations?.length > 0 && !selectedConversation) {
-          setSelectedConversation(data.conversations[0].id)
+        if (data.conversations?.length > 0) {
+          setSelectedConversation(prev => prev || data.conversations[0].id)
         }
       }
     } catch (error) {
@@ -62,13 +105,63 @@ export default function ClientMessagesPage() {
     } finally {
       setLoadingConversations(false)
     }
-  }, [client, selectedConversation])
+  }, [client, statusFilter, priorityFilter, searchTerm])
+
+  // Debounced search effect
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      fetchConversations()
+    }, 300) // 300ms debounce
+
+    return () => clearTimeout(timeoutId)
+  }, [searchTerm, statusFilter, priorityFilter, fetchConversations])
 
   useEffect(() => {
     if (client) {
       fetchConversations()
     }
   }, [client, fetchConversations])
+
+  // Archive/Unarchive conversation (clients can only archive/restore, not close)
+  const handleArchiveConversation = useCallback(async (conversationId: string, newStatus: 'active' | 'archived') => {
+    try {
+      const token = localStorage.getItem('clientToken')
+      const response = await fetch(`/api/conversations/${conversationId}/status`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
+        },
+        body: JSON.stringify({
+          status: newStatus,
+          userType: 'client',
+        }),
+      })
+
+      if (response.ok) {
+        // Refresh conversations to reflect the change
+        await fetchConversations()
+        
+        // Show success message
+        console.log(`Conversation ${newStatus === 'archived' ? 'archived' : 'restored'} successfully`)
+      } else {
+        const errorData = await response.json()
+        console.error('Error updating conversation status:', errorData)
+      }
+    } catch (error) {
+      console.error('Error updating conversation status:', error)
+    }
+  }, [fetchConversations])
+
+  // Handle conversation selection with read marking
+  const handleConversationSelect = useCallback(async (conversationId: string) => {
+    setSelectedConversation(conversationId)
+    
+    // Mark conversation as read if it has unread messages
+    if (unreadCounts[conversationId] > 0) {
+      await markConversationAsRead(conversationId)
+    }
+  }, [unreadCounts, markConversationAsRead])
 
   if (isLoading) {
     return (
@@ -86,93 +179,225 @@ export default function ClientMessagesPage() {
   }
 
   return (
-    <div className="flex h-full bg-gray-50">
+    <div className="flex h-screen bg-gray-50">
       {/* Sidebar - Conversations List */}
       <div className="w-[400px] bg-white border-r flex flex-col">
         {/* Header */}
         <div className="p-4 border-b">
-          <h2 className="text-lg font-semibold">Messages</h2>
-          <p className="text-sm text-gray-600 mt-1">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-lg font-semibold">Messages</h2>
+          </div>
+          <p className="text-sm text-gray-600 mb-3">
             Conversations with your advisory team
           </p>
+
+          {/* Search */}
+          <div className="relative mb-3">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+            <Input
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              placeholder="Search conversations and messages..."
+              className="pl-10 pr-10"
+            />
+            {searchTerm && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-gray-100"
+                onClick={() => setSearchTerm('')}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
+
+          {/* Filters */}
+          <div className="flex items-center space-x-2">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="flex-1 min-w-0 text-gray-900 font-medium">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="archived">Archived</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+              <SelectTrigger className="flex-1 min-w-0 text-gray-900 font-medium">
+                <SelectValue placeholder="All Priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Priority</SelectItem>
+                <SelectItem value="urgent">Urgent</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="normal">Normal</SelectItem>
+                <SelectItem value="low">Low</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </div>
+
+        {/* Search Results Header */}
+        {searchTerm && (
+          <div className="px-4 py-2 bg-blue-50 border-b">
+            <p className="text-xs text-blue-700">
+              {loadingConversations ? 'Searching...' : `${conversations.length} result${conversations.length !== 1 ? 's' : ''} for "${searchTerm}"`}
+            </p>
+          </div>
+        )}
 
         {/* Conversations List */}
         <div className="flex-1 overflow-y-auto">
           {loadingConversations ? (
             <div className="p-4 text-center text-gray-500">
-              Loading conversations...
+              {searchTerm ? 'Searching conversations and messages...' : 'Loading conversations...'}
             </div>
           ) : conversations.length === 0 ? (
             <div className="p-4 text-center text-gray-500">
               <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
-              <p className="text-sm">No conversations yet</p>
-              <p className="text-xs text-gray-400 mt-1">
-                Your advisor will start a conversation with you
+              <p className="text-sm">
+                {searchTerm || statusFilter !== 'all' || priorityFilter !== 'all' 
+                  ? 'No conversations match your search or filters' 
+                  : 'No conversations yet'
+                }
               </p>
+              {searchTerm && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Try different keywords or check spelling
+                </p>
+              )}
+              {!searchTerm && statusFilter === 'all' && priorityFilter === 'all' && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Your advisor will start a conversation with you
+                </p>
+              )}
             </div>
           ) : (
             <div className="space-y-0">
-              {conversations.map((conversation, index) => (
-                <div key={conversation.id}>
-                  <button
-                    onClick={() => setSelectedConversation(conversation.id)}
-                    className={`w-full p-4 text-left hover:bg-gray-50 transition-colors ${
-                      selectedConversation === conversation.id ? 'bg-blue-50 border-r-2 border-blue-500' : ''
-                    }`}
-                  >
-                    <div className="flex items-start space-x-3">
-                      <Avatar>
-                        <AvatarFallback>
-                          <AvatarInitials 
-                            name={conversation.assignedAdvisor ? conversation.assignedAdvisor.name : 'A'} 
-                          />
-                        </AvatarFallback>
-                      </Avatar>
-                      
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-start justify-between">
-                          <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-medium text-gray-900 truncate">
-                              {conversation.title}
-                            </h4>
-                            {conversation.assignedAdvisor && (
-                              <p className="text-xs text-gray-600 mt-1 flex items-center">
-                                <User className="h-3 w-3 mr-1" />
-                                {conversation.assignedAdvisor.name}
-                              </p>
-                            )}
-                            {conversation.lastMessageAt && (
-                              <p className="text-xs text-gray-500 mt-1 flex items-center">
-                                <Clock className="h-3 w-3 mr-1" />
-                                {new Date(conversation.lastMessageAt).toLocaleDateString()}
-                              </p>
-                            )}
+              {conversations.map((conversation, index) => {
+                const conversationUnreadCount = unreadCounts[conversation.id] || 0
+                const hasUnread = conversationUnreadCount > 0
+                const isConversationSelected = selectedConversation === conversation.id
+                
+                return (
+                  <div key={conversation.id} className="relative">
+                    <ConversationItemWrapper
+                      hasUnread={hasUnread}
+                      isSelected={isConversationSelected}
+                      className="relative group"
+                    >
+                      <div className="flex items-center">
+                        <button
+                          onClick={() => handleConversationSelect(conversation.id)}
+                          className={`flex-1 p-4 text-left hover:bg-gray-50 transition-colors ${
+                            isConversationSelected 
+                              ? 'bg-blue-50' 
+                              : hasUnread ? 'bg-blue-50/30' : ''
+                          }`}
+                        >
+                          <div className="flex items-start space-x-3">
+                            <OnlineStatusAvatar status="offline">
+                              <Avatar className="h-10 w-10">
+                                <AvatarFallback className="bg-gradient-to-br from-blue-100 to-blue-200">
+                                  <AvatarInitials 
+                                    name={conversation.assignedAdvisor ? conversation.assignedAdvisor.name : 'A'}
+                                    className="text-blue-700 font-semibold"
+                                  />
+                                </AvatarFallback>
+                              </Avatar>
+                            </OnlineStatusAvatar>
+                            
+                            <div className="flex-1 min-w-0">
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center space-x-2 mb-1">
+                                    <h4 className={`text-sm truncate ${
+                                      hasUnread ? 'font-semibold text-gray-900' : 'font-semibold text-gray-900'
+                                    }`}>
+                                      {conversation.title}
+                                    </h4>
+                                    {conversation.lastMessageAt && isRecent(conversation.lastMessageAt) && (
+                                      <div className="h-1.5 w-1.5 bg-blue-500 rounded-full animate-pulse" />
+                                    )}
+                                  </div>
+                                  {conversation.assignedAdvisor && (
+                                    <p className="text-xs text-gray-600 mb-1 flex items-center">
+                                      <User className="h-3 w-3 mr-1" />
+                                      {conversation.assignedAdvisor.name}
+                                    </p>
+                                  )}
+                                  {conversation.lastMessageAt && (
+                                    <p className="text-xs text-gray-500 flex items-center">
+                                      <Clock className="h-3 w-3 mr-1" />
+                                      {formatConversationDate(conversation.lastMessageAt)}
+                                    </p>
+                                  )}
+                                </div>
+                                
+                                <div className="flex flex-col items-end space-y-1 ml-2">
+                                  <div className="flex items-center space-x-1">
+                                    <Badge
+                                      variant={conversation.status === 'active' ? 'default' : 'secondary'}
+                                      className={`text-xs ${
+                                        conversation.status === 'active' 
+                                          ? 'bg-green-100 text-green-800 border-green-200' 
+                                          : conversation.status === 'archived'
+                                          ? 'bg-orange-100 text-orange-800 border-orange-200'
+                                          : ''
+                                      }`}
+                                    >
+                                      {conversation.status}
+                                    </Badge>
+                                    {hasUnread && (
+                                      <ConversationNotificationBadge
+                                        unreadCount={conversationUnreadCount}
+                                        variant="minimal"
+                                        isSelected={isConversationSelected}
+                                      />
+                                    )}
+                                  </div>
+                                  <PriorityBadge 
+                                    priority={conversation.priority as 'low' | 'normal' | 'high' | 'urgent'}
+                                    variant="minimal"
+                                    showIcon={false}
+                                  />
+                                </div>
+                              </div>
+                            </div>
                           </div>
-                          
-                          <div className="flex flex-col items-end space-y-1 ml-2">
-                            <Badge
-                              variant={conversation.status === 'active' ? 'default' : 'secondary'}
-                              className="text-xs"
-                            >
-                              {conversation.status}
-                            </Badge>
-                            {conversation.priority !== 'normal' && (
-                              <Badge
-                                variant={conversation.priority === 'urgent' ? 'destructive' : 'outline'}
-                                className="text-xs"
-                              >
-                                {conversation.priority}
-                              </Badge>
+                        </button>
+                        
+                        {/* Archive/Unarchive Button */}
+                        <div className="p-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 hover:bg-gray-100 transition-opacity"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              handleArchiveConversation(
+                                conversation.id, 
+                                conversation.status === 'archived' ? 'active' : 'archived'
+                              )
+                            }}
+                            title={conversation.status === 'archived' ? 'Restore conversation' : 'Archive conversation'}
+                          >
+                            {conversation.status === 'archived' ? (
+                              <ArchiveRestore className="h-4 w-4" />
+                            ) : (
+                              <Archive className="h-4 w-4" />
                             )}
-                          </div>
+                          </Button>
                         </div>
                       </div>
-                    </div>
-                  </button>
-                  {index < conversations.length - 1 && <Separator />}
-                </div>
-              ))}
+                    </ConversationItemWrapper>
+                    {index < conversations.length - 1 && <Separator />}
+                  </div>
+                )
+              })}
             </div>
           )}
         </div>
