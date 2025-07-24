@@ -703,7 +703,7 @@ export default function MessagesPage() {
                                     <Button
                                       variant="ghost"
                                       size="sm"
-                                      className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 hover:bg-gray-100 transition-opacity"
+                                      className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 hover:bg-gray-200 hover:text-gray-700 transition-all duration-200"
                                       onClick={(e) => {
                                         e.stopPropagation()
                                         handleArchiveConversation(
@@ -835,7 +835,7 @@ export default function MessagesPage() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 hover:bg-gray-100 transition-opacity"
+                            className="h-8 w-8 p-0 opacity-0 group-hover:opacity-100 hover:bg-gray-200 hover:text-gray-700 transition-all duration-200"
                             onClick={(e) => {
                               e.stopPropagation()
                               handleArchiveConversation(

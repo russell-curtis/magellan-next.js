@@ -115,12 +115,9 @@
         @apply outline-none transition-all duration-200;
     }
     
-    /* Only show focus rings for keyboard navigation */
-    button:focus-visible,
-    input:focus-visible,
-    select:focus-visible,
-    textarea:focus-visible {
-        @apply ring-2 ring-primary/50 ring-offset-2;
+    /* Remove the prominent blue focus ring that appears on keyboard navigation */
+    *:focus-visible {
+        outline: none;
     }
     
     button {
