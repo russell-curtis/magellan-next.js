@@ -7,10 +7,15 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
+import { Input } from '@/components/ui/input'
+import { Label } from '@/components/ui/label'
+import { Alert, AlertDescription } from '@/components/ui/alert'
 import { DocumentUpload } from '../../_components/document-upload'
 import { DocumentList } from '../../_components/document-list'
 import { ApplicationCreateModal } from '../_components/application-create-modal'
 import { ApplicationStatusWorkflow } from '../_components/application-status-workflow'
+import CommunicationHub from '../../_components/communication-hub'
 import { 
   User, 
   Phone, 
@@ -25,7 +30,8 @@ import {
   Edit,
   Plus,
   X,
-  ArrowLeft
+  ArrowLeft,
+  Key
 } from 'lucide-react'
 
 interface ClientWithFullDetails {
@@ -112,6 +118,17 @@ export default function ClientProfilePage() {
   const [activeTab, setActiveTab] = useState('overview')
   const [showUpload, setShowUpload] = useState(false)
   const [showApplicationModal, setShowApplicationModal] = useState(false)
+  
+  // Portal invitation state
+  const [showInvitationDialog, setShowInvitationDialog] = useState(false)
+  const [invitationEmail, setInvitationEmail] = useState('')
+  const [invitationPassword, setInvitationPassword] = useState('')
+  const [isInviting, setIsInviting] = useState(false)
+  const [invitationResult, setInvitationResult] = useState<{
+    success: boolean
+    message: string
+    loginUrl?: string
+  } | null>(null)
 
   const fetchClientProfile = useCallback(async () => {
     if (!clientId) return
@@ -197,6 +214,55 @@ export default function ClientProfilePage() {
       currency: 'USD',
       minimumFractionDigits: 0,
     }).format(parseFloat(amount))
+  }
+
+  const sendPortalInvitation = async () => {
+    if (!client || !invitationEmail.trim() || !invitationPassword.trim()) {
+      return
+    }
+
+    setIsInviting(true)
+    setInvitationResult(null)
+
+    try {
+      const response = await fetch('/api/client-auth/invite', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          clientId: client.id,
+          email: invitationEmail.trim(),
+          password: invitationPassword.trim(),
+          sendEmail: false,
+        }),
+      })
+
+      const data = await response.json()
+
+      if (response.ok) {
+        setInvitationResult({
+          success: true,
+          message: 'Portal invitation sent successfully!',
+          loginUrl: `${window.location.origin}/client/login`,
+        })
+        // Reset form
+        setInvitationEmail('')
+        setInvitationPassword('')
+      } else {
+        setInvitationResult({
+          success: false,
+          message: data.error || 'Failed to send invitation',
+        })
+      }
+    } catch {
+      setInvitationResult({
+        success: false,
+        message: 'An error occurred while sending invitation',
+      })
+    } finally {
+      setIsInviting(false)
+    }
   }
 
   const formatDate = (dateString: string | null) => {
@@ -305,6 +371,91 @@ export default function ClientProfilePage() {
             <MessageSquare className="h-4 w-4 mr-2" />
             Send Message
           </Button>
+          
+          <Dialog open={showInvitationDialog} onOpenChange={setShowInvitationDialog}>
+            <DialogTrigger asChild>
+              <Button variant="outline">
+                <Key className="h-4 w-4 mr-2" />
+                Send Portal Invitation
+              </Button>
+            </DialogTrigger>
+            <DialogContent>
+              <DialogHeader>
+                <DialogTitle>Send Client Portal Invitation</DialogTitle>
+                <DialogDescription>
+                  Create login credentials for {client.firstName} {client.lastName} to access the client portal.
+                </DialogDescription>
+              </DialogHeader>
+
+              <div className="space-y-4">
+                {invitationResult && (
+                  <Alert variant={invitationResult.success ? "default" : "destructive"}>
+                    <AlertDescription>
+                      {invitationResult.message}
+                      {invitationResult.success && invitationResult.loginUrl && (
+                        <div className="mt-2">
+                          <p className="font-medium">Client can login at:</p>
+                          <code className="text-sm bg-gray-100 px-2 py-1 rounded">
+                            {invitationResult.loginUrl}
+                          </code>
+                          <div className="mt-2 text-sm">
+                            <p><strong>Email:</strong> {invitationEmail}</p>
+                            <p><strong>Password:</strong> {invitationPassword}</p>
+                            <p className="text-amber-600 mt-1">⚠️ Please share these credentials securely with your client</p>
+                          </div>
+                        </div>
+                      )}
+                    </AlertDescription>
+                  </Alert>
+                )}
+
+                <div className="space-y-2">
+                  <Label htmlFor="invitation-email">Client Email</Label>
+                  <Input
+                    id="invitation-email"
+                    type="email"
+                    value={invitationEmail}
+                    onChange={(e) => setInvitationEmail(e.target.value)}
+                    placeholder={client.email || "Enter client's email"}
+                  />
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="invitation-password">Temporary Password</Label>
+                  <Input
+                    id="invitation-password"
+                    type="password"
+                    value={invitationPassword}
+                    onChange={(e) => setInvitationPassword(e.target.value)}
+                    placeholder="Create a temporary password"
+                  />
+                  <p className="text-xs text-gray-500">
+                    Client should change this password after first login
+                  </p>
+                </div>
+
+                <div className="flex justify-end space-x-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setShowInvitationDialog(false)
+                      setInvitationResult(null)
+                      setInvitationEmail('')
+                      setInvitationPassword('')
+                    }}
+                  >
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={sendPortalInvitation}
+                    disabled={!invitationEmail.trim() || !invitationPassword.trim() || isInviting}
+                  >
+                    {isInviting ? 'Sending...' : 'Send Invitation'}
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
           <Button 
             variant="ghost" 
             size="sm"
@@ -593,49 +744,10 @@ export default function ClientProfilePage() {
 
         {/* Communications Tab */}
         <TabsContent value="communications" className="mt-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">Communications</h2>
-            <Button>
-              <Plus className="h-4 w-4 mr-2" />
-              New Message
-            </Button>
-          </div>
-          
-          {client.communications && client.communications.length > 0 ? (
-            <div className="space-y-4">
-              {client.communications.map((comm) => (
-                <Card key={comm.id}>
-                  <CardContent className="pt-4">
-                    <div className="flex items-start justify-between mb-2">
-                      <div className="flex items-center space-x-2">
-                        <MessageSquare className="h-5 w-5 text-muted-foreground" />
-                        <span className="font-medium text-lg">{comm.subject}</span>
-                        <Badge variant="outline">
-                          {comm.type}
-                        </Badge>
-                      </div>
-                      <span className="text-sm text-muted-foreground">
-                        {formatDate(comm.occurredAt)}
-                      </span>
-                    </div>
-                    <p className="text-sm text-gray-700 ml-7">{comm.content}</p>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <MessageSquare className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-muted-foreground mb-2">No communications yet</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Start a conversation with this client
-              </p>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Send First Message
-              </Button>
-            </div>
-          )}
+          <CommunicationHub 
+            clientId={clientId} 
+            showClientFilter={false}
+          />
         </TabsContent>
 
         {/* Tasks Tab */}

@@ -50,4 +50,19 @@ function AvatarFallback({
   )
 }
 
-export { Avatar, AvatarImage, AvatarFallback }
+function AvatarInitials({ name, className }: { name: string; className?: string }) {
+  const initials = name
+    .split(' ')
+    .map(word => word.charAt(0))
+    .join('')
+    .toUpperCase()
+    .slice(0, 2)
+
+  return (
+    <span className={cn("text-sm font-medium", className)}>
+      {initials}
+    </span>
+  )
+}
+
+export { Avatar, AvatarImage, AvatarFallback, AvatarInitials }

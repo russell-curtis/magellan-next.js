@@ -1,20 +1,16 @@
 "use client";
 
-import UserProfile from "@/components/user-profile";
 import { MenuNotificationBadge } from "@/components/ui/notification-badge";
 import { useUnreadMessageCount } from "@/hooks/use-unread-message-count";
 import clsx from "clsx";
 import {
-  Banknote,
   HomeIcon,
   LucideIcon,
-  MessageCircleIcon,
   MessageSquare,
-  Settings,
-  Upload,
-  Users,
-  CheckSquare,
   FileText,
+  User,
+  HelpCircle,
+  Briefcase,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -25,56 +21,46 @@ interface NavItem {
   icon: LucideIcon;
 }
 
-const navItems: NavItem[] = [
+const clientNavItems: NavItem[] = [
   {
     label: "Overview",
-    href: "/dashboard",
+    href: "/client/dashboard",
     icon: HomeIcon,
   },
   {
-    label: "Clients",
-    href: "/dashboard/clients",
-    icon: Users,
-  },
-  {
-    label: "Tasks",
-    href: "/dashboard/tasks",
-    icon: CheckSquare,
-  },
-  {
-    label: "Documents",
-    href: "/dashboard/documents",
-    icon: FileText,
-  },
-  {
-    label: "Communications",
-    href: "/dashboard/communications",
-    icon: MessageCircleIcon,
-  },
-  {
     label: "Messages",
-    href: "/dashboard/messages",
+    href: "/client/dashboard/messages",
     icon: MessageSquare,
   },
   {
-    label: "Upload",
-    href: "/dashboard/upload",
-    icon: Upload,
+    label: "My Applications",
+    href: "/client/dashboard/applications",
+    icon: Briefcase,
   },
   {
-    label: "Payment Gated",
-    href: "/dashboard/payment",
-    icon: Banknote,
+    label: "Documents",
+    href: "/client/dashboard/documents",
+    icon: FileText,
+  },
+  {
+    label: "Profile",
+    href: "/client/dashboard/profile",
+    icon: User,
+  },
+  {
+    label: "Support",
+    href: "/client/dashboard/support",
+    icon: HelpCircle,
   },
 ];
 
-export default function DashboardSideBar() {
+export default function ClientDashboardSideBar() {
   const pathname = usePathname();
   const router = useRouter();
   
-  // Get unread message count for advisor
+  // Get unread message count for client
   const { unreadCount } = useUnreadMessageCount({
-    userType: 'advisor',
+    userType: 'client',
     pollingInterval: 10000, // Poll every 10 seconds
   });
 
@@ -85,22 +71,22 @@ export default function DashboardSideBar() {
           <Link
             prefetch={true}
             className="flex items-center font-semibold hover:cursor-pointer"
-            href="/"
+            href="/client/dashboard"
           >
-            <span>Magellan CRBI</span>
+            <span>Client Portal</span>
           </Link>
         </div>
 
         <nav className="flex flex-col h-full justify-between items-start w-full space-y-1">
           <div className="w-full space-y-1 p-4">
-            {navItems.map((item) => (
+            {clientNavItems.map((item) => (
               <div
                 key={item.href}
                 onClick={() => router.push(item.href)}
                 className={clsx(
                   "flex items-center gap-2 w-full rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:cursor-pointer",
-                  item.href === "/dashboard/messages" && "relative", // Add relative positioning for Messages item
-                  (pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href)))
+                  item.href === "/client/dashboard/messages" && "relative", // Add relative positioning for Messages item
+                  (pathname === item.href || (item.href !== "/client/dashboard" && pathname.startsWith(item.href)))
                     ? "bg-primary/10 text-primary hover:bg-primary/20"
                     : "text-muted-foreground hover:bg-muted hover:text-foreground",
                 )}
@@ -108,7 +94,7 @@ export default function DashboardSideBar() {
                 <item.icon className="h-4 w-4" />
                 {item.label}
                 {/* Show notification badge for Messages menu item */}
-                {item.href === "/dashboard/messages" && (
+                {item.href === "/client/dashboard/messages" && (
                   <MenuNotificationBadge 
                     count={unreadCount}
                     pulse={unreadCount > 0}
@@ -118,22 +104,11 @@ export default function DashboardSideBar() {
             ))}
           </div>
 
-          <div className="flex flex-col gap-2 w-full">
-            <div className="px-4">
-              <div
-                onClick={() => router.push("/dashboard/settings")}
-                className={clsx(
-                  "flex items-center w-full gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:cursor-pointer",
-                  pathname === "/dashboard/settings"
-                    ? "bg-primary/10 text-primary hover:bg-primary/20"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
-              >
-                <Settings className="h-4 w-4" />
-                Settings
-              </div>
+          <div className="p-4 w-full">
+            <div className="text-xs text-muted-foreground border-t pt-4">
+              <p className="mb-1">Magellan CRBI</p>
+              <p>Canadian Residency by Investment</p>
             </div>
-            <UserProfile />
           </div>
         </nav>
       </div>

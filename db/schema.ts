@@ -384,6 +384,148 @@ export const communications = pgTable('communications', {
   clientIdx: index('communications_client_idx').on(table.clientId),
 }))
 
+// Client Authentication (separate from advisor auth)
+export const clientAuth = pgTable('client_auth', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  clientId: uuid('client_id').notNull().references(() => clients.id, { onDelete: 'cascade' }),
+  email: varchar('email', { length: 255 }).notNull().unique(),
+  passwordHash: text('password_hash').notNull(),
+  isActive: boolean('is_active').default(true),
+  lastLogin: timestamp('last_login'),  
+  invitedAt: timestamp('invited_at').defaultNow(),
+  invitedById: text('invited_by_id').references(() => users.id),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => ({
+  emailIdx: index('client_auth_email_idx').on(table.email),
+  clientIdIdx: index('client_auth_client_id_idx').on(table.clientId),
+}))
+
+// Conversations (chat threads between clients and advisors)
+export const conversations = pgTable('conversations', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  firmId: uuid('firm_id').notNull().references(() => firms.id, { onDelete: 'cascade' }),
+  clientId: uuid('client_id').notNull().references(() => clients.id, { onDelete: 'cascade' }),
+  applicationId: uuid('application_id').references(() => applications.id, { onDelete: 'set null' }),
+  
+  // Conversation details
+  title: varchar('title', { length: 255 }),
+  status: varchar('status', { length: 50 }).default('active'), // active, archived, closed
+  priority: varchar('priority', { length: 20 }).default('normal'), // low, normal, high, urgent
+  
+  // Participants
+  assignedAdvisorId: text('assigned_advisor_id').references(() => users.id),
+  
+  // Metadata
+  lastMessageAt: timestamp('last_message_at'),
+  lastMessageId: uuid('last_message_id'),
+  
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => ({
+  firmIdIdx: index('conversations_firm_id_idx').on(table.firmId),
+  clientIdIdx: index('conversations_client_id_idx').on(table.clientId),
+  statusIdx: index('conversations_status_idx').on(table.status),
+  lastMessageIdx: index('conversations_last_message_idx').on(table.lastMessageAt),
+}))
+
+// Messages within conversations
+export const messages = pgTable('messages', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  conversationId: uuid('conversation_id').notNull().references(() => conversations.id, { onDelete: 'cascade' }),
+  
+  // Message content
+  content: text('content').notNull(),
+  messageType: varchar('message_type', { length: 50 }).default('text'), // text, file, system
+  
+  // Sender info (can be either advisor or client)
+  senderType: varchar('sender_type', { length: 20 }).notNull(), // advisor, client, system
+  senderAdvisorId: text('sender_advisor_id').references(() => users.id),
+  senderClientId: uuid('sender_client_id').references(() => clients.id),
+  
+  // File attachments (if messageType is 'file')
+  fileUrl: text('file_url'),
+  fileName: varchar('file_name', { length: 255 }),
+  fileSize: bigint('file_size', { mode: 'number' }),
+  contentType: varchar('content_type', { length: 100 }),
+  
+  // Message status
+  isEdited: boolean('is_edited').default(false),
+  editedAt: timestamp('edited_at'),
+  isDeleted: boolean('is_deleted').default(false),
+  deletedAt: timestamp('deleted_at'),
+  
+  // Metadata
+  metadata: jsonb('metadata'), // For storing additional message data
+  
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => ({
+  conversationIdx: index('messages_conversation_idx').on(table.conversationId, table.createdAt),
+  senderAdvisorIdx: index('messages_sender_advisor_idx').on(table.senderAdvisorId),
+  senderClientIdx: index('messages_sender_client_idx').on(table.senderClientId),
+  typeIdx: index('messages_type_idx').on(table.messageType),
+}))
+
+// Message participants and read status
+export const messageParticipants = pgTable('message_participants', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  conversationId: uuid('conversation_id').notNull().references(() => conversations.id, { onDelete: 'cascade' }),
+  
+  // Participant (can be advisor or client)
+  participantType: varchar('participant_type', { length: 20 }).notNull(), // advisor, client
+  advisorId: text('advisor_id').references(() => users.id),
+  clientId: uuid('client_id').references(() => clients.id),
+  
+  // Read status
+  lastReadAt: timestamp('last_read_at'),
+  lastReadMessageId: uuid('last_read_message_id').references(() => messages.id),
+  
+  // Participant status
+  isActive: boolean('is_active').default(true),
+  joinedAt: timestamp('joined_at').defaultNow(),
+  leftAt: timestamp('left_at'),
+  
+}, (table) => ({
+  conversationParticipantIdx: index('participants_conversation_idx').on(table.conversationId),
+  advisorIdx: index('participants_advisor_idx').on(table.advisorId),
+  clientIdx: index('participants_client_idx').on(table.clientId),
+  // Unique constraint to prevent duplicate participants
+  uniqueAdvisorParticipant: index('unique_advisor_participant').on(table.conversationId, table.advisorId),
+  uniqueClientParticipant: index('unique_client_participant').on(table.conversationId, table.clientId),
+}))
+
+// Message notifications and delivery status
+export const messageNotifications = pgTable('message_notifications', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  messageId: uuid('message_id').notNull().references(() => messages.id, { onDelete: 'cascade' }),
+  
+  // Recipient (can be advisor or client)
+  recipientType: varchar('recipient_type', { length: 20 }).notNull(), // advisor, client
+  recipientAdvisorId: text('recipient_advisor_id').references(() => users.id),
+  recipientClientId: uuid('recipient_client_id').references(() => clients.id),
+  
+  // Notification status
+  isRead: boolean('is_read').default(false),
+  readAt: timestamp('read_at'),
+  
+  // Delivery status
+  isDelivered: boolean('is_delivered').default(false),
+  deliveredAt: timestamp('delivered_at'),
+  
+  // Notification preferences
+  notificationSent: boolean('notification_sent').default(false),
+  notificationSentAt: timestamp('notification_sent_at'),
+  notificationType: varchar('notification_type', { length: 50 }), // browser, email, push
+  
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => ({
+  messageIdx: index('notifications_message_idx').on(table.messageId),
+  recipientAdvisorIdx: index('notifications_recipient_advisor_idx').on(table.recipientAdvisorId),
+  recipientClientIdx: index('notifications_recipient_client_idx').on(table.recipientClientId),
+  unreadIdx: index('notifications_unread_idx').on(table.isRead, table.createdAt),
+}))
+
 // ============================================================================
 // RELATIONS
 // ============================================================================
@@ -396,6 +538,7 @@ export const firmsRelations = relations(firms, ({ many }) => ({
   tasks: many(tasks),
   activityLogs: many(activityLogs),
   communications: many(communications),
+  conversations: many(conversations),
 }))
 
 export const usersRelations = relations(users, ({ one, many }) => ({
@@ -410,6 +553,11 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   documentsUploaded: many(documents),
   activityLogs: many(activityLogs),
   communications: many(communications),
+  conversationsAssigned: many(conversations),
+  messagesSent: many(messages, { relationName: "MessagesSentByAdvisor" }),
+  messageParticipants: many(messageParticipants, { relationName: "AdvisorParticipants" }),
+  messageNotifications: many(messageNotifications, { relationName: "AdvisorNotifications" }),
+  clientInvitations: many(clientAuth, { relationName: "ClientInvitations" }),
 }))
 
 export const clientsRelations = relations(clients, ({ one, many }) => ({
@@ -426,6 +574,11 @@ export const clientsRelations = relations(clients, ({ one, many }) => ({
   tasks: many(tasks),
   activityLogs: many(activityLogs),
   communications: many(communications),
+  conversations: many(conversations),
+  messagesSent: many(messages, { relationName: "MessagesSentByClient" }),
+  messageParticipants: many(messageParticipants, { relationName: "ClientParticipants" }),
+  messageNotifications: many(messageNotifications, { relationName: "ClientNotifications" }),
+  auth: one(clientAuth),
 }))
 
 export const crbiProgramsRelations = relations(crbiPrograms, ({ many }) => ({
@@ -454,6 +607,7 @@ export const applicationsRelations = relations(applications, ({ one, many }) => 
   tasks: many(tasks),
   activityLogs: many(activityLogs),
   communications: many(communications),
+  conversations: many(conversations),
 }))
 
 export const applicationMilestonesRelations = relations(applicationMilestones, ({ one }) => ({
@@ -545,6 +699,93 @@ export const communicationsRelations = relations(communications, ({ one }) => ({
   }),
 }))
 
+// Client Auth Relations
+export const clientAuthRelations = relations(clientAuth, ({ one }) => ({
+  client: one(clients, {
+    fields: [clientAuth.clientId],
+    references: [clients.id],
+  }),
+  invitedBy: one(users, {
+    fields: [clientAuth.invitedById],
+    references: [users.id],
+  }),
+}))
+
+// Conversations Relations
+export const conversationsRelations = relations(conversations, ({ one, many }) => ({
+  firm: one(firms, {
+    fields: [conversations.firmId],
+    references: [firms.id],
+  }),
+  client: one(clients, {
+    fields: [conversations.clientId],
+    references: [clients.id],
+  }),
+  application: one(applications, {
+    fields: [conversations.applicationId],
+    references: [applications.id],
+  }),
+  assignedAdvisor: one(users, {
+    fields: [conversations.assignedAdvisorId],
+    references: [users.id],
+  }),
+  messages: many(messages),
+  participants: many(messageParticipants),
+}))
+
+// Messages Relations
+export const messagesRelations = relations(messages, ({ one, many }) => ({
+  conversation: one(conversations, {
+    fields: [messages.conversationId],
+    references: [conversations.id],
+  }),
+  senderAdvisor: one(users, {
+    fields: [messages.senderAdvisorId],
+    references: [users.id],
+  }),
+  senderClient: one(clients, {
+    fields: [messages.senderClientId],
+    references: [clients.id],
+  }),
+  notifications: many(messageNotifications),
+}))
+
+// Message Participants Relations
+export const messageParticipantsRelations = relations(messageParticipants, ({ one }) => ({
+  conversation: one(conversations, {
+    fields: [messageParticipants.conversationId],
+    references: [conversations.id],
+  }),
+  advisor: one(users, {
+    fields: [messageParticipants.advisorId],
+    references: [users.id],
+  }),
+  client: one(clients, {
+    fields: [messageParticipants.clientId],
+    references: [clients.id],
+  }),
+  lastReadMessage: one(messages, {
+    fields: [messageParticipants.lastReadMessageId],
+    references: [messages.id],
+  }),
+}))
+
+// Message Notifications Relations
+export const messageNotificationsRelations = relations(messageNotifications, ({ one }) => ({
+  message: one(messages, {
+    fields: [messageNotifications.messageId],
+    references: [messages.id],
+  }),
+  recipientAdvisor: one(users, {
+    fields: [messageNotifications.recipientAdvisorId],
+    references: [users.id],
+  }),
+  recipientClient: one(clients, {
+    fields: [messageNotifications.recipientClientId],
+    references: [clients.id],
+  }),
+}))
+
 // ============================================================================
 // TYPE EXPORTS
 // ============================================================================
@@ -582,6 +823,21 @@ export type NewActivityLog = typeof activityLogs.$inferInsert
 export type Communication = typeof communications.$inferSelect
 export type NewCommunication = typeof communications.$inferInsert
 
+export type ClientAuth = typeof clientAuth.$inferSelect
+export type NewClientAuth = typeof clientAuth.$inferInsert
+
+export type Conversation = typeof conversations.$inferSelect
+export type NewConversation = typeof conversations.$inferInsert
+
+export type Message = typeof messages.$inferSelect
+export type NewMessage = typeof messages.$inferInsert
+
+export type MessageParticipant = typeof messageParticipants.$inferSelect
+export type NewMessageParticipant = typeof messageParticipants.$inferInsert
+
+export type MessageNotification = typeof messageNotifications.$inferSelect
+export type NewMessageNotification = typeof messageNotifications.$inferInsert
+
 // ============================================================================
 // ENUMS & CONSTANTS
 // ============================================================================
@@ -604,6 +860,15 @@ export const TASK_TYPES = [
 export const DOCUMENT_CATEGORIES = ['identity', 'financial', 'legal', 'medical'] as const
 export const COMMUNICATION_TYPES = ['email', 'call', 'meeting', 'message'] as const
 
+// Messaging System Constants
+export const CONVERSATION_STATUSES = ['active', 'archived', 'closed'] as const
+export const CONVERSATION_PRIORITIES = ['low', 'normal', 'high', 'urgent'] as const
+export const MESSAGE_TYPES = ['text', 'file', 'system'] as const
+export const SENDER_TYPES = ['advisor', 'client', 'system'] as const
+export const PARTICIPANT_TYPES = ['advisor', 'client'] as const
+export const RECIPIENT_TYPES = ['advisor', 'client'] as const
+export const NOTIFICATION_TYPES = ['browser', 'email', 'push'] as const
+
 export type UserRole = typeof USER_ROLES[number]
 export type ClientStatus = typeof CLIENT_STATUSES[number]
 export type ApplicationStatus = typeof APPLICATION_STATUSES[number]
@@ -612,3 +877,12 @@ export type TaskStatus = typeof TASK_STATUSES[number]
 export type TaskType = typeof TASK_TYPES[number]
 export type DocumentCategory = typeof DOCUMENT_CATEGORIES[number]
 export type CommunicationType = typeof COMMUNICATION_TYPES[number]
+
+// Messaging System Types
+export type ConversationStatus = typeof CONVERSATION_STATUSES[number]
+export type ConversationPriority = typeof CONVERSATION_PRIORITIES[number]
+export type MessageType = typeof MESSAGE_TYPES[number]
+export type SenderType = typeof SENDER_TYPES[number]
+export type ParticipantType = typeof PARTICIPANT_TYPES[number]
+export type RecipientType = typeof RECIPIENT_TYPES[number]
+export type NotificationType = typeof NOTIFICATION_TYPES[number]
