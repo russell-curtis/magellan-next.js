@@ -82,6 +82,13 @@ export default function TasksPage() {
   }
 
   const handleTaskDelete = async (taskId: string) => {
+    // Check if this is a sample task
+    if (taskId.startsWith('sample-')) {
+      // For sample tasks, just show demo message
+      console.log('Demo mode: Cannot delete sample tasks')
+      return
+    }
+
     try {
       const response = await fetch(`/api/tasks/${taskId}`, {
         method: 'DELETE'

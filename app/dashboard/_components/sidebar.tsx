@@ -10,6 +10,8 @@ import {
   Settings,
   Upload,
   Users,
+  CheckSquare,
+  FileText,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -30,6 +32,16 @@ const navItems: NavItem[] = [
     label: "Clients",
     href: "/dashboard/clients",
     icon: Users,
+  },
+  {
+    label: "Tasks",
+    href: "/dashboard/tasks",
+    icon: CheckSquare,
+  },
+  {
+    label: "Documents",
+    href: "/dashboard/documents",
+    icon: FileText,
   },
   {
     label: "Chat",

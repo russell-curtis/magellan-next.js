@@ -263,6 +263,7 @@ export const documents: any = pgTable('documents', {
   // Categorization
   documentType: varchar('document_type', { length: 100 }).notNull(),
   category: varchar('category', { length: 50 }),
+  description: text('description'),
   
   // Status & Compliance
   status: varchar('status', { length: 50 }).default('uploaded'),

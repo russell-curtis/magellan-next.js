@@ -3,6 +3,11 @@ import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth-utils";
 import { db } from "@/db/drizzle";
 import { documents } from "@/db/schema";
+import { 
+  documentUploadSchema, 
+  ALLOWED_FILE_TYPES, 
+  MAX_FILE_SIZE
+} from "@/lib/validations/documents";
 
 export const config = {
   api: { bodyParser: false },
@@ -16,46 +21,30 @@ export async function POST(req: NextRequest) {
     // Parse the form data
     const formData = await req.formData();
     const file = formData.get("file") as File | null;
-    const clientId = formData.get("clientId") as string | null;
+    
+    // Extract and validate metadata
+    const uploadData = documentUploadSchema.parse({
+      clientId: formData.get("clientId") || null,
+      applicationId: formData.get("applicationId") || null,
+      documentType: formData.get("documentType") || 'other',
+      category: formData.get("category") || null,
+      description: formData.get("description") || null
+    });
 
     if (!file) {
       return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
-    if (!clientId) {
-      return NextResponse.json({ error: "Client ID required" }, { status: 400 });
-    }
-
-    // Validate file type - allow common document types
-    const allowedMimeTypes = [
-      // Images
-      "image/jpeg", "image/jpg", "image/png", "image/gif", "image/webp", "image/svg+xml",
-      // Documents  
-      "application/pdf",
-      "application/msword",
-      "application/vnd.openxmlformats-officedocument.wordprocessingml.document", // .docx
-      "application/vnd.ms-excel",
-      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", // .xlsx
-      "application/vnd.ms-powerpoint",
-      "application/vnd.openxmlformats-officedocument.presentationml.presentation", // .pptx
-      "text/plain",
-      "text/csv",
-      // Archives
-      "application/zip",
-      "application/x-rar-compressed",
-      "application/x-7z-compressed"
-    ];
-
-    if (!allowedMimeTypes.includes(file.type)) {
+    // Validate file type
+    if (!ALLOWED_FILE_TYPES.includes(file.type as typeof ALLOWED_FILE_TYPES[number])) {
       return NextResponse.json(
-        { error: "Invalid file type. Supported types: PDF, DOC, DOCX, XLS, XLSX, PPT, PPTX, images, TXT, CSV, ZIP, RAR, 7Z" },
+        { error: "Invalid file type. Supported types: PDF, DOC, DOCX, XLS, XLSX, images, TXT, CSV" },
         { status: 400 }
       );
     }
 
-    // Validate file size - limit to 25MB for documents
-    const maxSizeInBytes = 25 * 1024 * 1024; // 25MB
-    if (file.size > maxSizeInBytes) {
+    // Validate file size
+    if (file.size > MAX_FILE_SIZE) {
       return NextResponse.json(
         { error: "File too large. Maximum size allowed is 25MB." },
         { status: 400 }
@@ -76,60 +65,40 @@ export async function POST(req: NextRequest) {
     // Upload the file to R2 storage
     const url = await uploadImageAssets(buffer, filename);
 
-    // Get document type - determine from file extension
-    const extension = fileExt.toLowerCase();
-    const typeMapping: Record<string, string> = {
-      'pdf': 'PDF Document',
-      'doc': 'Word Document', 
-      'docx': 'Word Document',
-      'xls': 'Excel Spreadsheet',
-      'xlsx': 'Excel Spreadsheet',
-      'ppt': 'PowerPoint Presentation',
-      'pptx': 'PowerPoint Presentation',
-      'jpg': 'Image',
-      'jpeg': 'Image',
-      'png': 'Image',
-      'gif': 'Image',
-      'webp': 'Image',
-      'svg': 'Image',
-      'txt': 'Text Document',
-      'csv': 'CSV File',
-      'zip': 'Archive',
-      'rar': 'Archive',
-      '7z': 'Archive'
-    };
-    
-    const docType = typeMapping[extension] || 'Other Document';
 
     // Save document metadata to database  
     const documentId = crypto.randomUUID();
     await db.insert(documents).values({
       id: documentId,
-      clientId: clientId,
-      applicationId: null, // Can be set later if needed
+      clientId: uploadData.clientId,
+      applicationId: uploadData.applicationId,
       firmId: user.firmId,
-      filename: originalName,
+      filename: filename,
       originalFilename: originalName,
       fileUrl: url,
       fileSize: file.size,
       contentType: file.type,
-      documentType: docType,
+      documentType: uploadData.documentType,
+      category: uploadData.category,
+      description: uploadData.description,
       status: 'uploaded',
       complianceStatus: 'pending_review',
       uploadedById: user.id,
       createdAt: new Date(),
       updatedAt: new Date()
     });
+    
+    // Create the document response object
+    const newDocument = {
+      id: documentId,
+      filename: filename,
+      fileUrl: url,
+      contentType: file.type,
+      fileSize: file.size
+    };
 
     return NextResponse.json({ 
-      url,
-      document: {
-        id: documentId,
-        filename: originalName,
-        fileUrl: url,
-        contentType: file.type,
-        fileSize: file.size
-      },
+      document: newDocument,
       success: true 
     });
     

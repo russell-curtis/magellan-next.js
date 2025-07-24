@@ -30,6 +30,8 @@ export async function GET(
         fileSize: documents.fileSize,
         contentType: documents.contentType,
         documentType: documents.documentType,
+        category: documents.category,
+        description: documents.description,
         status: documents.status,
         complianceStatus: documents.complianceStatus,
         uploadedAt: documents.createdAt,

@@ -1,9 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db/drizzle'
-import { applications } from '@/db/schema'
+import { applications, clients, crbiPrograms } from '@/db/schema'
 import { createApplicationSchema } from '@/lib/validations/applications'
 import { requireAuth } from '@/lib/auth-utils'
-import { eq } from 'drizzle-orm'
+import { eq, and } from 'drizzle-orm'
 
 export async function POST(req: NextRequest) {
   try {
@@ -59,13 +59,46 @@ export async function GET(req: NextRequest) {
     const url = new URL(req.url)
     const clientId = url.searchParams.get('clientId')
     
-    let query = db.select().from(applications).where(eq(applications.firmId, user.firmId))
+    const whereConditions = [eq(applications.firmId, user.firmId)]
     
     if (clientId) {
-      query = query.where(eq(applications.clientId, clientId))
+      whereConditions.push(eq(applications.clientId, clientId))
     }
     
-    const results = await query
+    const results = await db
+      .select({
+        id: applications.id,
+        applicationNumber: applications.applicationNumber,
+        status: applications.status,
+        priority: applications.priority,
+        investmentAmount: applications.investmentAmount,
+        investmentType: applications.investmentType,
+        submittedAt: applications.submittedAt,
+        decisionExpectedAt: applications.decisionExpectedAt,
+        decidedAt: applications.decidedAt,
+        notes: applications.notes,
+        internalNotes: applications.internalNotes,
+        createdAt: applications.createdAt,
+        updatedAt: applications.updatedAt,
+        client: {
+          id: clients.id,
+          firstName: clients.firstName,
+          lastName: clients.lastName,
+          email: clients.email
+        },
+        program: {
+          id: crbiPrograms.id,
+          countryName: crbiPrograms.countryName,
+          programName: crbiPrograms.programName,
+          programType: crbiPrograms.programType,
+          minInvestment: crbiPrograms.minInvestment,
+          processingTimeMonths: crbiPrograms.processingTimeMonths
+        }
+      })
+      .from(applications)
+      .leftJoin(clients, eq(applications.clientId, clients.id))
+      .leftJoin(crbiPrograms, eq(applications.programId, crbiPrograms.id))
+      .where(and(...whereConditions))
     
     return NextResponse.json({ applications: results })
 

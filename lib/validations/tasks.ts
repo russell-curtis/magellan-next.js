@@ -19,15 +19,15 @@ export const createTaskSchema = z.object({
     z.string().nullable().optional()
   ),
   assignedToId: z.preprocess(
-    (val) => val === null || val === undefined || val === '' ? null : val,
+    (val) => val === null || val === undefined || val === '' || val === 'unassigned' ? null : val,
     z.string().nullable().optional()
   ),
   clientId: z.preprocess(
-    (val) => val === null || val === undefined || val === '' ? null : val,
+    (val) => val === null || val === undefined || val === '' || val === 'none' ? null : val,
     z.string().uuid().nullable().optional()
   ),
   applicationId: z.preprocess(
-    (val) => val === null || val === undefined || val === '' ? null : val,
+    (val) => val === null || val === undefined || val === '' || val === 'none' ? null : val,
     z.string().uuid().nullable().optional()
   )
 })
@@ -50,7 +50,7 @@ export const updateTaskSchema = z.object({
     z.string().nullable().optional()
   ),
   assignedToId: z.preprocess(
-    (val) => val === null || val === undefined || val === '' ? null : val,
+    (val) => val === null || val === undefined || val === '' || val === 'unassigned' ? null : val,
     z.string().nullable().optional()
   ),
   completedAt: z.preprocess(

@@ -123,6 +123,21 @@ export function TaskStatusCard({
 
     setUpdating(true)
     try {
+      // Check if this is a sample task (starts with 'sample-')
+      if (task.id.startsWith('sample-')) {
+        // For sample tasks, just show success without API call
+        toast({
+          title: 'Demo Mode',
+          description: 'This is sample data. Create a real task to enable status updates.',
+          variant: 'default'
+        })
+        
+        setNewStatus('')
+        setStatusNotes('')
+        setShowStatusUpdate(false)
+        return
+      }
+
       const updateData: Record<string, unknown> = {
         status: newStatus
       }
@@ -217,6 +232,11 @@ export function TaskStatusCard({
               {isDueToday && !isOverdue && (
                 <Badge className="bg-orange-100 text-orange-800" variant="outline">
                   Due Today
+                </Badge>
+              )}
+              {task.id.startsWith('sample-') && (
+                <Badge className="bg-blue-100 text-blue-800" variant="outline">
+                  Demo
                 </Badge>
               )}
             </div>

@@ -88,9 +88,9 @@ export function TaskCreateModal({
     taskType: 'other' as TaskType,
     dueDate: '',
     reminderAt: '',
-    assignedToId: '',
-    clientId: preselectedClientId || '',
-    applicationId: preselectedApplicationId || ''
+    assignedToId: 'unassigned',
+    clientId: preselectedClientId || 'none',
+    applicationId: preselectedApplicationId || 'none'
   })
 
   const { toast } = useToast()
@@ -134,9 +134,13 @@ export function TaskCreateModal({
   useEffect(() => {
     if (preselectedClientId) {
       setFormData(prev => ({ ...prev, clientId: preselectedClientId }))
+    } else {
+      setFormData(prev => ({ ...prev, clientId: 'none' }))
     }
     if (preselectedApplicationId) {
       setFormData(prev => ({ ...prev, applicationId: preselectedApplicationId }))
+    } else {
+      setFormData(prev => ({ ...prev, applicationId: 'none' }))
     }
   }, [preselectedClientId, preselectedApplicationId])
 
@@ -192,9 +196,9 @@ export function TaskCreateModal({
           ...formData,
           dueDate: formData.dueDate || null,
           reminderAt: formData.reminderAt || null,
-          assignedToId: formData.assignedToId || null,
-          clientId: formData.clientId || null,
-          applicationId: formData.applicationId || null
+          assignedToId: formData.assignedToId === 'unassigned' ? null : formData.assignedToId || null,
+          clientId: formData.clientId === 'none' ? null : formData.clientId || null,
+          applicationId: formData.applicationId === 'none' ? null : formData.applicationId || null
         })
       })
 
@@ -218,9 +222,9 @@ export function TaskCreateModal({
         taskType: 'other',
         dueDate: '',
         reminderAt: '',
-        assignedToId: '',
-        clientId: preselectedClientId || '',
-        applicationId: preselectedApplicationId || ''
+        assignedToId: 'unassigned',
+        clientId: preselectedClientId || 'none',
+        applicationId: preselectedApplicationId || 'none'
       })
 
       onTaskCreated?.()
@@ -246,9 +250,9 @@ export function TaskCreateModal({
       taskType: 'other',
       dueDate: '',
       reminderAt: '',
-      assignedToId: '',
-      clientId: preselectedClientId || '',
-      applicationId: preselectedApplicationId || ''
+      assignedToId: 'unassigned',
+      clientId: preselectedClientId || 'none',
+      applicationId: preselectedApplicationId || 'none'
     })
   }
 
@@ -355,7 +359,7 @@ export function TaskCreateModal({
                 <SelectValue placeholder="Select team member" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">Unassigned</SelectItem>
+                <SelectItem value="unassigned">Unassigned</SelectItem>
                 {users.map((user) => (
                   <SelectItem key={user.id} value={user.id}>
                     <div className="flex items-center space-x-2">
@@ -408,7 +412,7 @@ export function TaskCreateModal({
                   <SelectValue placeholder="Select client (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No client</SelectItem>
+                  <SelectItem value="none">No client</SelectItem>
                   {clients.map((client) => (
                     <SelectItem key={client.id} value={client.id}>
                       {client.firstName} {client.lastName}
@@ -434,7 +438,7 @@ export function TaskCreateModal({
                   <SelectValue placeholder="Select application (optional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">No application</SelectItem>
+                  <SelectItem value="none">No application</SelectItem>
                   {applications.map((app) => (
                     <SelectItem key={app.id} value={app.id}>
                       {app.applicationNumber} - {app.program?.countryName}

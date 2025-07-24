@@ -3,6 +3,7 @@ import { requireAuth } from '@/lib/auth-utils'
 import { db } from '@/db/drizzle'
 import { tasks } from '@/db/schema'
 import { eq, and } from 'drizzle-orm'
+import { z } from 'zod'
 import { updateTaskSchema } from '@/lib/validations/tasks'
 
 export async function PUT(
@@ -15,6 +16,9 @@ export async function PUT(
     const params = await props.params
     const taskId = params.id
     const body = await request.json()
+    
+    // Only validate and process fields that are actually present in the request
+    const fieldsToUpdate = Object.keys(body)
     const validatedData = updateTaskSchema.parse(body)
 
     // Check if task exists and belongs to user's firm
@@ -31,16 +35,34 @@ export async function PUT(
       return NextResponse.json({ error: 'Task not found' }, { status: 404 })
     }
 
-    // Prepare update data
+    // Prepare update data - only include fields that were actually sent in the request
     const updateData: Record<string, unknown> = {}
     
-    if (validatedData.title !== undefined) updateData.title = validatedData.title
-    if (validatedData.description !== undefined) updateData.description = validatedData.description
-    if (validatedData.priority !== undefined) updateData.priority = validatedData.priority
-    if (validatedData.status !== undefined) updateData.status = validatedData.status
-    if (validatedData.dueDate !== undefined) updateData.dueDate = new Date(validatedData.dueDate)
-    if (validatedData.assignedToId !== undefined) updateData.assignedToId = validatedData.assignedToId
-    if (validatedData.completedAt !== undefined) {
+    if (fieldsToUpdate.includes('title') && validatedData.title !== undefined) {
+      updateData.title = validatedData.title
+    }
+    if (fieldsToUpdate.includes('description') && validatedData.description !== undefined) {
+      updateData.description = validatedData.description
+    }
+    if (fieldsToUpdate.includes('priority') && validatedData.priority !== undefined) {
+      updateData.priority = validatedData.priority
+    }
+    if (fieldsToUpdate.includes('status') && validatedData.status !== undefined) {
+      updateData.status = validatedData.status
+    }
+    if (fieldsToUpdate.includes('dueDate') && validatedData.dueDate !== undefined) {
+      updateData.dueDate = validatedData.dueDate ? new Date(validatedData.dueDate) : null
+    }
+    if (fieldsToUpdate.includes('reminderAt') && validatedData.reminderAt !== undefined) {
+      updateData.reminderAt = validatedData.reminderAt ? new Date(validatedData.reminderAt) : null
+    }
+    if (fieldsToUpdate.includes('taskType') && validatedData.taskType !== undefined) {
+      updateData.taskType = validatedData.taskType
+    }
+    if (fieldsToUpdate.includes('assignedToId') && validatedData.assignedToId !== undefined) {
+      updateData.assignedToId = validatedData.assignedToId
+    }
+    if (fieldsToUpdate.includes('completedAt') && validatedData.completedAt !== undefined) {
       updateData.completedAt = validatedData.completedAt ? new Date(validatedData.completedAt) : null
     }
 

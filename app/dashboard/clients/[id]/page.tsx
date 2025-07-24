@@ -7,8 +7,8 @@ import { Badge } from '@/components/ui/badge'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback } from '@/components/ui/avatar'
-import { DocumentPreview } from '@/components/ui/document-preview'
-import { DocumentUpload } from '@/components/ui/document-upload'
+import { DocumentUpload } from '../../_components/document-upload'
+import { DocumentList } from '../../_components/document-list'
 import { ApplicationCreateModal } from '../_components/application-create-modal'
 import { ApplicationStatusWorkflow } from '../_components/application-status-workflow'
 import { 
@@ -24,10 +24,6 @@ import {
   AlertTriangle,
   Edit,
   Plus,
-  Download,
-  Eye,
-  Upload,
-  Trash2,
   X,
   ArrowLeft
 } from 'lucide-react'
@@ -114,16 +110,6 @@ export default function ClientProfilePage() {
   const [client, setClient] = useState<ClientWithFullDetails | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
-  const [previewDocument, setPreviewDocument] = useState<{
-    id: string
-    filename: string
-    fileUrl: string
-    contentType: string
-    fileSize: number
-    status: string
-    description?: string
-  } | null>(null)
-  const [previewOpen, setPreviewOpen] = useState(false)
   const [showUpload, setShowUpload] = useState(false)
   const [showApplicationModal, setShowApplicationModal] = useState(false)
 
@@ -161,22 +147,6 @@ export default function ClientProfilePage() {
     }
   }, [clientId])
 
-  const refreshDocuments = useCallback(async () => {
-    if (!clientId) return
-    
-    try {
-      const response = await fetch(`/api/clients/${clientId}/documents`)
-      if (response.ok) {
-        const data = await response.json()
-        setClient(prev => prev ? {
-          ...prev,
-          documents: data.documents || []
-        } : null)
-      }
-    } catch (error) {
-      console.error('Error refreshing documents:', error)
-    }
-  }, [clientId])
 
   useEffect(() => {
     if (clientId) {
@@ -184,38 +154,10 @@ export default function ClientProfilePage() {
     }
   }, [clientId, fetchClientProfile])
 
-  const handleDocumentPreview = (document: {
-    id: string
-    filename: string
-    fileUrl: string
-    contentType: string
-    fileSize: number
-    status: string
-    description?: string
-  }) => {
-    setPreviewDocument(document)
-    setPreviewOpen(true)
-  }
-
-  const handleDocumentDelete = async (documentId: string) => {
-    if (!clientId) return
-    
-    try {
-      const response = await fetch(`/api/clients/${clientId}/documents?documentId=${documentId}`, {
-        method: 'DELETE'
-      })
-      
-      if (response.ok) {
-        await refreshDocuments()
-      }
-    } catch (error) {
-      console.error('Error deleting document:', error)
-    }
-  }
 
   const handleUploadComplete = () => {
     setShowUpload(false)
-    refreshDocuments()
+    // The DocumentList component will automatically refresh when new documents are uploaded
   }
 
   const handleApplicationCreated = () => {
@@ -296,13 +238,6 @@ export default function ClientProfilePage() {
     return phone
   }
 
-  const formatFileSize = (bytes: number) => {
-    if (bytes === 0) return '0 Bytes'
-    const k = 1024
-    const sizes = ['Bytes', 'KB', 'MB', 'GB']
-    const i = Math.floor(Math.log(bytes) / Math.log(k))
-    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
-  }
 
   if (loading) {
     return (
@@ -638,86 +573,22 @@ export default function ClientProfilePage() {
 
           {/* Document Upload Section */}
           {showUpload && clientId && (
-            <div className="mb-6 p-4 border rounded-lg bg-gray-50">
+            <div className="mb-6">
               <DocumentUpload
                 clientId={clientId}
                 onUploadComplete={handleUploadComplete}
-                onUploadError={(error) => console.error('Upload error:', error)}
+                allowMultiple={true}
+                showApplicationSelection={true}
               />
             </div>
           )}
           
           {/* Documents List */}
-          {client.documents && client.documents.length > 0 ? (
-            <div className="space-y-3">
-              {client.documents.map((doc) => (
-                <Card key={doc.id} className="hover:bg-gray-50">
-                  <CardContent className="pt-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3 flex-1">
-                        <FileText className="h-8 w-8 text-muted-foreground" />
-                        <div className="flex-1 min-w-0">
-                          <div className="font-medium truncate text-lg">{doc.filename}</div>
-                          <div className="text-sm text-muted-foreground">
-                            {doc.documentType || 'Document'} • {formatFileSize(doc.fileSize)} • Uploaded {formatDate(doc.uploadedAt)}
-                          </div>
-                        </div>
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        <Badge className={getStatusColor(doc.status)}>
-                          {doc.status.replace('_', ' ')}
-                        </Badge>
-                        <Badge variant="outline" className={getStatusColor(doc.complianceStatus)}>
-                          {doc.complianceStatus.replace('_', ' ')}
-                        </Badge>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => handleDocumentPreview(doc)}
-                        >
-                          <Eye className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => {
-                            const link = window.document.createElement('a')
-                            link.href = doc.fileUrl
-                            link.download = doc.filename
-                            link.click()
-                          }}
-                        >
-                          <Download className="h-4 w-4" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleDocumentDelete(doc.id)}
-                          className="text-red-600 hover:text-red-800"
-                        >
-                          <Trash2 className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <Upload className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-muted-foreground mb-2">No documents uploaded yet</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Upload important documents like passports, financial statements, and application forms
-              </p>
-              {!showUpload && (
-                <Button onClick={() => setShowUpload(true)}>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Upload First Document
-                </Button>
-              )}
-            </div>
-          )}
+          <DocumentList 
+            clientId={clientId}
+            showFilters={false}
+            showActions={true}
+          />
         </TabsContent>
 
         {/* Communications Tab */}
@@ -827,12 +698,6 @@ export default function ClientProfilePage() {
         </TabsContent>
       </Tabs>
 
-      {/* Document Preview Modal */}
-      <DocumentPreview
-        document={previewDocument}
-        open={previewOpen}
-        onOpenChange={setPreviewOpen}
-      />
 
       {/* Application Create Modal */}
       <ApplicationCreateModal
