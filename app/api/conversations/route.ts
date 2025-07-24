@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db/drizzle'
-import { conversations, clients, users, messageParticipants } from '@/db/schema'
-import { eq, desc, and } from 'drizzle-orm'
+import { conversations, clients, users, messageParticipants, messages } from '@/db/schema'
+import { eq, desc, and, or, ilike, inArray } from 'drizzle-orm'
 import { requireAuth, AuthenticatedUser } from '@/lib/auth-utils'
 import { requireClientAuth, AuthenticatedClient } from '@/lib/client-auth'
 import { z } from 'zod'
@@ -20,6 +20,8 @@ export async function GET(request: NextRequest) {
     const userType = searchParams.get('userType') // 'advisor' or 'client'
     const clientId = searchParams.get('clientId')
     const status = searchParams.get('status') || 'active'
+    const priority = searchParams.get('priority')
+    const search = searchParams.get('search') // New search parameter
     const limit = parseInt(searchParams.get('limit') || '20')
     const offset = parseInt(searchParams.get('offset') || '0')
 
@@ -36,7 +38,17 @@ export async function GET(request: NextRequest) {
     }
 
     // Build query conditions
-    const conditions = [eq(conversations.status, status)]
+    const conditions = []
+    
+    // Status filter
+    if (status !== 'all') {
+      conditions.push(eq(conversations.status, status))
+    }
+    
+    // Priority filter
+    if (priority && priority !== 'all') {
+      conditions.push(eq(conversations.priority, priority))
+    }
     
     if (isAdvisor) {
       // Advisor can see conversations for their firm
@@ -50,6 +62,58 @@ export async function GET(request: NextRequest) {
       const client = currentUser as AuthenticatedClient
       conditions.push(eq(conversations.clientId, client.clientId))
     }
+
+    let conversationIds: string[] | null = null
+
+    // Handle search functionality
+    if (search) {
+      // First, find conversations that match in title or client name
+      const titleMatches = await db
+        .select({ id: conversations.id })
+        .from(conversations)
+        .leftJoin(clients, eq(conversations.clientId, clients.id))
+        .where(
+          and(
+            ...conditions,
+            or(
+              ilike(conversations.title, `%${search}%`),
+              ilike(clients.firstName, `%${search}%`),
+              ilike(clients.lastName, `%${search}%`),
+              ilike(clients.email, `%${search}%`)
+            )
+          )
+        )
+
+      // Then, find conversations that have matching message content
+      const messageConditions = [...conditions]
+      messageConditions.push(ilike(messages.content, `%${search}%`))
+      
+      const messageMatches = await db
+        .selectDistinct({ id: conversations.id })
+        .from(conversations)
+        .innerJoin(messages, eq(messages.conversationId, conversations.id))
+        .leftJoin(clients, eq(conversations.clientId, clients.id))
+        .where(and(...messageConditions))
+
+      // Combine both result sets
+      const titleIds = titleMatches.map(m => m.id)
+      const messageIds = messageMatches.map(m => m.id)
+      conversationIds = [...new Set([...titleIds, ...messageIds])]
+
+      // If no matches found, return empty result
+      if (conversationIds.length === 0) {
+        return NextResponse.json({
+          conversations: [],
+          total: 0,
+          hasMore: false,
+        })
+      }
+    }
+
+    // Build final query
+    const finalConditions = conversationIds 
+      ? [...conditions, inArray(conversations.id, conversationIds)]
+      : conditions
 
     const result = await db
       .select({
@@ -76,7 +140,7 @@ export async function GET(request: NextRequest) {
       .from(conversations)
       .leftJoin(clients, eq(conversations.clientId, clients.id))
       .leftJoin(users, eq(conversations.assignedAdvisorId, users.id))
-      .where(and(...conditions))
+      .where(and(...finalConditions))
       .orderBy(desc(conversations.lastMessageAt), desc(conversations.createdAt))
       .limit(limit)
       .offset(offset)

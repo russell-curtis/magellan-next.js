@@ -100,19 +100,29 @@
 
 @layer base {
     * {
-        @apply border-border outline-ring/50;
+        @apply border-border;
     }
     body {
         @apply bg-background text-foreground font-sans;
         -webkit-font-smoothing: antialiased;
         -moz-osx-font-smoothing: grayscale;
     }
+    /* Remove default outlines but keep them for keyboard navigation */
     button,
     input,
     select,
     textarea {
-        @apply focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all duration-200;
+        @apply outline-none transition-all duration-200;
     }
+    
+    /* Only show focus rings for keyboard navigation */
+    button:focus-visible,
+    input:focus-visible,
+    select:focus-visible,
+    textarea:focus-visible {
+        @apply ring-2 ring-primary/50 ring-offset-2;
+    }
+    
     button {
         @apply hover:cursor-pointer;
     }

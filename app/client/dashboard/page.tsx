@@ -7,7 +7,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Avatar, AvatarFallback, AvatarInitials } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
-import { MessageSquare, FileText, Briefcase, Clock, ArrowRight, Plus } from 'lucide-react'
+import { PriorityBadge } from '@/components/ui/priority-badge'
+import { formatConversationDate, isRecent } from '@/lib/date-utils'
+import { MessageSquare, FileText, Briefcase, Clock, ArrowRight, Plus, TrendingUp, CheckCircle, AlertCircle } from 'lucide-react'
 
 interface DashboardStats {
   totalConversations: number
@@ -137,22 +139,6 @@ export default function ClientDashboardOverview() {
     }
   }
 
-  const formatTimestamp = (timestamp: string) => {
-    const date = new Date(timestamp)
-    const now = new Date()
-    const diffTime = Math.abs(now.getTime() - date.getTime())
-    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
-
-    if (diffDays === 1) {
-      return 'Today'
-    } else if (diffDays === 2) {
-      return 'Yesterday'
-    } else if (diffDays <= 7) {
-      return `${diffDays - 1} days ago`
-    } else {
-      return date.toLocaleDateString()
-    }
-  }
 
   return (
     <div className="p-6 space-y-6">
@@ -175,56 +161,82 @@ export default function ClientDashboardOverview() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card>
+        <Card className="relative overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Conversations</CardTitle>
-            <MessageSquare className="h-4 w-4 text-muted-foreground" />
+            <div className="p-2 bg-blue-100 rounded-full">
+              <MessageSquare className="h-4 w-4 text-blue-600" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalConversations}</div>
-            <p className="text-xs text-muted-foreground">
-              {stats.unreadMessages} with new messages
-            </p>
+            <div className="text-2xl font-bold text-gray-900">{stats.totalConversations}</div>
+            <div className="flex items-center space-x-2 mt-1">
+              <p className="text-xs text-muted-foreground">
+                {stats.unreadMessages} unread
+              </p>
+              {stats.unreadMessages > 0 && (
+                <div className="h-2 w-2 bg-blue-500 rounded-full animate-pulse" />
+              )}
+            </div>
           </CardContent>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-blue-600" />
         </Card>
 
-        <Card>
+        <Card className="relative overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">My Applications</CardTitle>
-            <Briefcase className="h-4 w-4 text-muted-foreground" />
+            <div className="p-2 bg-green-100 rounded-full">
+              <Briefcase className="h-4 w-4 text-green-600" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalApplications}</div>
-            <p className="text-xs text-muted-foreground">
-              In progress
-            </p>
+            <div className="text-2xl font-bold text-gray-900">{stats.totalApplications}</div>
+            <div className="flex items-center space-x-1 mt-1">
+              <TrendingUp className="h-3 w-3 text-green-500" />
+              <p className="text-xs text-green-600 font-medium">
+                In progress
+              </p>
+            </div>
           </CardContent>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500 to-green-600" />
         </Card>
 
-        <Card>
+        <Card className="relative overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Documents</CardTitle>
-            <FileText className="h-4 w-4 text-muted-foreground" />
+            <div className="p-2 bg-purple-100 rounded-full">
+              <FileText className="h-4 w-4 text-purple-600" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.recentDocuments}</div>
-            <p className="text-xs text-muted-foreground">
-              Shared with you
-            </p>
+            <div className="text-2xl font-bold text-gray-900">{stats.recentDocuments}</div>
+            <div className="flex items-center space-x-1 mt-1">
+              <CheckCircle className="h-3 w-3 text-purple-500" />
+              <p className="text-xs text-purple-600 font-medium">
+                Available
+              </p>
+            </div>
           </CardContent>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-purple-600" />
         </Card>
 
-        <Card>
+        <Card className="relative overflow-hidden">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Next Steps</CardTitle>
-            <Clock className="h-4 w-4 text-muted-foreground" />
+            <div className="p-2 bg-orange-100 rounded-full">
+              <AlertCircle className="h-4 w-4 text-orange-600" />
+            </div>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">3</div>
-            <p className="text-xs text-muted-foreground">
-              Action items pending
-            </p>
+            <div className="text-2xl font-bold text-gray-900">3</div>
+            <div className="flex items-center space-x-1 mt-1">
+              <Clock className="h-3 w-3 text-orange-500" />
+              <p className="text-xs text-orange-600 font-medium">
+                Action required
+              </p>
+            </div>
           </CardContent>
+          <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-orange-500 to-orange-600" />
         </Card>
       </div>
 
@@ -253,30 +265,43 @@ export default function ClientDashboardOverview() {
             ) : (
               recentActivity.map((activity) => {
                 const Icon = getActivityIcon(activity.type)
+                const isRecentActivity = isRecent(activity.timestamp)
+                
+                const iconColors = {
+                  message: 'bg-blue-100 text-blue-600',
+                  document: 'bg-purple-100 text-purple-600',
+                  application: 'bg-green-100 text-green-600',
+                }
+                
                 return (
-                  <div key={activity.id} className="flex items-start space-x-3">
+                  <div key={activity.id} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors">
                     <div className="flex-shrink-0">
-                      <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                        <Icon className="h-4 w-4 text-blue-600" />
+                      <div className={`w-10 h-10 rounded-full flex items-center justify-center ${iconColors[activity.type] || iconColors.message}`}>
+                        <Icon className="h-5 w-5" />
                       </div>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
-                        <p className="text-sm font-medium text-gray-900 truncate">
-                          {activity.title}
-                        </p>
+                        <div className="flex items-center space-x-2">
+                          <p className="text-sm font-semibold text-gray-900 truncate">
+                            {activity.title}
+                          </p>
+                          {isRecentActivity && (
+                            <div className="h-1.5 w-1.5 bg-blue-500 rounded-full animate-pulse" />
+                          )}
+                        </div>
                         {activity.priority && activity.priority !== 'normal' && (
-                          <Badge 
-                            variant={activity.priority === 'urgent' ? 'destructive' : 'outline'}
-                            className="text-xs ml-2"
-                          >
-                            {activity.priority}
-                          </Badge>
+                          <PriorityBadge 
+                            priority={activity.priority as 'low' | 'normal' | 'high' | 'urgent'}
+                            variant="minimal"
+                            showIcon={false}
+                          />
                         )}
                       </div>
-                      <p className="text-sm text-gray-600">{activity.description}</p>
-                      <p className="text-xs text-gray-500 mt-1">
-                        {formatTimestamp(activity.timestamp)}
+                      <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
+                      <p className="text-xs text-gray-500 mt-2 flex items-center">
+                        <Clock className="h-3 w-3 mr-1" />
+                        {formatConversationDate(activity.timestamp)}
                       </p>
                     </div>
                   </div>
@@ -289,40 +314,78 @@ export default function ClientDashboardOverview() {
         {/* Quick Actions */}
         <Card>
           <CardHeader>
-            <CardTitle>Quick Actions</CardTitle>
+            <CardTitle className="flex items-center space-x-2">
+              <span>Quick Actions</span>
+              <Badge variant="outline" className="text-xs">4</Badge>
+            </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
             <Button 
-              className="w-full justify-start" 
+              className="w-full justify-start h-12 text-left hover:bg-blue-50 hover:border-blue-200 transition-colors" 
               variant="outline"
               onClick={() => router.push('/client/dashboard/messages')}
             >
-              <MessageSquare className="mr-2 h-4 w-4" />
-              View Messages
+              <div className="flex items-center w-full">
+                <div className="p-2 bg-blue-100 rounded-full mr-3">
+                  <MessageSquare className="h-4 w-4 text-blue-600" />
+                </div>
+                <div className="text-left">
+                  <div className="font-medium">View Messages</div>
+                  <div className="text-xs text-gray-500">{stats.unreadMessages} unread</div>
+                </div>
+                <ArrowRight className="ml-auto h-4 w-4 text-gray-400" />
+              </div>
             </Button>
+            
             <Button 
-              className="w-full justify-start" 
+              className="w-full justify-start h-12 text-left hover:bg-green-50 hover:border-green-200 transition-colors" 
               variant="outline"
               onClick={() => router.push('/client/dashboard/applications')}
             >
-              <Briefcase className="mr-2 h-4 w-4" />
-              Check Application Status
+              <div className="flex items-center w-full">
+                <div className="p-2 bg-green-100 rounded-full mr-3">
+                  <Briefcase className="h-4 w-4 text-green-600" />
+                </div>
+                <div className="text-left">
+                  <div className="font-medium">Application Status</div>
+                  <div className="text-xs text-gray-500">{stats.totalApplications} active</div>
+                </div>
+                <ArrowRight className="ml-auto h-4 w-4 text-gray-400" />
+              </div>
             </Button>
+            
             <Button 
-              className="w-full justify-start" 
+              className="w-full justify-start h-12 text-left hover:bg-purple-50 hover:border-purple-200 transition-colors" 
               variant="outline"
               onClick={() => router.push('/client/dashboard/documents')}
             >
-              <FileText className="mr-2 h-4 w-4" />
-              View Documents
+              <div className="flex items-center w-full">
+                <div className="p-2 bg-purple-100 rounded-full mr-3">
+                  <FileText className="h-4 w-4 text-purple-600" />
+                </div>
+                <div className="text-left">
+                  <div className="font-medium">View Documents</div>
+                  <div className="text-xs text-gray-500">{stats.recentDocuments} available</div>
+                </div>
+                <ArrowRight className="ml-auto h-4 w-4 text-gray-400" />
+              </div>
             </Button>
+            
             <Button 
-              className="w-full justify-start" 
+              className="w-full justify-start h-12 text-left hover:bg-orange-50 hover:border-orange-200 transition-colors" 
               variant="outline"
               onClick={() => router.push('/client/dashboard/profile')}
             >
-              <Plus className="mr-2 h-4 w-4" />
-              Update Profile
+              <div className="flex items-center w-full">
+                <div className="p-2 bg-orange-100 rounded-full mr-3">
+                  <Plus className="h-4 w-4 text-orange-600" />
+                </div>
+                <div className="text-left">
+                  <div className="font-medium">Update Profile</div>
+                  <div className="text-xs text-gray-500">Keep info current</div>
+                </div>
+                <ArrowRight className="ml-auto h-4 w-4 text-gray-400" />
+              </div>
             </Button>
           </CardContent>
         </Card>

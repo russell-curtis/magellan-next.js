@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -10,7 +10,11 @@ import { Avatar, AvatarFallback, AvatarInitials } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { Separator } from '@/components/ui/separator'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { MessageSquare, Plus, User, Clock, Search, Lightbulb, AlertTriangle } from 'lucide-react'
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
+import { OnlineStatusAvatar } from '@/components/ui/status-indicator'
+import { PriorityBadge, PriorityIndicator } from '@/components/ui/priority-badge'
+import { formatConversationDate, isRecent } from '@/lib/date-utils'
+import { MessageSquare, Plus, User, Clock, Search, Lightbulb, AlertTriangle, ChevronDown, ChevronRight, Filter, X } from 'lucide-react'
 import { MessagingInterface } from '@/components/messaging/messaging-interface'
 
 interface Client {
@@ -42,6 +46,12 @@ export default function MessagesPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [showNewConversationDialog, setShowNewConversationDialog] = useState(false)
   
+  // Enhanced filtering and grouping state
+  const [statusFilter, setStatusFilter] = useState('all')
+  const [priorityFilter, setPriorityFilter] = useState('all')
+  const [groupByClient, setGroupByClient] = useState(true)
+  const [expandedClients, setExpandedClients] = useState<Set<string>>(new Set())
+  
   // New conversation form
   const [selectedClient, setSelectedClient] = useState('')
   const [conversationTitle, setConversationTitle] = useState('')
@@ -53,15 +63,32 @@ export default function MessagesPage() {
   const fetchConversations = useCallback(async () => {
     setIsLoading(true)
     try {
-      const response = await fetch('/api/conversations?userType=advisor')
+      // Build query parameters
+      const params = new URLSearchParams({
+        userType: 'advisor'
+      })
+      
+      if (statusFilter !== 'all') {
+        params.append('status', statusFilter)
+      }
+      
+      if (priorityFilter !== 'all') {
+        params.append('priority', priorityFilter)
+      }
+      
+      if (searchTerm.trim()) {
+        params.append('search', searchTerm.trim())
+      }
+
+      const response = await fetch(`/api/conversations?${params.toString()}`)
 
       if (response.ok) {
         const data = await response.json()
         setConversations(data.conversations || [])
         
-        // Auto-select first conversation if available and none selected
-        if (data.conversations?.length > 0 && !selectedConversation) {
-          setSelectedConversation(data.conversations[0].id)
+        // Only auto-select if no conversation is currently selected
+        if (data.conversations?.length > 0) {
+          setSelectedConversation(prev => prev || data.conversations[0].id)
         }
       }
     } catch (error) {
@@ -69,12 +96,21 @@ export default function MessagesPage() {
     } finally {
       setIsLoading(false)
     }
-  }, [selectedConversation])
+  }, [statusFilter, priorityFilter, searchTerm]) // Removed selectedConversation dependency
 
+  // Debounced search effect
   useEffect(() => {
-    fetchConversations()
+    const timeoutId = setTimeout(() => {
+      fetchConversations()
+    }, 300) // 300ms debounce
+
+    return () => clearTimeout(timeoutId)
+  }, [searchTerm, statusFilter, priorityFilter, fetchConversations])
+
+  // Initial fetch
+  useEffect(() => {
     fetchClients()
-  }, [fetchConversations])
+  }, [])
 
   const fetchClients = async () => {
     try {
@@ -189,15 +225,55 @@ export default function MessagesPage() {
     }
   }
 
-  const filteredConversations = conversations.filter(conv =>
-    conv.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    `${conv.client.firstName} ${conv.client.lastName}`.toLowerCase().includes(searchTerm.toLowerCase())
-  )
+  // Since filtering is now done server-side, use conversations directly
+  const filteredConversations = conversations
+
+  // Group conversations by client - memoized to prevent unnecessary recalculations
+  const groupedConversations = useMemo(() => {
+    return filteredConversations.reduce((groups, conversation) => {
+      const clientKey = `${conversation.client.firstName} ${conversation.client.lastName}`
+      if (!groups[clientKey]) {
+        groups[clientKey] = {
+          client: conversation.client,
+          conversations: []
+        }
+      }
+      groups[clientKey].conversations.push(conversation)
+      return groups
+    }, {} as Record<string, { client: Conversation['client'], conversations: Conversation[] }>)
+  }, [filteredConversations])
+
+  // Toggle client expansion
+  const toggleClientExpansion = (clientKey: string) => {
+    const newExpanded = new Set(expandedClients)
+    if (newExpanded.has(clientKey)) {
+      newExpanded.delete(clientKey)
+    } else {
+      newExpanded.add(clientKey)
+    }
+    setExpandedClients(newExpanded)
+  }
+
+  // Auto-expand clients on initial load or when searching
+  useEffect(() => {
+    const clientKeys = Object.keys(groupedConversations)
+    if (searchTerm || clientKeys.length <= 3) {
+      // Auto-expand all clients if searching or if there are few clients
+      setExpandedClients(prev => {
+        const newSet = new Set(clientKeys)
+        // Only update if the set has actually changed
+        if (prev.size !== newSet.size || !Array.from(prev).every(key => newSet.has(key))) {
+          return newSet
+        }
+        return prev
+      })
+    }
+  }, [searchTerm, groupedConversations])
 
   return (
     <div className="flex h-screen bg-gray-50">
       {/* Sidebar - Conversations List */}
-      <div className="w-80 bg-white border-r flex flex-col">
+      <div className="w-[400px] bg-white border-r flex flex-col">
         {/* Header */}
         <div className="p-4 border-b">
           <div className="flex items-center justify-between mb-4">
@@ -341,66 +417,263 @@ export default function MessagesPage() {
           </div>
 
           {/* Search */}
-          <div className="relative">
+          <div className="relative mb-3">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
             <Input
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Search conversations..."
-              className="pl-10"
+              placeholder="Search conversations, clients, and messages..."
+              className="pl-10 pr-10"
             />
+            {searchTerm && (
+              <Button
+                variant="ghost"
+                size="sm"
+                className="absolute right-1 top-1/2 transform -translate-y-1/2 h-6 w-6 p-0 hover:bg-gray-100"
+                onClick={() => setSearchTerm('')}
+              >
+                <X className="h-3 w-3" />
+              </Button>
+            )}
+          </div>
+
+          {/* Filters */}
+          <div className="flex items-center space-x-2">
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="flex-1 min-w-0 text-gray-900 font-medium">
+                <SelectValue placeholder="All Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Status</SelectItem>
+                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="archived">Archived</SelectItem>
+                <SelectItem value="closed">Closed</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Select value={priorityFilter} onValueChange={setPriorityFilter}>
+              <SelectTrigger className="flex-1 min-w-0 text-gray-900 font-medium">
+                <SelectValue placeholder="All Priority" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">All Priority</SelectItem>
+                <SelectItem value="urgent">Urgent</SelectItem>
+                <SelectItem value="high">High</SelectItem>
+                <SelectItem value="normal">Normal</SelectItem>
+                <SelectItem value="low">Low</SelectItem>
+              </SelectContent>
+            </Select>
+
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setGroupByClient(!groupByClient)}
+              className={`flex-shrink-0 px-3 ${groupByClient ? 'bg-blue-50 text-blue-700 border-blue-200' : ''}`}
+            >
+              <Filter className="h-4 w-4 mr-1.5" />
+              {groupByClient ? 'Grouped' : 'List'}
+            </Button>
           </div>
         </div>
+
+        {/* Search Results Header */}
+        {searchTerm && (
+          <div className="px-4 py-2 bg-blue-50 border-b">
+            <p className="text-xs text-blue-700">
+              {isLoading ? 'Searching...' : `${filteredConversations.length} result${filteredConversations.length !== 1 ? 's' : ''} for "${searchTerm}"`}
+            </p>
+          </div>
+        )}
 
         {/* Conversations List */}
         <div className="flex-1 overflow-y-auto">
           {isLoading ? (
             <div className="p-4 text-center text-gray-500">
-              Loading conversations...
+              {searchTerm ? 'Searching conversations and messages...' : 'Loading conversations...'}
             </div>
           ) : filteredConversations.length === 0 ? (
             <div className="p-4 text-center text-gray-500">
               <MessageSquare className="h-8 w-8 mx-auto mb-2 opacity-50" />
               <p className="text-sm">
-                {searchTerm ? 'No conversations found' : 'No conversations yet'}
+                {searchTerm || statusFilter !== 'all' || priorityFilter !== 'all' 
+                  ? 'No conversations match your search or filters' 
+                  : 'No conversations yet'
+                }
               </p>
-              {!searchTerm && (
+              {searchTerm && (
+                <p className="text-xs text-gray-400 mt-1">
+                  Try different keywords or check spelling
+                </p>
+              )}
+              {!searchTerm && statusFilter === 'all' && priorityFilter === 'all' && (
                 <p className="text-xs text-gray-400 mt-1">
                   Create a new conversation to get started
                 </p>
               )}
             </div>
+          ) : groupByClient ? (
+            // Grouped by client view
+            <div className="space-y-1">
+              {Object.entries(groupedConversations).map(([clientKey, group]) => {
+                const isExpanded = expandedClients.has(clientKey)
+                const conversationCount = group.conversations.length
+                
+                return (
+                  <Collapsible key={clientKey} open={isExpanded} onOpenChange={() => toggleClientExpansion(clientKey)}>
+                    <CollapsibleTrigger className="w-full">
+                      <div className="flex items-center justify-between p-3 hover:bg-gray-50 transition-colors border-b">
+                        <div className="flex items-center space-x-3">
+                          <div className="flex items-center space-x-2">
+                            {isExpanded ? (
+                              <ChevronDown className="h-4 w-4 text-gray-500" />
+                            ) : (
+                              <ChevronRight className="h-4 w-4 text-gray-500" />
+                            )}
+                            <OnlineStatusAvatar status="offline">
+                              <Avatar className="h-9 w-9">
+                                <AvatarFallback className="bg-gradient-to-br from-blue-100 to-blue-200">
+                                  <AvatarInitials 
+                                    name={`${group.client.firstName} ${group.client.lastName}`}
+                                    className="text-blue-700 font-semibold"
+                                  />
+                                </AvatarFallback>
+                              </Avatar>
+                            </OnlineStatusAvatar>
+                          </div>
+                          <div className="text-left">
+                            <h3 className="text-sm font-semibold text-gray-900">
+                              {group.client.firstName} {group.client.lastName}
+                            </h3>
+                            <p className="text-xs text-gray-500">{group.client.email}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <Badge 
+                            variant="outline" 
+                            className="text-xs font-medium bg-gray-50 text-gray-700"
+                          >
+                            {conversationCount}
+                          </Badge>
+                          {group.conversations.some(conv => conv.priority === 'urgent') && (
+                            <PriorityBadge priority="urgent" showText={false} />
+                          )}
+                          {group.conversations.some(conv => conv.priority === 'high' && conv.priority !== 'urgent') && (
+                            <PriorityBadge priority="high" showText={false} />
+                          )}
+                          {group.conversations.some(conv => conv.lastMessageAt && isRecent(conv.lastMessageAt)) && (
+                            <div className="h-2 w-2 bg-blue-500 rounded-full animate-pulse" />
+                          )}
+                        </div>
+                      </div>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent>
+                      <div className="ml-6 border-l border-gray-200">
+                        {group.conversations.map((conversation, index) => (
+                          <div key={conversation.id} className="relative">
+                            <PriorityIndicator 
+                              priority={conversation.priority as 'low' | 'normal' | 'high' | 'urgent'} 
+                              className="absolute left-0 top-3 bottom-3" 
+                            />
+                            <button
+                              onClick={() => setSelectedConversation(conversation.id)}
+                              className={`w-full p-3 pl-4 text-left hover:bg-gray-50 transition-colors relative ${
+                                selectedConversation === conversation.id 
+                                  ? 'bg-blue-50 border-r-2 border-blue-500' 
+                                  : ''
+                              }`}
+                            >
+                              <div className="flex items-start justify-between">
+                                <div className="flex-1 min-w-0">
+                                  <div className="flex items-center space-x-2 mb-1">
+                                    <h4 className="text-sm font-medium text-gray-900 truncate">
+                                      {conversation.title}
+                                    </h4>
+                                    {conversation.lastMessageAt && isRecent(conversation.lastMessageAt) && (
+                                      <div className="h-1.5 w-1.5 bg-blue-500 rounded-full animate-pulse" />
+                                    )}
+                                  </div>
+                                  {conversation.lastMessageAt && (
+                                    <p className="text-xs text-gray-500 flex items-center">
+                                      <Clock className="h-3 w-3 mr-1" />
+                                      {formatConversationDate(conversation.lastMessageAt)}
+                                    </p>
+                                  )}
+                                </div>
+                                
+                                <div className="flex flex-col items-end space-y-1 ml-2">
+                                  <Badge
+                                    variant={conversation.status === 'active' ? 'default' : 'secondary'}
+                                    className={`text-xs ${
+                                      conversation.status === 'active' 
+                                        ? 'bg-green-100 text-green-800 border-green-200' 
+                                        : ''
+                                    }`}
+                                  >
+                                    {conversation.status}
+                                  </Badge>
+                                  <PriorityBadge 
+                                    priority={conversation.priority as 'low' | 'normal' | 'high' | 'urgent'}
+                                    variant="minimal"
+                                    showIcon={false}
+                                  />
+                                </div>
+                              </div>
+                            </button>
+                            {index < group.conversations.length - 1 && <Separator className="ml-4" />}
+                          </div>
+                        ))}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )
+              })}
+            </div>
           ) : (
+            // Traditional list view
             <div className="space-y-0">
               {filteredConversations.map((conversation, index) => (
-                <div key={conversation.id}>
+                <div key={conversation.id} className="relative">
+                  <PriorityIndicator 
+                    priority={conversation.priority as 'low' | 'normal' | 'high' | 'urgent'} 
+                    className="absolute left-0 top-4 bottom-4" 
+                  />
                   <button
                     onClick={() => setSelectedConversation(conversation.id)}
-                    className={`w-full p-4 text-left hover:bg-gray-50 transition-colors ${
+                    className={`w-full p-4 pl-5 text-left hover:bg-gray-50 transition-colors ${
                       selectedConversation === conversation.id ? 'bg-blue-50 border-r-2 border-blue-500' : ''
                     }`}
                   >
                     <div className="flex items-start space-x-3">
-                      <Avatar>
-                        <AvatarFallback>
-                          <AvatarInitials name={`${conversation.client.firstName} ${conversation.client.lastName}`} />
-                        </AvatarFallback>
-                      </Avatar>
+                      <OnlineStatusAvatar status="offline">
+                        <Avatar className="h-10 w-10">
+                          <AvatarFallback className="bg-gradient-to-br from-blue-100 to-blue-200">
+                            <AvatarInitials 
+                              name={`${conversation.client.firstName} ${conversation.client.lastName}`}
+                              className="text-blue-700 font-semibold"
+                            />
+                          </AvatarFallback>
+                        </Avatar>
+                      </OnlineStatusAvatar>
                       
                       <div className="flex-1 min-w-0">
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0">
-                            <h4 className="text-sm font-medium text-gray-900 truncate">
-                              {conversation.title}
-                            </h4>
-                            <p className="text-xs text-gray-600 mt-1 flex items-center">
+                            <div className="flex items-center space-x-2 mb-1">
+                              <h4 className="text-sm font-semibold text-gray-900 truncate">
+                                {conversation.title}
+                              </h4>
+                              {conversation.lastMessageAt && isRecent(conversation.lastMessageAt) && (
+                                <div className="h-1.5 w-1.5 bg-blue-500 rounded-full animate-pulse" />
+                              )}
+                            </div>
+                            <p className="text-xs text-gray-600 mb-1 flex items-center">
                               <User className="h-3 w-3 mr-1" />
                               {conversation.client.firstName} {conversation.client.lastName}
                             </p>
                             {conversation.lastMessageAt && (
-                              <p className="text-xs text-gray-500 mt-1 flex items-center">
+                              <p className="text-xs text-gray-500 flex items-center">
                                 <Clock className="h-3 w-3 mr-1" />
-                                {new Date(conversation.lastMessageAt).toLocaleDateString()}
+                                {formatConversationDate(conversation.lastMessageAt)}
                               </p>
                             )}
                           </div>
@@ -408,18 +681,19 @@ export default function MessagesPage() {
                           <div className="flex flex-col items-end space-y-1 ml-2">
                             <Badge
                               variant={conversation.status === 'active' ? 'default' : 'secondary'}
-                              className="text-xs"
+                              className={`text-xs ${
+                                conversation.status === 'active' 
+                                  ? 'bg-green-100 text-green-800 border-green-200' 
+                                  : ''
+                              }`}
                             >
                               {conversation.status}
                             </Badge>
-                            {conversation.priority !== 'normal' && (
-                              <Badge
-                                variant={conversation.priority === 'urgent' ? 'destructive' : 'outline'}
-                                className="text-xs"
-                              >
-                                {conversation.priority}
-                              </Badge>
-                            )}
+                            <PriorityBadge 
+                              priority={conversation.priority as 'low' | 'normal' | 'high' | 'urgent'}
+                              variant="minimal"
+                              showIcon={false}
+                            />
                           </div>
                         </div>
                       </div>

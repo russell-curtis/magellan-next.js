@@ -88,7 +88,7 @@ export default function ClientMessagesPage() {
   return (
     <div className="flex h-full bg-gray-50">
       {/* Sidebar - Conversations List */}
-      <div className="w-80 bg-white border-r flex flex-col">
+      <div className="w-[400px] bg-white border-r flex flex-col">
         {/* Header */}
         <div className="p-4 border-b">
           <h2 className="text-lg font-semibold">Messages</h2>
