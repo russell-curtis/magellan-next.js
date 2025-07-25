@@ -55,31 +55,73 @@ export function ApplicationCreateModal({
 
   const { toast } = useToast()
 
-  const fetchPrograms = useCallback(async () => {
+  const fetchPrograms = async () => {
+    console.log('Starting fetchPrograms, setting loading to true')
     setLoadingPrograms(true)
+    
     try {
+      console.log('Fetching CRBI programs...')
       const response = await fetch('/api/crbi-programs')
+      console.log('Response status:', response.status, response.ok)
+      
       if (response.ok) {
         const data = await response.json()
-        setPrograms(data.programs || [])
+        console.log('Programs data:', data)
+        
+        if (data.programs && Array.isArray(data.programs)) {
+          setPrograms(data.programs)
+          console.log(`Successfully loaded ${data.programs.length} programs`)
+          // Explicitly set loading to false after successful load
+          setLoadingPrograms(false)
+          console.log('Set loading to false after successful load')
+          return
+        } else {
+          console.error('Invalid programs data structure:', data)
+          setPrograms([])
+          toast({
+            title: 'Error',
+            description: 'Invalid programs data received',
+            variant: 'destructive'
+          })
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('API error:', response.status, errorData)
+        setPrograms([])
+        toast({
+          title: 'Error',
+          description: `Failed to load CRBI programs: ${errorData.error || response.status}`,
+          variant: 'destructive'
+        })
       }
     } catch (error) {
       console.error('Error fetching programs:', error)
+      setPrograms([])
       toast({
         title: 'Error',
-        description: 'Failed to load CRBI programs',
+        description: `Network error: ${error instanceof Error ? error.message : 'Unknown error'}`,
         variant: 'destructive'
       })
-    } finally {
-      setLoadingPrograms(false)
     }
-  }, [toast])
+    
+    // Always set loading to false, regardless of success or error
+    console.log('Setting loading to false in cleanup')
+    setLoadingPrograms(false)
+  }
 
   useEffect(() => {
     if (open) {
+      console.log('Modal opened, resetting state and fetching programs')
+      setPrograms([])
+      setLoadingPrograms(true)
       fetchPrograms()
+    } else {
+      // Reset state when modal closes
+      console.log('Modal closed, resetting state')
+      setLoadingPrograms(false)
+      setPrograms([])
     }
-  }, [open, fetchPrograms])
+  }, [open]) // Remove fetchPrograms dependency to prevent infinite loop
 
   useEffect(() => {
     if (formData.programId) {
@@ -224,6 +266,21 @@ export function ApplicationCreateModal({
           {/* Program Selection */}
           <div className="space-y-2">
             <Label htmlFor="program">CRBI Program *</Label>
+            {/* Debug info - remove in production */}
+            <div className="text-xs text-muted-foreground flex items-center gap-2">
+              Loading: {loadingPrograms ? 'Yes' : 'No'} | Programs: {programs.length}
+              <button 
+                type="button"
+                onClick={() => {
+                  console.log('Manual refresh clicked')
+                  setLoadingPrograms(false)
+                  fetchPrograms()
+                }}
+                className="px-2 py-1 bg-blue-100 text-blue-600 rounded text-xs hover:bg-blue-200"
+              >
+                Refresh
+              </button>
+            </div>
             <Select 
               value={formData.programId} 
               onValueChange={(value) => handleInputChange('programId', value)}
@@ -233,17 +290,23 @@ export function ApplicationCreateModal({
                 <SelectValue placeholder={loadingPrograms ? "Loading programs..." : "Select a CRBI program"} />
               </SelectTrigger>
               <SelectContent>
-                {programs.map((program) => (
-                  <SelectItem key={program.id} value={program.id}>
-                    <div className="flex items-center space-x-2">
-                      <Globe className="h-4 w-4" />
-                      <span>{program.countryName} - {program.programName}</span>
-                      <Badge variant={program.programType === 'citizenship' ? 'default' : 'secondary'}>
-                        {program.programType}
-                      </Badge>
-                    </div>
-                  </SelectItem>
-                ))}
+                {programs.length === 0 && !loadingPrograms ? (
+                  <div className="p-4 text-center text-sm text-muted-foreground">
+                    No CRBI programs available
+                  </div>
+                ) : (
+                  programs.map((program) => (
+                    <SelectItem key={program.id} value={program.id}>
+                      <div className="flex items-center space-x-2">
+                        <Globe className="h-4 w-4" />
+                        <span>{program.countryName} - {program.programName}</span>
+                        <Badge variant={program.programType === 'citizenship' ? 'default' : 'secondary'}>
+                          {program.programType}
+                        </Badge>
+                      </div>
+                    </SelectItem>
+                  ))
+                )}
               </SelectContent>
             </Select>
           </div>

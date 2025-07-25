@@ -64,13 +64,20 @@ export default function ClientDashboardOverview() {
       // Calculate stats (placeholder data for applications and documents)
       setStats({
         totalConversations: conversations.length,
-        unreadMessages: conversations.filter((c: any) => c.status === 'active').length,
+        unreadMessages: conversations.filter((c: { status: string }) => c.status === 'active').length,
         totalApplications: 2, // Placeholder
         recentDocuments: 5, // Placeholder
       })
 
       // Create recent activity from conversations
-      const activities: RecentActivity[] = conversations.slice(0, 5).map((conv: any) => ({
+      const activities: RecentActivity[] = conversations.slice(0, 5).map((conv: { 
+        id: string
+        title: string
+        assignedAdvisor?: { name: string }
+        lastMessageAt?: string
+        createdAt: string
+        priority?: string
+      }) => ({
         id: conv.id,
         type: 'message' as const,
         title: conv.title,
@@ -149,7 +156,7 @@ export default function ClientDashboardOverview() {
             Welcome back, {client.firstName}!
           </h1>
           <p className="text-gray-600 mt-1">
-            Here's what's happening with your applications and communications.
+            Here&apos;s what&apos;s happening with your applications and communications.
           </p>
         </div>
         <Avatar className="h-12 w-12">

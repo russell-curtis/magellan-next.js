@@ -11,16 +11,10 @@ const updateStatusSchema = z.object({
   userType: z.enum(['advisor', 'client']),
 })
 
-interface RouteParams {
-  params: {
-    id: string
-  }
-}
-
 // Update conversation status (archive/unarchive/close)
-export async function PATCH(request: NextRequest, { params }: RouteParams) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id: conversationId } = params
+    const { id: conversationId } = await params
     const body = await request.json()
     
     // Validate request body
@@ -152,9 +146,9 @@ export async function PATCH(request: NextRequest, { params }: RouteParams) {
 }
 
 // Get conversation status and metadata
-export async function GET(request: NextRequest, { params }: RouteParams) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   try {
-    const { id: conversationId } = params
+    const { id: conversationId } = await params
     const searchParams = request.nextUrl.searchParams
     const userType = searchParams.get('userType') // 'advisor' or 'client'
 
