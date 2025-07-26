@@ -1,10 +1,10 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { db } from '@/db/drizzle'
 import { applications, crbiPrograms, users } from '@/db/schema'
 import { requireClientAuth } from '@/lib/client-auth'
 import { eq } from 'drizzle-orm'
 
-export async function GET(req: NextRequest) {
+export async function GET() {
   try {
     const client = await requireClientAuth()
     
@@ -47,7 +47,7 @@ export async function GET(req: NextRequest) {
       applications: clientApplications,
       client: {
         id: client.clientId,
-        name: `${client.firstName} ${client.lastName}`
+        name: `${client.client.firstName} ${client.client.lastName}`
       }
     })
 

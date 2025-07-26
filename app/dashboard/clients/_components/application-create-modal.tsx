@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useCallback } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -24,6 +24,20 @@ interface CRBIProgram {
   isActive: boolean
 }
 
+interface InvestmentOption {
+  id: string
+  optionType: string
+  optionName: string
+  description: string
+  baseAmount: string
+  familyPricing: Record<string, unknown>
+  holdingPeriod: number | null
+  conditions: Record<string, unknown>
+  eligibilityRequirements: Record<string, unknown>
+  sortOrder: number
+  isActive: boolean
+}
+
 interface ApplicationCreateModalProps {
   clientId: string
   clientName: string
@@ -44,8 +58,15 @@ export function ApplicationCreateModal({
   const [loadingPrograms, setLoadingPrograms] = useState(false)
   const [selectedProgram, setSelectedProgram] = useState<CRBIProgram | null>(null)
   
+  // Investment options state
+  const [investmentOptions, setInvestmentOptions] = useState<InvestmentOption[]>([])
+  const [loadingInvestmentOptions, setLoadingInvestmentOptions] = useState(false)
+  const [selectedInvestmentOption, setSelectedInvestmentOption] = useState<InvestmentOption | null>(null)
+  
+  
   const [formData, setFormData] = useState({
     programId: '',
+    selectedInvestmentOptionId: '',
     investmentAmount: '',
     investmentType: '',
     priority: 'medium',
@@ -109,34 +130,82 @@ export function ApplicationCreateModal({
     setLoadingPrograms(false)
   }
 
-  useEffect(() => {
-    if (open) {
-      console.log('Modal opened, resetting state and fetching programs')
-      setPrograms([])
-      setLoadingPrograms(true)
-      fetchPrograms()
-    } else {
-      // Reset state when modal closes
-      console.log('Modal closed, resetting state')
-      setLoadingPrograms(false)
-      setPrograms([])
-    }
-  }, [open]) // Remove fetchPrograms dependency to prevent infinite loop
+  // Manual modal state management to avoid useEffect loops
+  const handleModalOpen = () => {
+    console.log('Manual modal open triggered')
+    setPrograms([])
+    setLoadingPrograms(true)
+    fetchPrograms()
+  }
 
-  useEffect(() => {
-    if (formData.programId) {
-      const program = programs.find(p => p.id === formData.programId)
-      setSelectedProgram(program || null)
-    } else {
-      setSelectedProgram(null)
+  const handleModalClose = () => {
+    console.log('Manual modal close triggered')
+    setLoadingPrograms(false)
+    setPrograms([])
+    resetForm()
+  }
+
+  // Fetch investment options for selected program
+  const fetchInvestmentOptions = useCallback(async (programId: string) => {
+    console.log('Fetching investment options for program:', programId)
+    setLoadingInvestmentOptions(true)
+    setInvestmentOptions([])
+    setSelectedInvestmentOption(null)
+    
+    try {
+      const response = await fetch(`/api/crbi-programs/${programId}/investment-options`)
+      
+      if (response.ok) {
+        const data = await response.json()
+        console.log('Investment options data:', data)
+        
+        if (data.investmentOptions && Array.isArray(data.investmentOptions)) {
+          setInvestmentOptions(data.investmentOptions)
+          console.log(`Successfully loaded ${data.investmentOptions.length} investment options`)
+        } else {
+          console.error('Invalid investment options data structure:', data)
+          setInvestmentOptions([])
+        }
+      } else {
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('API error fetching investment options:', response.status, errorData)
+        setInvestmentOptions([])
+      }
+    } catch (error) {
+      console.error('Error fetching investment options:', error)
+      setInvestmentOptions([])
+    } finally {
+      setLoadingInvestmentOptions(false)
+      console.log('Finished fetching investment options')
     }
-  }, [formData.programId, programs])
+  }, [])
+
+  // Removed problematic useEffects - logic moved to handleInputChange
 
   const handleInputChange = (field: string, value: string) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }))
+    
+    // Handle program selection directly
+    if (field === 'programId' && value) {
+      const program = programs.find(p => p.id === value)
+      setSelectedProgram(program || null)
+      fetchInvestmentOptions(value)
+    } else if (field === 'programId' && !value) {
+      setSelectedProgram(null)
+      setInvestmentOptions([])
+      setSelectedInvestmentOption(null)
+    }
+    
+    // Handle investment option selection directly
+    if (field === 'selectedInvestmentOptionId' && value) {
+      const option = investmentOptions.find(opt => opt.id === value)
+      setSelectedInvestmentOption(option || null)
+    } else if (field === 'selectedInvestmentOptionId' && !value) {
+      setSelectedInvestmentOption(null)
+    }
   }
 
   const formatCurrency = (amount: string | null) => {
@@ -149,10 +218,20 @@ export function ApplicationCreateModal({
   }
 
   const validateForm = () => {
+    // Basic required field validation
     if (!formData.programId) {
       toast({
         title: 'Validation Error',
         description: 'Please select a CRBI program',
+        variant: 'destructive'
+      })
+      return false
+    }
+
+    if (!formData.selectedInvestmentOptionId) {
+      toast({
+        title: 'Validation Error',
+        description: 'Please select an investment option',
         variant: 'destructive'
       })
       return false
@@ -168,13 +247,85 @@ export function ApplicationCreateModal({
     }
 
     const investmentAmount = parseFloat(formData.investmentAmount)
-    if (selectedProgram && investmentAmount < parseFloat(selectedProgram.minInvestment)) {
+    
+    // Investment amount validation
+    if (isNaN(investmentAmount) || investmentAmount <= 0) {
       toast({
         title: 'Validation Error',
-        description: `Investment amount must be at least ${formatCurrency(selectedProgram.minInvestment)}`,
+        description: 'Please enter a valid investment amount',
         variant: 'destructive'
       })
       return false
+    }
+
+    // Program-specific minimum investment validation
+    if (selectedProgram && investmentAmount < parseFloat(selectedProgram.minInvestment)) {
+      toast({
+        title: 'Validation Error',
+        description: `Investment amount must be at least ${formatCurrency(selectedProgram.minInvestment)} for ${selectedProgram.programName}`,
+        variant: 'destructive'
+      })
+      return false
+    }
+    
+    // Investment option specific validation
+    if (selectedInvestmentOption) {
+      const baseAmount = parseFloat(selectedInvestmentOption.baseAmount)
+      
+      if (investmentAmount < baseAmount) {
+        toast({
+          title: 'Validation Error',
+          description: `Investment amount must be at least ${formatCurrency(selectedInvestmentOption.baseAmount)} for ${selectedInvestmentOption.optionName}`,
+          variant: 'destructive'
+        })
+        return false
+      }
+
+      // Special validation for private real estate options
+      if (selectedInvestmentOption.optionType === 'Private Real Estate') {
+        const familyPricing = selectedInvestmentOption.familyPricing as Record<string, unknown>
+        if (familyPricing?.singleFamily && investmentAmount >= parseFloat(familyPricing.singleFamily.amount)) {
+          // Valid for single-family home
+        } else if (familyPricing?.condominium && investmentAmount >= parseFloat(familyPricing.condominium.amount)) {
+          // Valid for condominium
+        } else {
+          toast({
+            title: 'Validation Error',
+            description: `For Private Real Estate: Minimum ${formatCurrency(familyPricing?.condominium?.amount || baseAmount)} for condominium or ${formatCurrency(familyPricing?.singleFamily?.amount || '600000')} for single-family home`,
+            variant: 'destructive'
+          })
+          return false
+        }
+      }
+
+      // Family pricing validation for SISC
+      if (selectedInvestmentOption.optionType === 'SISC') {
+        const familyPricing = selectedInvestmentOption.familyPricing as Record<string, unknown>
+        if (familyPricing?.baseFamily && investmentAmount < parseFloat(familyPricing.baseFamily.amount)) {
+          toast({
+            title: 'Validation Error',
+            description: `SISC minimum investment is ${formatCurrency(familyPricing.baseFamily.amount)} for families up to 4 members`,
+            variant: 'destructive'
+          })
+          return false
+        }
+      }
+    }
+
+    // Date validation
+    if (formData.decisionExpectedAt) {
+      const selectedDate = new Date(formData.decisionExpectedAt)
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      
+      if (selectedDate < today) {
+        toast({
+          title: 'Validation Error',
+          description: 'Expected decision date cannot be in the past',
+          variant: 'destructive'
+        })
+        return false
+      }
     }
 
     return true
@@ -193,6 +344,7 @@ export function ApplicationCreateModal({
         body: JSON.stringify({
           clientId,
           programId: formData.programId,
+          selectedInvestmentOptionId: formData.selectedInvestmentOptionId,
           investmentAmount: formData.investmentAmount,
           investmentType: formData.investmentType || null,
           priority: formData.priority,
@@ -216,6 +368,7 @@ export function ApplicationCreateModal({
       // Reset form
       setFormData({
         programId: '',
+        selectedInvestmentOptionId: '',
         investmentAmount: '',
         investmentType: '',
         priority: 'medium',
@@ -241,6 +394,7 @@ export function ApplicationCreateModal({
   const resetForm = () => {
     setFormData({
       programId: '',
+      selectedInvestmentOptionId: '',
       investmentAmount: '',
       investmentType: '',
       priority: 'medium',
@@ -248,14 +402,20 @@ export function ApplicationCreateModal({
       notes: ''
     })
     setSelectedProgram(null)
+    setInvestmentOptions([])
+    setSelectedInvestmentOption(null)
   }
 
   return (
     <Dialog open={open} onOpenChange={(isOpen) => {
-      if (!isOpen) resetForm()
+      if (isOpen) {
+        handleModalOpen()
+      } else {
+        handleModalClose()
+      }
       onOpenChange(isOpen)
     }}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-xl font-semibold">
             Create New Application for {clientName}
@@ -343,48 +503,142 @@ export function ApplicationCreateModal({
 
           <Separator />
 
-          {/* Investment Details */}
+          {/* Investment Options */}
           <div className="space-y-4">
             <h4 className="font-medium flex items-center gap-2">
               <DollarSign className="h-4 w-4" />
-              Investment Details
+              Investment Options
             </h4>
 
-            <div className="grid grid-cols-2 gap-4">
+            {formData.programId && (
               <div className="space-y-2">
-                <Label htmlFor="investmentAmount">Investment Amount (USD) *</Label>
-                <Input
-                  id="investmentAmount"
-                  type="number"
-                  placeholder="e.g., 500000"
-                  value={formData.investmentAmount}
-                  onChange={(e) => handleInputChange('investmentAmount', e.target.value)}
-                />
-                {selectedProgram && formData.investmentAmount && (
-                  <p className="text-xs text-muted-foreground">
-                    Minimum required: {formatCurrency(selectedProgram.minInvestment)}
-                  </p>
-                )}
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="investmentType">Investment Type</Label>
+                <Label htmlFor="selectedInvestmentOption">Select Investment Option *</Label>
                 <Select 
-                  value={formData.investmentType} 
-                  onValueChange={(value) => handleInputChange('investmentType', value)}
+                  value={formData.selectedInvestmentOptionId} 
+                  onValueChange={(value) => handleInputChange('selectedInvestmentOptionId', value)}
+                  disabled={loadingInvestmentOptions}
                 >
                   <SelectTrigger>
-                    <SelectValue placeholder="Select investment type" />
+                    <SelectValue placeholder={loadingInvestmentOptions ? "Loading options..." : "Choose an investment option"} />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="real_estate">Real Estate</SelectItem>
-                    <SelectItem value="government_bonds">Government Bonds</SelectItem>
-                    <SelectItem value="business_investment">Business Investment</SelectItem>
-                    <SelectItem value="donation">Donation</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
+                    {investmentOptions.length === 0 && !loadingInvestmentOptions ? (
+                      <div className="p-4 text-center text-sm text-muted-foreground">
+                        No investment options available for this program
+                      </div>
+                    ) : (
+                      investmentOptions.map((option) => (
+                        <SelectItem key={option.id} value={option.id}>
+                          <div className="flex flex-col">
+                            <span className="font-medium">{option.optionName}</span>
+                            <span className="text-xs text-muted-foreground">
+                              Minimum: {formatCurrency(option.baseAmount)}
+                              {option.holdingPeriod && ` • ${Math.floor(option.holdingPeriod / 12)} year holding period`}
+                            </span>
+                          </div>
+                        </SelectItem>
+                      ))
+                    )}
                   </SelectContent>
                 </Select>
               </div>
+            )}
+
+            {/* Investment Option Details */}
+            {selectedInvestmentOption && (
+              <div className="p-4 border rounded-lg bg-gray-50 space-y-3">
+                <div className="flex items-center justify-between">
+                  <h5 className="font-medium">Investment Option Details</h5>
+                  <Badge variant="secondary">{selectedInvestmentOption.optionType}</Badge>
+                </div>
+                <div className="space-y-2 text-sm">
+                  <p className="text-muted-foreground">{selectedInvestmentOption.description}</p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <span className="text-muted-foreground">Base Amount:</span>
+                      <div className="font-medium">{formatCurrency(selectedInvestmentOption.baseAmount)}</div>
+                    </div>
+                    {selectedInvestmentOption.holdingPeriod && (
+                      <div>
+                        <span className="text-muted-foreground">Holding Period:</span>
+                        <div className="font-medium">{Math.floor(selectedInvestmentOption.holdingPeriod / 12)} years</div>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Investment Amount */}
+            <div className="space-y-2">
+              <Label htmlFor="investmentAmount">Investment Amount (USD) *</Label>
+              <Input
+                id="investmentAmount"
+                type="number"
+                placeholder={selectedInvestmentOption ? `Minimum: ${formatCurrency(selectedInvestmentOption.baseAmount)}` : "Enter investment amount"}
+                value={formData.investmentAmount}
+                onChange={(e) => handleInputChange('investmentAmount', e.target.value)}
+              />
+              {selectedInvestmentOption && formData.investmentAmount && (
+                <div className="text-xs space-y-1">
+                  {(() => {
+                    const amount = parseFloat(formData.investmentAmount)
+                    const baseAmount = parseFloat(selectedInvestmentOption.baseAmount)
+                    
+                    if (amount >= baseAmount) {
+                      // Check for special cases like Private Real Estate
+                      if (selectedInvestmentOption.optionType === 'Private Real Estate') {
+                        const familyPricing = selectedInvestmentOption.familyPricing as Record<string, unknown>
+                        const singleFamilyMin = familyPricing?.singleFamily?.amount ? parseFloat(familyPricing.singleFamily.amount) : 600000
+                        const condoMin = familyPricing?.condominium?.amount ? parseFloat(familyPricing.condominium.amount) : baseAmount
+                        
+                        if (amount >= singleFamilyMin) {
+                          return <p className="text-green-600">✅ Qualifies for single-family home or condominium</p>
+                        } else if (amount >= condoMin) {
+                          return <p className="text-green-600">✅ Qualifies for condominium investment</p>
+                        }
+                      }
+                      return <p className="text-green-600">✅ Amount meets minimum requirement</p>
+                    } else {
+                      return <p className="text-amber-600">⚠️ Minimum required: {formatCurrency(selectedInvestmentOption.baseAmount)}</p>
+                    }
+                  })()}
+                  
+                  {/* Additional context for investment options */}
+                  {selectedInvestmentOption.optionType === 'Private Real Estate' && (
+                    <p className="text-muted-foreground">
+                      Condominium: {formatCurrency(selectedInvestmentOption.familyPricing?.condominium?.amount || selectedInvestmentOption.baseAmount)} • 
+                      Single-family: {formatCurrency(selectedInvestmentOption.familyPricing?.singleFamily?.amount || '600000')}
+                    </p>
+                  )}
+                  
+                  {selectedInvestmentOption.optionType === 'SISC' && (
+                    <p className="text-muted-foreground">
+                      Base family (up to 4): {formatCurrency(selectedInvestmentOption.familyPricing?.baseFamily?.amount || selectedInvestmentOption.baseAmount)}
+                    </p>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Investment Type (Legacy field for additional categorization) */}
+            <div className="space-y-2">
+              <Label htmlFor="investmentType">Additional Investment Type (Optional)</Label>
+              <Select 
+                value={formData.investmentType} 
+                onValueChange={(value) => handleInputChange('investmentType', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Select additional type if applicable" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="real_estate">Real Estate</SelectItem>
+                  <SelectItem value="government_bonds">Government Bonds</SelectItem>
+                  <SelectItem value="business_investment">Business Investment</SelectItem>
+                  <SelectItem value="donation">Donation</SelectItem>
+                  <SelectItem value="other">Other</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </div>
 
@@ -451,7 +705,7 @@ export function ApplicationCreateModal({
           </Button>
           <Button 
             onClick={handleSubmit}
-            disabled={loading || !formData.programId || !formData.investmentAmount}
+            disabled={loading || !formData.programId || !formData.selectedInvestmentOptionId || !formData.investmentAmount}
           >
             {loading ? 'Creating...' : 'Create Application'}
           </Button>

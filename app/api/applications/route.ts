@@ -19,6 +19,7 @@ export async function POST(req: NextRequest) {
       firmId: user.firmId,
       clientId: validatedData.clientId,
       programId: validatedData.programId,
+      selectedInvestmentOptionId: validatedData.selectedInvestmentOptionId || null,
       assignedAdvisorId: user.id,
       applicationNumber,
       status: 'draft',

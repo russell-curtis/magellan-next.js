@@ -2,6 +2,7 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { useClientAuth } from '@/lib/client-auth-context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
@@ -243,7 +244,7 @@ export default function ClientApplicationsPage() {
             <Briefcase className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No Applications Yet</h3>
             <p className="text-gray-600 mb-4">
-              Your advisor will create applications for you when you're ready to proceed with a CRBI program.
+              Your advisor will create applications for you when you&apos;re ready to proceed with a CRBI program.
             </p>
             <Button onClick={() => router.push('/client/dashboard/messages')}>
               <ArrowRight className="mr-2 h-4 w-4" />
@@ -350,8 +351,10 @@ export default function ClientApplicationsPage() {
 
                   {/* Actions */}
                   <div className="flex items-center justify-between pt-4 border-t">
-                    <Button variant="outline" size="sm">
-                      View Details
+                    <Button variant="outline" size="sm" asChild>
+                      <Link href={`/client/dashboard/applications/${application.id}`}>
+                        View Details
+                      </Link>
                     </Button>
                     <Button 
                       size="sm"

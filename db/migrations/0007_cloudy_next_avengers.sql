@@ -1,0 +1,1 @@
+ALTER TABLE "crbi_programs" ADD CONSTRAINT "programs_unique_constraint" UNIQUE("country_code","program_name");

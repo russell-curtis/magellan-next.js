@@ -15,6 +15,7 @@ import {
   Users,
   CheckSquare,
   FileText,
+  Briefcase,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
@@ -35,6 +36,11 @@ const navItems: NavItem[] = [
     label: "Clients",
     href: "/dashboard/clients",
     icon: Users,
+  },
+  {
+    label: "Applications",
+    href: "/dashboard/applications",
+    icon: Briefcase,
   },
   {
     label: "Tasks",

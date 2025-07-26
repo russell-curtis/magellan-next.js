@@ -13,7 +13,8 @@ import {
   date,
   bigint,
   inet,
-  index
+  index,
+  unique
 } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 
@@ -188,11 +189,45 @@ export const crbiPrograms = pgTable('crbi_programs', {
   minInvestment: decimal('min_investment', { precision: 15, scale: 2 }).notNull(),
   processingTimeMonths: integer('processing_time_months'),
   requirements: jsonb('requirements'),
+  
+  // Enhanced program details from markdown documentation
+  programDetails: jsonb('program_details'), // Structured program information
+  
   isActive: boolean('is_active').default(true),
   createdAt: timestamp('created_at').defaultNow(),
 }, (table) => ({
   countryIdx: index('programs_country_idx').on(table.countryCode),
   typeIdx: index('programs_type_idx').on(table.programType),
+  // Unique constraint to prevent duplicate programs
+  uniqueProgram: unique('programs_unique_constraint').on(table.countryCode, table.programName),
+}))
+
+// Investment Options for CRBI Programs
+export const investmentOptions = pgTable('investment_options', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  programId: uuid('program_id').notNull().references(() => crbiPrograms.id, { onDelete: 'cascade' }),
+  
+  // Option Details
+  optionType: varchar('option_type', { length: 100 }).notNull(), // e.g., 'SISC', 'Real Estate', 'Public Benefit'
+  optionName: varchar('option_name', { length: 255 }).notNull(),
+  description: text('description'),
+  
+  // Investment Requirements
+  baseAmount: decimal('base_amount', { precision: 15, scale: 2 }).notNull(),
+  familyPricing: jsonb('family_pricing'), // Structured pricing for family members
+  
+  // Conditions and Requirements
+  holdingPeriod: integer('holding_period_months'), // e.g., 84 months for 7 years
+  conditions: jsonb('conditions'), // Additional conditions, restrictions
+  eligibilityRequirements: jsonb('eligibility_requirements'),
+  
+  // Metadata
+  isActive: boolean('is_active').default(true),
+  sortOrder: integer('sort_order').default(0),
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => ({
+  programIdx: index('investment_options_program_idx').on(table.programId),
+  typeIdx: index('investment_options_type_idx').on(table.optionType),
 }))
 
 // Applications
@@ -216,6 +251,7 @@ export const applications = pgTable('applications', {
   // Investment Details
   investmentAmount: decimal('investment_amount', { precision: 15, scale: 2 }),
   investmentType: varchar('investment_type', { length: 100 }), // real_estate, government_bonds, business
+  selectedInvestmentOptionId: uuid('selected_investment_option_id').references(() => investmentOptions.id),
   
   // Notes
   notes: text('notes'),
@@ -583,6 +619,15 @@ export const clientsRelations = relations(clients, ({ one, many }) => ({
 
 export const crbiProgramsRelations = relations(crbiPrograms, ({ many }) => ({
   applications: many(applications),
+  investmentOptions: many(investmentOptions),
+}))
+
+export const investmentOptionsRelations = relations(investmentOptions, ({ one, many }) => ({
+  program: one(crbiPrograms, {
+    fields: [investmentOptions.programId],
+    references: [crbiPrograms.id],
+  }),
+  applications: many(applications),
 }))
 
 export const applicationsRelations = relations(applications, ({ one, many }) => ({
@@ -601,6 +646,10 @@ export const applicationsRelations = relations(applications, ({ one, many }) => 
   assignedAdvisor: one(users, {
     fields: [applications.assignedAdvisorId],
     references: [users.id],
+  }),
+  selectedInvestmentOption: one(investmentOptions, {
+    fields: [applications.selectedInvestmentOptionId],
+    references: [investmentOptions.id],
   }),
   milestones: many(applicationMilestones),
   documents: many(documents),
@@ -787,6 +836,446 @@ export const messageNotificationsRelations = relations(messageNotifications, ({ 
 }))
 
 // ============================================================================
+// PROGRAM-SPECIFIC DOCUMENT MANAGEMENT SYSTEM
+// ============================================================================
+
+// Program Workflow Templates (Master templates for each CRBI program)
+export const programWorkflowTemplates = pgTable('program_workflow_templates', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  programId: uuid('program_id').notNull().references(() => crbiPrograms.id, { onDelete: 'cascade' }),
+  
+  // Template Details
+  templateName: varchar('template_name', { length: 255 }).notNull(),
+  description: text('description'),
+  totalStages: integer('total_stages').notNull(),
+  estimatedTimeMonths: integer('estimated_time_months'),
+  
+  // Template Configuration
+  isActive: boolean('is_active').default(true),
+  version: integer('version').default(1),
+  
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => ({
+  programIdx: index('workflow_templates_program_idx').on(table.programId),
+  activeIdx: index('workflow_templates_active_idx').on(table.isActive),
+}))
+
+// Workflow Stages (Sequential stages within each program workflow)
+export const workflowStages = pgTable('workflow_stages', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  templateId: uuid('template_id').notNull().references(() => programWorkflowTemplates.id, { onDelete: 'cascade' }),
+  
+  // Stage Details
+  stageOrder: integer('stage_order').notNull(),
+  stageName: varchar('stage_name', { length: 255 }).notNull(),
+  description: text('description'),
+  estimatedDays: integer('estimated_days'),
+  
+  // Stage Configuration
+  isRequired: boolean('is_required').default(true),
+  canSkip: boolean('can_skip').default(false),
+  autoProgress: boolean('auto_progress').default(false), // Auto-advance when all documents complete
+  
+  // Dependencies
+  dependsOnStages: uuid('depends_on_stages').array(), // Array of stage IDs that must complete first
+  
+  createdAt: timestamp('created_at').defaultNow(),
+}, (table) => ({
+  templateOrderIdx: index('workflow_stages_template_order_idx').on(table.templateId, table.stageOrder),
+}))
+
+// Document Requirements (Required documents per program/stage)
+export const documentRequirements = pgTable('document_requirements', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  programId: uuid('program_id').notNull().references(() => crbiPrograms.id, { onDelete: 'cascade' }),
+  stageId: uuid('stage_id').references(() => workflowStages.id, { onDelete: 'cascade' }), // Optional: can be program-wide
+  
+  // Document Details
+  documentName: varchar('document_name', { length: 255 }).notNull(),
+  description: text('description'),
+  category: varchar('category', { length: 100 }).notNull(), // personal, financial, investment, medical, legal
+  
+  // Requirements
+  isRequired: boolean('is_required').default(true),
+  isClientUploadable: boolean('is_client_uploadable').default(true), // Can client upload directly?
+  acceptedFormats: text('accepted_formats').array(), // ['pdf', 'jpg', 'png']
+  maxFileSizeMB: integer('max_file_size_mb').default(10),
+  
+  // Validation Rules
+  validationRules: jsonb('validation_rules'), // Custom validation logic
+  expirationMonths: integer('expiration_months'), // Document validity period
+  
+  // Display & Organization
+  sortOrder: integer('sort_order').default(0),
+  displayGroup: varchar('display_group', { length: 100 }), // Group related documents
+  helpText: text('help_text'), // Instructions for client
+  
+  // Status
+  isActive: boolean('is_active').default(true),
+  
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => ({
+  programStageIdx: index('doc_requirements_program_stage_idx').on(table.programId, table.stageId),
+  categoryIdx: index('doc_requirements_category_idx').on(table.category),
+  requiredIdx: index('doc_requirements_required_idx').on(table.isRequired),
+}))
+
+// Application Documents (Client-uploaded documents linked to applications)
+export const applicationDocuments = pgTable('application_documents', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  applicationId: uuid('application_id').notNull().references(() => applications.id, { onDelete: 'cascade' }),
+  documentRequirementId: uuid('document_requirement_id').references(() => documentRequirements.id),
+  
+  // File Details
+  filename: varchar('filename', { length: 255 }).notNull(),
+  originalFilename: varchar('original_filename', { length: 255 }).notNull(),
+  filePath: text('file_path').notNull(), // Path in Cloudflare R2
+  fileSize: bigint('file_size', { mode: 'number' }),
+  contentType: varchar('content_type', { length: 100 }),
+  fileHash: varchar('file_hash', { length: 256 }), // For duplicate detection
+  
+  // Upload Info
+  uploadedAt: timestamp('uploaded_at').defaultNow(),
+  uploadedByType: varchar('uploaded_by_type', { length: 20 }).notNull(), // client, advisor
+  uploadedById: text('uploaded_by_id'), // Can be client ID or advisor ID
+  
+  // Document Status
+  status: varchar('status', { length: 50 }).default('uploaded'), // uploaded, under_review, approved, rejected, expired
+  reviewStatus: varchar('review_status', { length: 50 }), // pending, approved, rejected, needs_revision
+  
+  // Review Info
+  reviewedById: text('reviewed_by_id').references(() => users.id),
+  reviewedAt: timestamp('reviewed_at'),
+  reviewNotes: text('review_notes'),
+  
+  // Document Metadata
+  documentDate: date('document_date'), // Date on the document (e.g., issue date)
+  expirationDate: date('expiration_date'), // When document expires
+  
+  // Version Control
+  version: integer('version').default(1),
+  isLatestVersion: boolean('is_latest_version').default(true),
+  replacesDocumentId: uuid('replaces_document_id').references((): any => applicationDocuments.id),
+  
+  // OCR and Processing
+  ocrProcessed: boolean('ocr_processed').default(false),
+  ocrText: text('ocr_text'), // Extracted text content
+  ocrConfidence: decimal('ocr_confidence', { precision: 5, scale: 2 }), // OCR confidence score
+  
+  // Compliance
+  complianceChecked: boolean('compliance_checked').default(false),
+  complianceStatus: varchar('compliance_status', { length: 50 }),
+  complianceNotes: text('compliance_notes'),
+  
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => ({
+  applicationIdx: index('app_documents_application_idx').on(table.applicationId),
+  requirementIdx: index('app_documents_requirement_idx').on(table.documentRequirementId),
+  statusIdx: index('app_documents_status_idx').on(table.status),
+  reviewStatusIdx: index('app_documents_review_status_idx').on(table.reviewStatus),
+  latestVersionIdx: index('app_documents_latest_version_idx').on(table.isLatestVersion),
+}))
+
+// Document Reviews (Agent review workflow and history)
+export const documentReviews = pgTable('document_reviews', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  documentId: uuid('document_id').notNull().references(() => applicationDocuments.id, { onDelete: 'cascade' }),
+  reviewerId: text('reviewer_id').notNull().references(() => users.id),
+  
+  // Review Details
+  reviewType: varchar('review_type', { length: 50 }).notNull(), // initial, revision, final
+  reviewResult: varchar('review_result', { length: 50 }).notNull(), // approved, rejected, needs_revision
+  
+  // Review Content
+  reviewNotes: text('review_notes'),
+  feedback: text('feedback'), // Feedback for client
+  rejectionReason: varchar('rejection_reason', { length: 100 }),
+  
+  // Quality Checks
+  qualityScore: integer('quality_score'), // 1-10 quality rating
+  checksPerformed: jsonb('checks_performed'), // List of validation checks
+  
+  // Review Metadata
+  timeSpentMinutes: integer('time_spent_minutes'),
+  isSystemGenerated: boolean('is_system_generated').default(false),
+  
+  reviewedAt: timestamp('reviewed_at').defaultNow(),
+}, (table) => ({
+  documentIdx: index('document_reviews_document_idx').on(table.documentId),
+  reviewerIdx: index('document_reviews_reviewer_idx').on(table.reviewerId),
+  resultIdx: index('document_reviews_result_idx').on(table.reviewResult),
+}))
+
+// Application Workflow Progress (Tracks current stage and progress)
+export const applicationWorkflowProgress = pgTable('application_workflow_progress', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  applicationId: uuid('application_id').notNull().references(() => applications.id, { onDelete: 'cascade' }),
+  templateId: uuid('template_id').notNull().references(() => programWorkflowTemplates.id),
+  
+  // Current Status
+  currentStageId: uuid('current_stage_id').references(() => workflowStages.id),
+  overallProgress: decimal('overall_progress', { precision: 5, scale: 2 }).default('0'), // 0-100%
+  
+  // Timeline
+  startedAt: timestamp('started_at').defaultNow(),
+  estimatedCompletionAt: timestamp('estimated_completion_at'),
+  actualCompletionAt: timestamp('actual_completion_at'),
+  
+  // Status
+  status: varchar('status', { length: 50 }).default('in_progress'), // in_progress, completed, on_hold, cancelled
+  
+  // Metadata
+  customStagesAdded: jsonb('custom_stages_added'), // Custom stages added by advisor
+  stageOverrides: jsonb('stage_overrides'), // Manual overrides to standard process
+  
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => ({
+  applicationIdx: index('workflow_progress_application_idx').on(table.applicationId),
+  stageIdx: index('workflow_progress_stage_idx').on(table.currentStageId),
+  statusIdx: index('workflow_progress_status_idx').on(table.status),
+}))
+
+// Stage Progress (Detailed progress for each stage)
+export const stageProgress = pgTable('stage_progress', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  applicationId: uuid('application_id').notNull().references(() => applications.id, { onDelete: 'cascade' }),
+  stageId: uuid('stage_id').notNull().references(() => workflowStages.id),
+  
+  // Progress Details
+  status: varchar('status', { length: 50 }).default('pending'), // pending, in_progress, completed, skipped
+  completionPercentage: decimal('completion_percentage', { precision: 5, scale: 2 }).default('0'),
+  
+  // Timeline
+  startedAt: timestamp('started_at'),
+  completedAt: timestamp('completed_at'),
+  estimatedDuration: integer('estimated_duration_days'),
+  actualDuration: integer('actual_duration_days'),
+  
+  // Document Progress
+  totalDocumentsRequired: integer('total_documents_required').default(0),
+  documentsUploaded: integer('documents_uploaded').default(0),
+  documentsApproved: integer('documents_approved').default(0),
+  documentsRejected: integer('documents_rejected').default(0),
+  
+  // Notes
+  notes: text('notes'),
+  blockedReason: text('blocked_reason'),
+  
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => ({
+  applicationStageIdx: index('stage_progress_app_stage_idx').on(table.applicationId, table.stageId),
+  statusIdx: index('stage_progress_status_idx').on(table.status),
+}))
+
+// Custom Document Requirements (Agent-added requirements)
+export const customDocumentRequirements = pgTable('custom_document_requirements', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  applicationId: uuid('application_id').notNull().references(() => applications.id, { onDelete: 'cascade' }),
+  createdById: text('created_by_id').notNull().references(() => users.id),
+  
+  // Document Details
+  documentName: varchar('document_name', { length: 255 }).notNull(),
+  description: text('description'),
+  category: varchar('category', { length: 100 }).notNull(),
+  
+  // Requirements
+  isRequired: boolean('is_required').default(true),
+  dueDate: date('due_date'),
+  priority: varchar('priority', { length: 20 }).default('medium'),
+  
+  // Instructions
+  instructions: text('instructions'),
+  acceptedFormats: text('accepted_formats').array(),
+  maxFileSizeMB: integer('max_file_size_mb').default(10),
+  
+  // Status
+  status: varchar('status', { length: 50 }).default('pending'), // pending, fulfilled, waived
+  fulfilledAt: timestamp('fulfilled_at'),
+  waivedAt: timestamp('waived_at'),
+  waivedReason: text('waived_reason'),
+  
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => ({
+  applicationIdx: index('custom_doc_requirements_application_idx').on(table.applicationId),
+  createdByIdx: index('custom_doc_requirements_created_by_idx').on(table.createdById),
+  statusIdx: index('custom_doc_requirements_status_idx').on(table.status),
+}))
+
+// ============================================================================
+// DOCUMENT MANAGEMENT RELATIONS
+// ============================================================================
+
+export const programWorkflowTemplatesRelations = relations(programWorkflowTemplates, ({ one, many }) => ({
+  program: one(crbiPrograms, {
+    fields: [programWorkflowTemplates.programId],
+    references: [crbiPrograms.id],
+  }),
+  stages: many(workflowStages),
+  applicationProgress: many(applicationWorkflowProgress),
+}))
+
+export const workflowStagesRelations = relations(workflowStages, ({ one, many }) => ({
+  template: one(programWorkflowTemplates, {
+    fields: [workflowStages.templateId],
+    references: [programWorkflowTemplates.id],
+  }),
+  documentRequirements: many(documentRequirements),
+  stageProgress: many(stageProgress),
+}))
+
+export const documentRequirementsRelations = relations(documentRequirements, ({ one, many }) => ({
+  program: one(crbiPrograms, {
+    fields: [documentRequirements.programId],
+    references: [crbiPrograms.id],
+  }),
+  stage: one(workflowStages, {
+    fields: [documentRequirements.stageId],
+    references: [workflowStages.id],
+  }),
+  applicationDocuments: many(applicationDocuments),
+}))
+
+export const applicationDocumentsRelations = relations(applicationDocuments, ({ one, many }) => ({
+  application: one(applications, {
+    fields: [applicationDocuments.applicationId],
+    references: [applications.id],
+  }),
+  documentRequirement: one(documentRequirements, {
+    fields: [applicationDocuments.documentRequirementId],
+    references: [documentRequirements.id],
+  }),
+  reviewedBy: one(users, {
+    fields: [applicationDocuments.reviewedById],
+    references: [users.id],
+  }),
+  replacesDocument: one(applicationDocuments, {
+    fields: [applicationDocuments.replacesDocumentId],
+    references: [applicationDocuments.id],
+  }),
+  reviews: many(documentReviews),
+}))
+
+export const documentReviewsRelations = relations(documentReviews, ({ one }) => ({
+  document: one(applicationDocuments, {
+    fields: [documentReviews.documentId],
+    references: [applicationDocuments.id],
+  }),
+  reviewer: one(users, {
+    fields: [documentReviews.reviewerId],
+    references: [users.id],
+  }),
+}))
+
+export const applicationWorkflowProgressRelations = relations(applicationWorkflowProgress, ({ one, many }) => ({
+  application: one(applications, {
+    fields: [applicationWorkflowProgress.applicationId],
+    references: [applications.id],
+  }),
+  template: one(programWorkflowTemplates, {
+    fields: [applicationWorkflowProgress.templateId],
+    references: [programWorkflowTemplates.id],
+  }),
+  currentStage: one(workflowStages, {
+    fields: [applicationWorkflowProgress.currentStageId],
+    references: [workflowStages.id],
+  }),
+  stageProgress: many(stageProgress),
+}))
+
+export const stageProgressRelations = relations(stageProgress, ({ one }) => ({
+  application: one(applications, {
+    fields: [stageProgress.applicationId],
+    references: [applications.id],
+  }),
+  stage: one(workflowStages, {
+    fields: [stageProgress.stageId],
+    references: [workflowStages.id],
+  }),
+}))
+
+export const customDocumentRequirementsRelations = relations(customDocumentRequirements, ({ one }) => ({
+  application: one(applications, {
+    fields: [customDocumentRequirements.applicationId],
+    references: [applications.id],
+  }),
+  createdBy: one(users, {
+    fields: [customDocumentRequirements.createdById],
+    references: [users.id],
+  }),
+}))
+
+// Update existing relations to include new document management
+export const applicationsRelationsUpdated = relations(applications, ({ one, many }) => ({
+  firm: one(firms, {
+    fields: [applications.firmId],
+    references: [firms.id],
+  }),
+  client: one(clients, {
+    fields: [applications.clientId],
+    references: [clients.id],
+  }),
+  program: one(crbiPrograms, {
+    fields: [applications.programId],
+    references: [crbiPrograms.id],
+  }),
+  assignedAdvisor: one(users, {
+    fields: [applications.assignedAdvisorId],
+    references: [users.id],
+  }),
+  selectedInvestmentOption: one(investmentOptions, {
+    fields: [applications.selectedInvestmentOptionId],
+    references: [investmentOptions.id],
+  }),
+  milestones: many(applicationMilestones),
+  documents: many(documents),
+  tasks: many(tasks),
+  activityLogs: many(activityLogs),
+  communications: many(communications),
+  conversations: many(conversations),
+  // New document management relations
+  applicationDocuments: many(applicationDocuments),
+  workflowProgress: one(applicationWorkflowProgress),
+  stageProgress: many(stageProgress),
+  customDocumentRequirements: many(customDocumentRequirements),
+}))
+
+export const crbiProgramsRelationsUpdated = relations(crbiPrograms, ({ many }) => ({
+  applications: many(applications),
+  investmentOptions: many(investmentOptions),
+  // New document management relations
+  workflowTemplates: many(programWorkflowTemplates),
+  documentRequirements: many(documentRequirements),
+}))
+
+export const usersRelationsUpdated = relations(users, ({ one, many }) => ({
+  firm: one(firms, {
+    fields: [users.firmId],
+    references: [firms.id],
+  }),
+  clientsAssigned: many(clients),
+  applicationsAssigned: many(applications),
+  tasksCreated: many(tasks, { relationName: "TasksCreated" }),
+  tasksAssigned: many(tasks, { relationName: "TasksAssigned" }),
+  documentsUploaded: many(documents),
+  activityLogs: many(activityLogs),
+  communications: many(communications),
+  conversationsAssigned: many(conversations),
+  messagesSent: many(messages, { relationName: "MessagesSentByAdvisor" }),
+  messageParticipants: many(messageParticipants, { relationName: "AdvisorParticipants" }),
+  messageNotifications: many(messageNotifications, { relationName: "AdvisorNotifications" }),
+  clientInvitations: many(clientAuth, { relationName: "ClientInvitations" }),
+  // New document management relations
+  documentReviews: many(documentReviews),
+  customDocumentRequirements: many(customDocumentRequirements),
+}))
+
+// ============================================================================
 // TYPE EXPORTS
 // ============================================================================
 
@@ -801,6 +1290,9 @@ export type NewClient = typeof clients.$inferInsert
 
 export type CrbiProgram = typeof crbiPrograms.$inferSelect
 export type NewCrbiProgram = typeof crbiPrograms.$inferInsert
+
+export type InvestmentOption = typeof investmentOptions.$inferSelect
+export type NewInvestmentOption = typeof investmentOptions.$inferInsert
 
 export type Application = typeof applications.$inferSelect
 export type NewApplication = typeof applications.$inferInsert
@@ -838,6 +1330,31 @@ export type NewMessageParticipant = typeof messageParticipants.$inferInsert
 export type MessageNotification = typeof messageNotifications.$inferSelect
 export type NewMessageNotification = typeof messageNotifications.$inferInsert
 
+// Document Management Types
+export type ProgramWorkflowTemplate = typeof programWorkflowTemplates.$inferSelect
+export type NewProgramWorkflowTemplate = typeof programWorkflowTemplates.$inferInsert
+
+export type WorkflowStage = typeof workflowStages.$inferSelect
+export type NewWorkflowStage = typeof workflowStages.$inferInsert
+
+export type DocumentRequirement = typeof documentRequirements.$inferSelect
+export type NewDocumentRequirement = typeof documentRequirements.$inferInsert
+
+export type ApplicationDocument = typeof applicationDocuments.$inferSelect
+export type NewApplicationDocument = typeof applicationDocuments.$inferInsert
+
+export type DocumentReview = typeof documentReviews.$inferSelect
+export type NewDocumentReview = typeof documentReviews.$inferInsert
+
+export type ApplicationWorkflowProgress = typeof applicationWorkflowProgress.$inferSelect
+export type NewApplicationWorkflowProgress = typeof applicationWorkflowProgress.$inferInsert
+
+export type StageProgress = typeof stageProgress.$inferSelect
+export type NewStageProgress = typeof stageProgress.$inferInsert
+
+export type CustomDocumentRequirement = typeof customDocumentRequirements.$inferSelect
+export type NewCustomDocumentRequirement = typeof customDocumentRequirements.$inferInsert
+
 // ============================================================================
 // ENUMS & CONSTANTS
 // ============================================================================
@@ -857,7 +1374,6 @@ export const TASK_TYPES = [
   'meeting', 
   'other'
 ] as const
-export const DOCUMENT_CATEGORIES = ['identity', 'financial', 'legal', 'medical'] as const
 export const COMMUNICATION_TYPES = ['email', 'call', 'meeting', 'message'] as const
 
 // Messaging System Constants
@@ -869,13 +1385,24 @@ export const PARTICIPANT_TYPES = ['advisor', 'client'] as const
 export const RECIPIENT_TYPES = ['advisor', 'client'] as const
 export const NOTIFICATION_TYPES = ['browser', 'email', 'push'] as const
 
+// Document Management Constants
+export const DOCUMENT_CATEGORIES = ['personal', 'financial', 'investment', 'medical', 'legal'] as const
+export const DOCUMENT_STATUSES = ['uploaded', 'under_review', 'approved', 'rejected', 'expired'] as const
+export const REVIEW_STATUSES = ['pending', 'approved', 'rejected', 'needs_revision'] as const
+export const REVIEW_TYPES = ['initial', 'revision', 'final'] as const
+export const REVIEW_RESULTS = ['approved', 'rejected', 'needs_revision'] as const
+export const WORKFLOW_STATUSES = ['in_progress', 'completed', 'on_hold', 'cancelled'] as const
+export const STAGE_STATUSES = ['pending', 'in_progress', 'completed', 'skipped'] as const
+export const CUSTOM_DOC_STATUSES = ['pending', 'fulfilled', 'waived'] as const
+export const UPLOADED_BY_TYPES = ['client', 'advisor'] as const
+export const ACCEPTED_FILE_FORMATS = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'] as const
+
 export type UserRole = typeof USER_ROLES[number]
 export type ClientStatus = typeof CLIENT_STATUSES[number]
 export type ApplicationStatus = typeof APPLICATION_STATUSES[number]
 export type TaskPriority = typeof TASK_PRIORITIES[number]
 export type TaskStatus = typeof TASK_STATUSES[number]
 export type TaskType = typeof TASK_TYPES[number]
-export type DocumentCategory = typeof DOCUMENT_CATEGORIES[number]
 export type CommunicationType = typeof COMMUNICATION_TYPES[number]
 
 // Messaging System Types
@@ -886,3 +1413,15 @@ export type SenderType = typeof SENDER_TYPES[number]
 export type ParticipantType = typeof PARTICIPANT_TYPES[number]
 export type RecipientType = typeof RECIPIENT_TYPES[number]
 export type NotificationType = typeof NOTIFICATION_TYPES[number]
+
+// Document Management Types
+export type DocumentCategory = typeof DOCUMENT_CATEGORIES[number]
+export type DocumentStatus = typeof DOCUMENT_STATUSES[number]
+export type ReviewStatus = typeof REVIEW_STATUSES[number]
+export type ReviewType = typeof REVIEW_TYPES[number]
+export type ReviewResult = typeof REVIEW_RESULTS[number]
+export type WorkflowStatus = typeof WORKFLOW_STATUSES[number]
+export type StageStatus = typeof STAGE_STATUSES[number]
+export type CustomDocStatus = typeof CUSTOM_DOC_STATUSES[number]
+export type UploadedByType = typeof UPLOADED_BY_TYPES[number]
+export type AcceptedFileFormat = typeof ACCEPTED_FILE_FORMATS[number]

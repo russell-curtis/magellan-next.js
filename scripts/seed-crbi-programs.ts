@@ -212,13 +212,47 @@ async function seedDatabase() {
   try {
     console.log('🌱 Seeding CRBI programs...')
     
-    // Insert CRBI programs
-    await db.insert(crbiPrograms).values(programs)
-    console.log(`✅ Inserted ${programs.length} CRBI programs`)
+    // Check if programs already exist to prevent duplicates
+    const existingPrograms = await db.select({ 
+      countryCode: crbiPrograms.countryCode,
+      programName: crbiPrograms.programName 
+    }).from(crbiPrograms)
     
-    // Insert document types
-    await db.insert(documentTypes).values(docTypes)
-    console.log(`✅ Inserted ${docTypes.length} document types`)
+    const existingKeys = new Set(existingPrograms.map(p => `${p.countryCode}-${p.programName}`))
+    
+    // Filter out programs that already exist
+    const newPrograms = programs.filter(program => {
+      const key = `${program.countryCode}-${program.programName}`
+      return !existingKeys.has(key)
+    })
+    
+    if (newPrograms.length > 0) {
+      await db.insert(crbiPrograms).values(newPrograms)
+      console.log(`✅ Inserted ${newPrograms.length} new CRBI programs`)
+    } else {
+      console.log('✅ All CRBI programs already exist, skipping insertion')
+    }
+    
+    if (newPrograms.length < programs.length) {
+      console.log(`ℹ️  Skipped ${programs.length - newPrograms.length} programs that already exist`)
+    }
+    
+    // Check document types
+    const existingDocTypes = await db.select({ name: documentTypes.name }).from(documentTypes)
+    const existingDocNames = new Set(existingDocTypes.map(d => d.name))
+    
+    const newDocTypes = docTypes.filter(docType => !existingDocNames.has(docType.name))
+    
+    if (newDocTypes.length > 0) {
+      await db.insert(documentTypes).values(newDocTypes)
+      console.log(`✅ Inserted ${newDocTypes.length} new document types`)
+    } else {
+      console.log('✅ All document types already exist, skipping insertion')
+    }
+    
+    if (newDocTypes.length < docTypes.length) {
+      console.log(`ℹ️  Skipped ${docTypes.length - newDocTypes.length} document types that already exist`)
+    }
     
     console.log('🎉 Database seeded successfully!')
     

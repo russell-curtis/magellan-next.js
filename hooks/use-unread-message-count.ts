@@ -45,13 +45,28 @@ export function useUnreadMessageCount({
     setError(null)
 
     try {
+      const headers = getAuthHeaders()
+      
+      // For client userType, check if we have a token before making the request
+      if (userType === 'client' && !headers.Authorization) {
+        // No client token available, skip the request silently
+        setUnreadCount(0)
+        if (isInitialLoad) {
+          setIsLoading(false)
+        }
+        return
+      }
+
       const response = await fetch(`/api/messages/read?userType=${userType}`, {
-        headers: getAuthHeaders(),
+        headers,
       })
 
       if (response.ok) {
         const data = await response.json()
         setUnreadCount(data.unreadCount || 0)
+      } else if (response.status === 401) {
+        // Authentication failed, set count to 0 and don't show error
+        setUnreadCount(0)
       } else {
         throw new Error(`Failed to fetch unread count: ${response.status}`)
       }
@@ -59,6 +74,8 @@ export function useUnreadMessageCount({
       const errorMessage = err instanceof Error ? err.message : 'Failed to fetch unread count'
       setError(errorMessage)
       console.error('Error fetching unread message count:', err)
+      // Set count to 0 on error to prevent UI issues
+      setUnreadCount(0)
     } finally {
       if (isInitialLoad) {
         setIsLoading(false)

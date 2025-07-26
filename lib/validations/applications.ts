@@ -3,6 +3,7 @@ import { z } from 'zod'
 export const createApplicationSchema = z.object({
   clientId: z.string().uuid('Invalid client ID'),
   programId: z.string().uuid('Invalid program ID'),
+  selectedInvestmentOptionId: z.string().uuid('Invalid investment option ID').optional(),
   investmentAmount: z.preprocess(
     (val) => {
       if (val === null || val === undefined || val === '') return undefined

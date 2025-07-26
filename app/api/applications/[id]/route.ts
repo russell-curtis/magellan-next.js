@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db/drizzle'
-import { applications } from '@/db/schema'
+import { applications, clients, crbiPrograms, users } from '@/db/schema'
 import { updateApplicationSchema } from '@/lib/validations/applications'
 import { requireAuth } from '@/lib/auth-utils'
 import { eq, and } from 'drizzle-orm'
@@ -15,8 +15,44 @@ export async function GET(
     const applicationId = resolvedParams.id
 
     const application = await db
-      .select()
+      .select({
+        id: applications.id,
+        applicationNumber: applications.applicationNumber,
+        status: applications.status,
+        priority: applications.priority,
+        investmentAmount: applications.investmentAmount,
+        investmentType: applications.investmentType,
+        submittedAt: applications.submittedAt,
+        decisionExpectedAt: applications.decisionExpectedAt,
+        decidedAt: applications.decidedAt,
+        notes: applications.notes,
+        internalNotes: applications.internalNotes,
+        createdAt: applications.createdAt,
+        updatedAt: applications.updatedAt,
+        client: {
+          id: clients.id,
+          firstName: clients.firstName,
+          lastName: clients.lastName,
+          email: clients.email
+        },
+        program: {
+          id: crbiPrograms.id,
+          countryName: crbiPrograms.countryName,
+          programName: crbiPrograms.programName,
+          programType: crbiPrograms.programType,
+          minInvestment: crbiPrograms.minInvestment,
+          processingTimeMonths: crbiPrograms.processingTimeMonths
+        },
+        assignedAdvisor: {
+          id: users.id,
+          name: users.name,
+          email: users.email
+        }
+      })
       .from(applications)
+      .leftJoin(clients, eq(applications.clientId, clients.id))
+      .leftJoin(crbiPrograms, eq(applications.programId, crbiPrograms.id))
+      .leftJoin(users, eq(applications.assignedAdvisorId, users.id))
       .where(
         and(
           eq(applications.id, applicationId),
@@ -32,7 +68,7 @@ export async function GET(
       )
     }
 
-    return NextResponse.json({ application: application[0] })
+    return NextResponse.json(application[0])
 
   } catch (error) {
     console.error('Error fetching application:', error)

@@ -19,6 +19,7 @@ interface DashboardMetrics {
     rejected: number
   }
   programDistribution: Array<{
+    programId: string
     program: string
     count: number
     percentage: number
@@ -198,7 +199,7 @@ export function DashboardAnalytics({ firmId }: DashboardAnalyticsProps) {
           </CardHeader>
           <CardContent className="space-y-4">
             {metrics.programDistribution.map((program) => (
-              <div key={program.program} className="space-y-2">
+              <div key={program.programId} className="space-y-2">
                 <div className="flex items-center justify-between text-sm">
                   <span className="font-medium">{program.program}</span>
                   <span className="text-muted-foreground">

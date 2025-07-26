@@ -108,7 +108,8 @@ export async function GET() {
           : 0
 
         return {
-          program: program ? `${program.countryName} ${program.programType}` : 'Unknown Program',
+          programId: result.programId,
+          program: program ? `${program.countryName} - ${program.programName}` : 'Unknown Program',
           count: result.count,
           percentage
         }
