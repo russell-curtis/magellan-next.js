@@ -964,6 +964,12 @@ export const applicationDocuments = pgTable('application_documents', {
   ocrText: text('ocr_text'), // Extracted text content
   ocrConfidence: decimal('ocr_confidence', { precision: 5, scale: 2 }), // OCR confidence score
   
+  // Document Quality Validation
+  qualityValidated: boolean('quality_validated').default(false),
+  qualityScore: varchar('quality_score', { length: 20 }), // excellent, good, fair, poor
+  qualityIssues: jsonb('quality_issues'), // Array of quality issues
+  qualityMetadata: jsonb('quality_metadata'), // Technical metadata (resolution, format, etc.)
+  
   // Compliance
   complianceChecked: boolean('compliance_checked').default(false),
   complianceStatus: varchar('compliance_status', { length: 50 }),

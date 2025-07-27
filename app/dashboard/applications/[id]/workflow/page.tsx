@@ -71,46 +71,56 @@ export default function ApplicationWorkflowPage() {
 
   const fetchApplicationData = async () => {
     try {
+      console.log('=== FETCH APPLICATION DATA STARTED ===')
       setLoading(true)
       
       // Fetch application details
+      console.log('Fetching application details...')
       const appResponse = await fetch(`/api/applications/${applicationId}`)
+      console.log('Application API response:', appResponse.status)
       if (appResponse.ok) {
         const appData = await appResponse.json()
+        console.log('Application data received:', appData ? 'success' : 'empty')
         setApplication(appData)
+      } else {
+        console.error('Application API failed:', appResponse.status)
       }
 
       // Fetch workflow data
+      console.log('Fetching workflow data...')
       const workflowResponse = await fetch(`/api/applications/${applicationId}/workflow`)
+      console.log('Workflow API response:', workflowResponse.status)
       if (workflowResponse.ok) {
         const workflowData = await workflowResponse.json()
+        console.log('Workflow data received:', workflowData ? 'success' : 'empty')
         setWorkflow(workflowData)
       } else {
         const errorText = await workflowResponse.text()
         console.error('Workflow API error:', workflowResponse.status, errorText)
-        let errorMsg = 'Failed to load workflow data'
-        try {
-          const errorJson = JSON.parse(errorText)
-          errorMsg = errorJson.details || errorJson.error || errorText
-        } catch {
-          errorMsg = errorText
-        }
-        setError(`Failed to load workflow: ${errorMsg}`)
-        return
+        // Don't set error and return - continue to fetch requirements
       }
 
       // Fetch document requirements
+      console.log('Fetching document requirements...')
       const reqResponse = await fetch(`/api/applications/${applicationId}/documents/requirements`)
+      console.log('Requirements API response:', reqResponse.status)
       if (reqResponse.ok) {
         const reqData = await reqResponse.json()
+        console.log('Requirements data received:', reqData ? 'success' : 'empty')
         // Flatten the stages structure to get all requirements
         const allRequirements = reqData.stages?.flatMap((stage: any) => stage.requirements) || []
+        console.log('Flattened requirements count:', allRequirements.length)
         setRequirements(allRequirements)
+      } else {
+        const errorText = await reqResponse.text()
+        console.error('Requirements API error:', reqResponse.status, errorText)
       }
 
+      console.log('=== FETCH APPLICATION DATA COMPLETED ===')
+
     } catch (err) {
-      console.error('Error fetching application data:', err)
-      setError('Failed to load application data')
+      console.error('=== ERROR IN FETCH APPLICATION DATA ===', err)
+      // Don't set error state as it might cause unwanted re-renders
     } finally {
       setLoading(false)
     }
@@ -186,7 +196,7 @@ export default function ApplicationWorkflowPage() {
   const completedStages = workflow.stages.filter(s => s.status === 'completed').length
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
@@ -289,15 +299,15 @@ export default function ApplicationWorkflowPage() {
 
         <TabsContent value="documents" className="space-y-6">
           {workflow.stages.map((stage) => {
-            const stageRequirements = requirements.filter(req => 
-              // For demo purposes, distribute requirements across stages
-              stage.stageOrder === 1 ? req.category === 'personal' :
-              stage.stageOrder === 2 ? req.category === 'financial' :
-              stage.stageOrder === 3 ? req.category === 'legal' :
-              stage.stageOrder === 4 ? req.category === 'investment' :
-              stage.stageOrder === 5 ? req.category === 'medical' :
-              req.category === 'other'
-            )
+            // Find requirements that belong to this specific stage
+            const stageRequirements = requirements.filter(req => req.stageId === stage.id)
+            
+            console.log(`Agent Documents Tab - Stage ${stage.stageName}:`, {
+              stageId: stage.id,
+              stageRequirements: stageRequirements.length,
+              requirementIds: stageRequirements.map(r => r.id),
+              withUploads: stageRequirements.filter(r => r.fileName).length
+            })
 
             if (stageRequirements.length === 0) return null
 
@@ -337,18 +347,7 @@ export default function ApplicationWorkflowPage() {
                   console.log('Files selected:', files)
                 }}
                 className="mb-6"
-              >
-                <div className="text-center py-12">
-                  <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Upload Documents</h3>
-                  <p className="text-gray-600 mb-4">
-                    Drag and drop files here, or click to browse
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Supported formats: PDF, JPG, PNG, DOC, DOCX (max 10MB each)
-                  </p>
-                </div>
-              </DocumentUploadZone>
+              />
 
               {/* Pending Requirements */}
               <div className="space-y-4">
@@ -394,19 +393,28 @@ export default function ApplicationWorkflowPage() {
             </CardHeader>
             <CardContent>
               <div className="space-y-6">
-                {requirements
-                  .filter(req => req.status === 'under_review' || req.status === 'uploaded')
-                  .map((req) => (
+                {(() => {
+                  // Show documents that need review OR have been reviewed (for history)
+                  const reviewableRequirements = requirements.filter(req => 
+                    req.fileName && req.documentId && 
+                    (req.status === 'under_review' || req.status === 'uploaded' || req.status === 'approved' || req.status === 'rejected')
+                  )
+                  console.log('Agent Reviews Tab - All requirements:', requirements.length)
+                  console.log('Agent Reviews Tab - Documents for review/history:', reviewableRequirements.length)
+                  console.log('Agent Reviews Tab - Document statuses:', reviewableRequirements.map(r => ({ 
+                    id: r.id, 
+                    documentId: r.documentId,
+                    name: r.documentName, 
+                    status: r.status, 
+                    fileName: r.fileName,
+                    uploadedAt: r.uploadedAt 
+                  })))
+                  return reviewableRequirements
+                })().map((req) => (
                     <div key={req.id} className="border rounded-lg p-6">
                       <DocumentReviewInterface
                         document={{
                           id: req.id,
-                          fileName: req.fileName || 'document.pdf',
-                          originalName: req.fileName || 'document.pdf',
-                          fileSize: req.fileSize || 1024000,
-                          fileType: 'application/pdf',
-                          filePath: `/documents/${req.id}`,
-                          uploadedAt: req.uploadedAt || new Date().toISOString(),
                           requirement: {
                             id: req.id,
                             documentName: req.documentName,
@@ -415,26 +423,128 @@ export default function ApplicationWorkflowPage() {
                             isRequired: req.isRequired,
                             acceptedFormats: req.acceptedFormats,
                             maxFileSizeMB: req.maxFileSizeMB,
-                            helpText: req.helpText
+                            helpText: req.helpText,
+                            stageId: req.stageId,
+                            status: req.status,
+                            isClientUploadable: req.isClientUploadable,
+                            expirationMonths: req.expirationMonths,
+                            displayGroup: req.displayGroup,
+                            sortOrder: req.sortOrder,
+                            examples: req.examples,
+                            validationRules: req.validationRules
                           },
-                          uploadedBy: {
+                          file: {
+                            id: req.documentId || req.id,
+                            fileName: req.fileName || 'document.pdf',
+                            fileSize: req.fileSize || 1024000,
+                            fileType: 'application/pdf',
+                            uploadedAt: req.uploadedAt || new Date().toISOString(),
+                            uploadedBy: 'client',
+                            url: `/api/applications/${applicationId}/documents/${req.documentId}/download`,
+                            thumbnailUrl: undefined
+                          },
+                          review: {
+                            id: req.status === 'approved' || req.status === 'rejected' ? 'completed-review' : 'pending-review',
+                            documentId: req.documentId || req.id,
+                            applicationId: applicationId,
+                            requirementId: req.id,
+                            status: req.status === 'under_review' || req.status === 'uploaded' ? 'pending' : req.status,
+                            reviewedAt: req.status === 'approved' || req.status === 'rejected' ? new Date().toISOString() : undefined,
+                            priority: 'medium' as const
+                          },
+                          client: {
                             id: 'client-id',
-                            name: `${application.client.firstName} ${application.client.lastName}`,
-                            email: application.client.email
+                            name: application?.client ? `${application.client.firstName} ${application.client.lastName}` : 'Client',
+                            email: application?.client?.email || 'client@example.com'
                           },
-                          currentStatus: req.status
+                          application: {
+                            id: applicationId,
+                            programName: application?.program?.programName || 'St. Kitts Citizenship',
+                            status: application?.status || 'in_progress'
+                          }
                         }}
-                        onApprove={(documentId, comments) => {
-                          console.log('Approve document:', documentId, comments)
-                          // Call review API
+                        onApprove={async (documentId, comments) => {
+                          try {
+                            console.log('=== FRONTEND APPROVAL CALLED ===')
+                            console.log('Document ID being sent:', documentId)
+                            console.log('Application ID:', applicationId)
+                            console.log('Comments:', comments)
+                            console.log('Full requirement data:', req)
+                            
+                            const response = await fetch(`/api/applications/${applicationId}/documents/review`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                documentId,
+                                action: 'approve',
+                                comments
+                              })
+                            })
+                            
+                            console.log('Response received:', response.status, response.statusText)
+                            
+                            if (response.ok) {
+                              const result = await response.json()
+                              console.log('Approval successful:', result)
+                              console.log('Refreshing application data...')
+                              await fetchApplicationData() // Refresh data
+                              console.log('Application data refreshed')
+                            } else {
+                              const errorText = await response.text()
+                              console.error('Approve failed with status:', response.status)
+                              console.error('Error response:', errorText)
+                              console.error('Response headers:', Object.fromEntries(response.headers.entries()))
+                              alert(`Approval failed: ${errorText}`)
+                            }
+                          } catch (err) {
+                            console.error('Error approving document:', err)
+                            alert(`Error approving document: ${err instanceof Error ? err.message : 'Unknown error'}`)
+                          }
                         }}
-                        onReject={(documentId, reason, comments) => {
-                          console.log('Reject document:', documentId, reason, comments)
-                          // Call review API
+                        onReject={async (documentId, reason, comments) => {
+                          try {
+                            const response = await fetch(`/api/applications/${applicationId}/documents/review`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                documentId,
+                                action: 'reject',
+                                reason,
+                                comments
+                              })
+                            })
+                            
+                            if (response.ok) {
+                              await fetchApplicationData() // Refresh data
+                            } else {
+                              const errorText = await response.text()
+                              console.error('Reject failed:', errorText)
+                            }
+                          } catch (err) {
+                            console.error('Error rejecting document:', err)
+                          }
                         }}
-                        onRequestClarification={(documentId, comments) => {
-                          console.log('Request clarification:', documentId, comments)
-                          // Call review API
+                        onRequestClarification={async (documentId, comments) => {
+                          try {
+                            const response = await fetch(`/api/applications/${applicationId}/documents/review`, {
+                              method: 'POST',
+                              headers: { 'Content-Type': 'application/json' },
+                              body: JSON.stringify({
+                                documentId,
+                                action: 'request_clarification',
+                                comments
+                              })
+                            })
+                            
+                            if (response.ok) {
+                              await fetchApplicationData() // Refresh data
+                            } else {
+                              const errorText = await response.text()
+                              console.error('Request clarification failed:', errorText)
+                            }
+                          } catch (err) {
+                            console.error('Error requesting clarification:', err)
+                          }
                         }}
                         onViewDocument={(documentId) => {
                           window.open(`/api/applications/${applicationId}/documents/${documentId}/download`, '_blank')

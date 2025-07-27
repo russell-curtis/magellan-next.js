@@ -28,7 +28,7 @@ export async function GET(
       .from(applications)
       .where(and(
         eq(applications.id, applicationId),
-        eq(applications.clientId, client.clientId)
+        eq(applications.clientId, client.id)
       ))
       .limit(1)
     
@@ -113,10 +113,7 @@ export async function GET(
         stageDocuments.some(req => req.id === doc.documentRequirementId)
       )
       
-      const approvedDocuments = uploadedStageDocuments.filter(doc => {
-        const review = docReviews.find(rev => rev.documentId === doc.id)
-        return review?.reviewResult === 'approved'
-      })
+      const approvedDocuments = uploadedStageDocuments.filter(doc => doc.status === 'approved')
 
       const requiredDocuments = stageDocuments.filter(doc => doc.isRequired)
       const requiredApproved = approvedDocuments.filter(doc => {
@@ -124,20 +121,29 @@ export async function GET(
         return requirement?.isRequired
       })
 
-      // Determine stage status based on progress and document completion
+      // Determine stage status based on document completion (simplified like agent API)
       let stageStatus: 'pending' | 'in_progress' | 'completed' | 'blocked' = 'pending'
       let stageProgress = 0
 
-      if (progress) {
-        stageStatus = progress.status as 'pending' | 'in_progress' | 'completed' | 'blocked'
-        stageProgress = progress.completionPercentage || 0
-      } else if (requiredDocuments.length > 0 && requiredApproved.length === requiredDocuments.length) {
-        stageStatus = 'completed'
-        stageProgress = 100
-      } else if (uploadedStageDocuments.length > 0) {
+      const totalRequiredDocs = requiredDocuments.length
+      
+      if (totalRequiredDocs > 0) {
+        stageProgress = Math.round((requiredApproved.length / totalRequiredDocs) * 100)
+        
+        if (requiredApproved.length === totalRequiredDocs) {
+          stageStatus = 'completed'
+          stageProgress = 100
+        } else if (uploadedStageDocuments.length > 0) {
+          stageStatus = 'in_progress'
+        } else if (stage.stageOrder === 1) {
+          stageStatus = 'in_progress'
+        }
+      } else if (stage.stageOrder === 1) {
         stageStatus = 'in_progress'
-        stageProgress = Math.round((approvedDocuments.length / stageDocuments.length) * 100)
+        stageProgress = 50
       }
+
+      console.log(`Client API - Stage ${stage.stageName}: ${requiredApproved.length}/${totalRequiredDocs} required docs approved, progress: ${stageProgress}%`)
 
       return {
         id: stage.id,

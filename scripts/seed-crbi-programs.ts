@@ -15,7 +15,7 @@ const programs = [
     countryCode: 'PT',
     countryName: 'Portugal',
     programType: 'residency',
-    programName: 'Portugal Golden Visa',
+    programName: 'Golden Visa',
     minInvestment: '500000',
     processingTimeMonths: 6,
     requirements: {
@@ -29,7 +29,7 @@ const programs = [
     countryCode: 'PT',
     countryName: 'Portugal',
     programType: 'citizenship',
-    programName: 'Portugal Citizenship by Investment',
+    programName: 'Citizenship by Investment',
     minInvestment: '1500000',
     processingTimeMonths: 24,
     requirements: {
@@ -45,7 +45,7 @@ const programs = [
     countryCode: 'CY',
     countryName: 'Cyprus',
     programType: 'residency',
-    programName: 'Cyprus Permanent Residency',
+    programName: 'Permanent Residency',
     minInvestment: '300000',
     processingTimeMonths: 3,
     requirements: {
@@ -61,7 +61,7 @@ const programs = [
     countryCode: 'MT',
     countryName: 'Malta',
     programType: 'citizenship',
-    programName: 'Malta Citizenship by Naturalisation',
+    programName: 'Citizenship by Naturalisation',
     minInvestment: '750000',
     processingTimeMonths: 36,
     requirements: {
@@ -76,7 +76,7 @@ const programs = [
     countryCode: 'MT',
     countryName: 'Malta',
     programType: 'residency',
-    programName: 'Malta Permanent Residency',
+    programName: 'Permanent Residency',
     minInvestment: '150000',
     processingTimeMonths: 6,
     requirements: {
@@ -92,7 +92,7 @@ const programs = [
     countryCode: 'GR',
     countryName: 'Greece',
     programType: 'residency',
-    programName: 'Greece Golden Visa',
+    programName: 'Golden Visa',
     minInvestment: '250000',
     processingTimeMonths: 3,
     requirements: {
@@ -108,7 +108,7 @@ const programs = [
     countryCode: 'ES',
     countryName: 'Spain',
     programType: 'residency',
-    programName: 'Spain Golden Visa',
+    programName: 'Golden Visa',
     minInvestment: '500000',
     processingTimeMonths: 4,
     requirements: {
@@ -124,7 +124,7 @@ const programs = [
     countryCode: 'AG',
     countryName: 'Antigua and Barbuda',
     programType: 'citizenship',
-    programName: 'Antigua Citizenship by Investment',
+    programName: 'Citizenship by Investment',
     minInvestment: '230000',
     processingTimeMonths: 4,
     requirements: {
@@ -138,7 +138,7 @@ const programs = [
     countryCode: 'DM',
     countryName: 'Dominica',
     programType: 'citizenship',
-    programName: 'Dominica Citizenship by Investment',
+    programName: 'Citizenship by Investment',
     minInvestment: '200000',
     processingTimeMonths: 3,
     requirements: {
@@ -152,7 +152,7 @@ const programs = [
     countryCode: 'GD',
     countryName: 'Grenada',
     programType: 'citizenship',
-    programName: 'Grenada Citizenship by Investment',
+    programName: 'Citizenship by Investment',
     minInvestment: '235000',
     processingTimeMonths: 4,
     requirements: {
@@ -167,7 +167,7 @@ const programs = [
     countryCode: 'KN',
     countryName: 'St. Kitts and Nevis',
     programType: 'citizenship',
-    programName: 'St. Kitts Citizenship by Investment',
+    programName: 'Citizenship by Investment',
     minInvestment: '250000',
     processingTimeMonths: 6,
     requirements: {

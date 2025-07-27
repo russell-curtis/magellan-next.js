@@ -141,43 +141,66 @@ export function DocumentReviewInterface({
     return mb < 1 ? `${(bytes / 1024).toFixed(1)} KB` : `${mb.toFixed(1)} MB`
   }
 
-  const handleSubmitReview = async () => {
-    if (!reviewAction) return
-
-    setIsSubmitting(true)
+  const handleSubmitReview = async (e?: React.MouseEvent) => {
     try {
-      switch (reviewAction) {
-        case 'approve':
-          await onApprove?.(document.id, comments || undefined)
-          break
-        case 'reject':
-          if (!rejectionReason.trim()) {
-            alert('Please provide a rejection reason')
-            return
+      console.log('=== SUBMIT REVIEW BUTTON CLICKED ===')
+      e?.preventDefault()
+      e?.stopPropagation()
+      
+      if (!reviewAction) {
+        console.log('No review action selected, returning')
+        return
+      }
+
+      console.log('Setting isSubmitting to true')
+      setIsSubmitting(true)
+      
+      console.log('=== DOCUMENT REVIEW SUBMISSION ===')
+      console.log('Review action:', reviewAction)
+      console.log('Document file ID:', document.file.id)
+      console.log('Document requirement ID:', document.id)
+      console.log('Comments:', comments)
+      console.log('onApprove function exists:', typeof onApprove)
+      
+      if (reviewAction === 'approve') {
+        console.log('About to call onApprove...')
+        if (onApprove) {
+          console.log('onApprove function is defined, calling it...')
+          try {
+            await onApprove(document.file.id, comments || undefined)
+            console.log('onApprove completed successfully')
+          } catch (approveError) {
+            console.error('Error in onApprove:', approveError)
+            throw approveError
           }
-          await onReject?.(document.id, rejectionReason, comments || undefined)
-          break
-        case 'clarify':
-          if (!comments.trim()) {
-            alert('Please provide clarification comments')
-            return
-          }
-          await onRequestClarification?.(document.id, comments)
-          break
+        } else {
+          console.error('onApprove function is not defined!')
+          throw new Error('onApprove function is not defined')
+        }
       }
       
+      console.log('Review submission completed successfully, resetting form')
       // Reset form
       setReviewAction(null)
       setComments('')
       setRejectionReason('')
     } catch (error) {
-      console.error('Error submitting review:', error)
+      console.error('Error in handleSubmitReview:', error)
+      alert(`Error submitting review: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
+      console.log('Setting isSubmitting to false')
       setIsSubmitting(false)
     }
   }
 
   const canReview = !document.review || document.review.status === 'pending'
+  
+  console.log('DocumentReviewInterface - canReview check:', {
+    hasReview: !!document.review,
+    reviewStatus: document.review?.status,
+    canReview,
+    documentStatus: document.requirement.status
+  })
 
   return (
     <Card className={cn("w-full", className)}>
@@ -264,7 +287,7 @@ export function DocumentReviewInterface({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onViewDocument?.(document.id)}
+                  onClick={() => onViewDocument?.(document.file.id)}
                   className="flex items-center space-x-1"
                 >
                   <Eye className="h-3 w-3" />
@@ -273,7 +296,7 @@ export function DocumentReviewInterface({
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onDownloadDocument?.(document.id)}
+                  onClick={() => onDownloadDocument?.(document.file.id)}
                   className="flex items-center space-x-1"
                 >
                   <Download className="h-3 w-3" />
@@ -357,8 +380,13 @@ export function DocumentReviewInterface({
                 </div>
                 <div className="flex space-x-3">
                   <Button
+                    type="button"
                     variant="default"
-                    onClick={() => setReviewAction('approve')}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setReviewAction('approve')
+                    }}
                     className="flex items-center space-x-2 bg-green-600 hover:bg-green-700"
                   >
                     <CheckCircle className="h-4 w-4" />
@@ -366,8 +394,13 @@ export function DocumentReviewInterface({
                   </Button>
                   
                   <Button
+                    type="button"
                     variant="destructive"
-                    onClick={() => setReviewAction('reject')}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setReviewAction('reject')
+                    }}
                     className="flex items-center space-x-2"
                   >
                     <XCircle className="h-4 w-4" />
@@ -375,8 +408,13 @@ export function DocumentReviewInterface({
                   </Button>
                   
                   <Button
+                    type="button"
                     variant="outline"
-                    onClick={() => setReviewAction('clarify')}
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      setReviewAction('clarify')
+                    }}
                     className="flex items-center space-x-2 text-yellow-700 border-yellow-300 hover:bg-yellow-50"
                   >
                     <MessageCircle className="h-4 w-4" />
@@ -441,7 +479,21 @@ export function DocumentReviewInterface({
 
                 <div className="flex space-x-3">
                   <Button
-                    onClick={handleSubmitReview}
+                    type="button"
+                    onClick={async (e) => {
+                      try {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        console.log('=== SUBMIT BUTTON CLICKED ===')
+                        
+                        // Call the handler and catch any errors
+                        await handleSubmitReview(e)
+                        console.log('=== SUBMIT HANDLER COMPLETED ===')
+                      } catch (error) {
+                        console.error('=== ERROR IN SUBMIT HANDLER ===', error)
+                        alert(`Error in submit handler: ${error instanceof Error ? error.message : 'Unknown error'}`)
+                      }
+                    }}
                     disabled={isSubmitting}
                     className={cn(
                       "flex items-center space-x-2",
@@ -468,8 +520,12 @@ export function DocumentReviewInterface({
                   </Button>
                   
                   <Button
+                    type="button"
                     variant="outline"
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.preventDefault()
+                      e.stopPropagation()
+                      console.log('Cancel button clicked')
                       setReviewAction(null)
                       setComments('')
                       setRejectionReason('')

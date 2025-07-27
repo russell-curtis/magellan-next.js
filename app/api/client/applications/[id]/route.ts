@@ -12,20 +12,20 @@ export async function GET(
     console.log('🔍 Client application API called for ID:', params.id)
     const client = await requireClientAuth()
     console.log('✅ Client authenticated:', {
-      clientId: client.clientId,
+      clientId: client.id,
       authId: client.authId,
       email: client.email
     })
     const applicationId = params.id
 
     // Get application with related data
-    console.log('🔍 Querying for application:', applicationId, 'belonging to client:', client.clientId)
+    console.log('🔍 Querying for application:', applicationId, 'belonging to client:', client.id)
     
     // Defensive check - ensure all parameters are valid
     if (!applicationId) {
       throw new Error('Application ID is missing')
     }
-    if (!client?.clientId) {
+    if (!client?.id) {
       throw new Error('Client ID is missing from authenticated client')
     }
     
@@ -35,14 +35,14 @@ export async function GET(
       .from(applications)
       .where(and(
         eq(applications.id, applicationId),
-        eq(applications.clientId, client.clientId)
+        eq(applications.clientId, client.id) // Use client.id, not client.clientId
       ))
       .limit(1)
 
     console.log('📊 Database query result:', application ? 'Found' : 'Not found')
     
     if (!application) {
-      console.log('❌ Application not found for client:', client.clientId)
+      console.log('❌ Application not found for client:', client.id)
       return NextResponse.json({ error: 'Application not found' }, { status: 404 })
     }
 

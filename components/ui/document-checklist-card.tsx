@@ -22,6 +22,7 @@ import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/component
 
 export interface DocumentRequirement {
   id: string
+  stageId?: string
   documentName: string
   description: string
   category: 'personal' | 'financial' | 'legal' | 'medical' | 'investment'
@@ -48,7 +49,7 @@ export interface DocumentChecklistCardProps {
   stageDescription?: string
   isCurrentStage?: boolean
   canUpload?: boolean
-  onUpload?: (requirementId: string) => void
+  onUpload?: (files: File[], requirementId: string) => void
   onView?: (requirementId: string) => void
   className?: string
 }
@@ -64,6 +65,28 @@ export function DocumentChecklistCard({
   className
 }: DocumentChecklistCardProps) {
   const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set())
+  
+  const handleFileUpload = useCallback((requirementId: string, event?: React.MouseEvent) => {
+    // Prevent default behavior and stop propagation
+    event?.preventDefault()
+    event?.stopPropagation()
+    
+    // Create a file input element
+    const fileInput = document.createElement('input')
+    fileInput.type = 'file'
+    fileInput.multiple = true
+    fileInput.accept = '.pdf,.jpg,.jpeg,.png,.doc,.docx' // Default accepted formats
+    
+    fileInput.onchange = (event) => {
+      const target = event.target as HTMLInputElement
+      const files = target.files
+      if (files && files.length > 0) {
+        onUpload?.(Array.from(files), requirementId)
+      }
+    }
+    
+    fileInput.click()
+  }, [onUpload])
 
   const toggleGroup = useCallback((groupName: string) => {
     setExpandedGroups(prev => {
@@ -345,9 +368,10 @@ export function DocumentChecklistCard({
                         <div className="flex items-center space-x-2">
                           {requirement.isClientUploadable && canUpload && (
                             <Button
+                              type="button"
                               variant={requirement.status === 'pending' ? 'default' : 'outline'}
                               size="sm"
-                              onClick={() => onUpload?.(requirement.id)}
+                              onClick={(e) => handleFileUpload(requirement.id, e)}
                               className="flex items-center space-x-1"
                             >
                               <Upload className="h-3 w-3" />

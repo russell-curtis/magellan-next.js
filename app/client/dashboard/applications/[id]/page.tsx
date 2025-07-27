@@ -14,14 +14,14 @@ import {
   CheckCircle, 
   AlertCircle,
   RefreshCcw,
-  Upload,
-  Download,
   MessageSquare,
   HelpCircle
 } from 'lucide-react'
 import { WorkflowProgressTracker, WorkflowStage } from '@/components/ui/workflow-progress-tracker'
-import { DocumentChecklistCard, DocumentRequirement } from '@/components/ui/document-checklist-card'
+import { DocumentRequirement } from '@/components/ui/document-checklist-card'
 import { DocumentUploadZone } from '@/components/ui/document-upload-zone'
+import { EnhancedDocumentUpload } from '@/components/ui/enhanced-document-upload'
+import { DocumentQualityResult } from '@/lib/document-validation'
 import Link from 'next/link'
 
 interface ApplicationWorkflow {
@@ -67,6 +67,7 @@ export default function ClientApplicationPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeTab, setActiveTab] = useState('progress')
+  const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
     if (!isLoading && !client) {
@@ -82,6 +83,7 @@ export default function ClientApplicationPage() {
 
   const fetchApplicationData = async () => {
     try {
+      console.log('fetchApplicationData started')
       setLoading(true)
       
       // Get client token for authentication
@@ -122,11 +124,15 @@ export default function ClientApplicationPage() {
       const reqResponse = await fetch(`/api/client/applications/${applicationId}/documents/requirements`, { headers })
       if (reqResponse.ok) {
         const reqData = await reqResponse.json()
+        console.log('Requirements API response:', reqData)
         const allRequirements = reqData.stages?.flatMap((stage: any) => stage.requirements) || []
+        console.log('Flattened requirements:', allRequirements)
+        console.log('Sample requirement:', allRequirements[0])
         setRequirements(allRequirements)
       } else {
         const errorText = await reqResponse.text()
         console.error('Requirements API error:', reqResponse.status, errorText)
+        console.log('Will use mock requirements instead')
         // Don't return here - requirements might be optional
       }
 
@@ -134,43 +140,117 @@ export default function ClientApplicationPage() {
       console.error('Error fetching application data:', err)
       setError('Failed to load application data')
     } finally {
+      console.log('fetchApplicationData completed, setting loading to false')
       setLoading(false)
     }
   }
 
   const handleDocumentUpload = async (files: File[], requirementId: string) => {
     try {
+      setUploading(true)
+      console.log('=== DOCUMENT UPLOAD STARTED ===')
+      console.log('Starting document upload:', { 
+        files, 
+        filesType: typeof files, 
+        isArray: Array.isArray(files),
+        requirementId 
+      })
+      
+      // Convert to array if it's not already
+      const fileArray = Array.isArray(files) ? files : [files]
+      console.log('File array:', fileArray.map((f, i) => ({
+        index: i,
+        name: f?.name,
+        size: f?.size,
+        type: f?.type,
+        isFile: f instanceof File,
+        isBlob: f instanceof Blob,
+        constructor: f?.constructor?.name
+      })))
+      
       const token = localStorage.getItem('clientToken')
       const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
 
-      for (const file of files) {
+      for (const file of fileArray) {
+        console.log('Processing file:', {
+          name: file?.name,
+          size: file?.size,
+          type: file?.type,
+          isFile: file instanceof File,
+          isBlob: file instanceof Blob,
+          constructor: file?.constructor?.name,
+          prototype: Object.getPrototypeOf(file)?.constructor?.name
+        })
+        
         const formData = new FormData()
         formData.append('file', file)
         formData.append('requirementId', requirementId)
+        formData.append('replaceExisting', 'true')
+        
+        console.log('FormData created, checking contents:')
+        for (const [key, value] of formData.entries()) {
+          console.log(`- ${key}:`, typeof value, value instanceof File ? `File(${value.name})` : value)
+        }
 
+        // For FormData, don't set Content-Type header - let browser set it automatically
+        const requestHeaders = { ...headers }
+        delete requestHeaders['Content-Type'] // Remove if it exists
+        
+        console.log('Making fetch request with headers:', requestHeaders)
+        
         const response = await fetch(`/api/client/applications/${applicationId}/documents/upload`, {
           method: 'POST',
-          headers,
+          headers: requestHeaders,
           body: formData
         })
 
+        console.log('Upload response status:', response.status)
+        
         if (!response.ok) {
-          throw new Error('Upload failed')
+          const errorText = await response.text()
+          console.error('Upload failed with status:', response.status, 'Error:', errorText)
+          
+          let errorMessage = 'Upload failed'
+          try {
+            const errorJson = JSON.parse(errorText)
+            if (errorJson.error?.includes('already exists')) {
+              errorMessage = 'Document already exists for this requirement. Please try again.'
+            } else {
+              errorMessage = errorJson.error || errorText
+            }
+          } catch {
+            errorMessage = errorText || `Upload failed with status ${response.status}`
+          }
+          
+          throw new Error(errorMessage)
         }
+
+        const result = await response.json()
+        console.log('Upload successful:', result)
       }
       
+      console.log('=== REFRESHING APPLICATION DATA AFTER UPLOAD ===')
       await fetchApplicationData() // Refresh data
+      console.log('=== UPLOAD COMPLETED SUCCESSFULLY - DATA REFRESHED ===')
     } catch (err) {
       console.error('Error uploading document:', err)
+      // TODO: Show user-friendly error message
+      alert(`Upload failed: ${err instanceof Error ? err.message : 'Unknown error'}`)
+    } finally {
+      setUploading(false)
+      console.log('=== UPLOAD PROCESS COMPLETED ===')
     }
   }
+
 
   if (isLoading || loading) {
     return (
       <div className="flex items-center justify-center h-64">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-          <p className="text-gray-600">Loading your application...</p>
+          <p className="text-gray-600">
+            {uploading ? 'Uploading document...' : 'Loading your application...'}
+          </p>
         </div>
       </div>
     )
@@ -301,80 +381,22 @@ export default function ClientApplicationPage() {
   const workflowData = workflow || mockWorkflow
   const currentStage = workflowData.stages.find(s => s.id === workflowData.currentStageId)
   const completedStages = workflowData.stages.filter(s => s.status === 'completed').length
+  
+  console.log('Workflow data:', {
+    hasRealWorkflow: !!workflow,
+    usingMock: !workflow,
+    stageCount: workflowData.stages.length,
+    stageIds: workflowData.stages.map(s => ({ id: s.id, name: s.stageName }))
+  })
 
-  // Mock requirements data
-  const mockRequirements: DocumentRequirement[] = [
-    {
-      id: 'req-1',
-      documentName: 'Passport Copy',
-      description: 'Certified copy of valid passport',
-      category: 'personal',
-      isRequired: true,
-      isClientUploadable: true,
-      acceptedFormats: ['pdf', 'jpg', 'png'],
-      maxFileSizeMB: 5,
-      expirationMonths: null,
-      displayGroup: 'Identity Documents',
-      helpText: 'Upload a clear, color copy of your passport main page',
-      sortOrder: 1,
-      status: 'approved',
-      uploadedAt: new Date().toISOString(),
-      fileName: 'passport-john-doe.pdf'
-    },
-    {
-      id: 'req-2',
-      documentName: 'Bank Statements',
-      description: 'Last 3 months of bank statements',
-      category: 'financial',
-      isRequired: true,
-      isClientUploadable: true,
-      acceptedFormats: ['pdf'],
-      maxFileSizeMB: 10,
-      expirationMonths: 3,
-      displayGroup: 'Financial Documents',
-      helpText: 'Provide official bank statements showing sufficient funds',
-      sortOrder: 2,
-      status: 'under_review',
-      uploadedAt: new Date().toISOString(),
-      fileName: 'bank-statements-q4-2024.pdf'
-    },
-    {
-      id: 'req-3',
-      documentName: 'Source of Funds Letter',
-      description: 'Detailed explanation of income source',
-      category: 'financial',
-      isRequired: true,
-      isClientUploadable: true,
-      acceptedFormats: ['pdf', 'doc', 'docx'],
-      maxFileSizeMB: 5,
-      expirationMonths: null,
-      displayGroup: 'Financial Documents',
-      helpText: 'Letter from your bank or employer confirming income source',
-      sortOrder: 3,
-      status: 'pending'
-    },
-    {
-      id: 'req-4',
-      documentName: 'Criminal Background Check',
-      description: 'Police clearance certificate from country of residence',
-      category: 'legal',
-      isRequired: true,
-      isClientUploadable: true,
-      acceptedFormats: ['pdf'],
-      maxFileSizeMB: 5,
-      expirationMonths: 6,
-      displayGroup: 'Legal Documents',
-      helpText: 'Must be apostilled and not older than 6 months',
-      sortOrder: 4,
-      status: 'rejected',
-      rejectionReason: 'Document is older than 6 months'
-    }
-  ]
-
-  const requirementsData = requirements.length > 0 ? requirements : mockRequirements
+  const requirementsData = requirements
+  console.log('Requirements data decision:', {
+    realRequirementsCount: requirements.length,
+    selectedData: requirementsData.map(r => ({ id: r.id, name: r.documentName, isUUID: /^[0-9a-f-]{36}$/i.test(r.id) }))
+  })
 
   return (
-    <div className="space-y-6">
+    <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
@@ -435,7 +457,8 @@ export default function ClientApplicationPage() {
               <FileText className="h-6 w-6 text-green-600 mx-auto mb-2" />
               <div className="font-semibold text-green-900">Documents</div>
               <div className="text-sm text-green-700">
-                {requirementsData.filter(r => r.status === 'approved').length} of {requirementsData.length} approved
+                {requirementsData.length === 0 ? 'Loading...' : 
+                 `${requirementsData.filter(r => r.status === 'approved').length} of ${requirementsData.length} approved`}
               </div>
             </div>
             <div className="text-center p-4 bg-purple-50 rounded-lg">
@@ -503,20 +526,29 @@ export default function ClientApplicationPage() {
                   <div className="p-4 border rounded-lg">
                     <h4 className="font-semibold text-gray-900 mb-2">Pending Actions</h4>
                     <ul className="space-y-2 text-sm text-gray-600">
-                      {requirementsData
-                        .filter(req => req.status === 'pending' || req.status === 'rejected')
-                        .slice(0, 3)
-                        .map((req) => (
-                          <li key={req.id} className="flex items-center">
-                            <AlertCircle className="h-4 w-4 text-orange-500 mr-2" />
-                            Upload {req.documentName}
-                          </li>
-                        ))}
-                      {requirementsData.filter(req => req.status === 'pending' || req.status === 'rejected').length === 0 && (
-                        <li className="flex items-center text-green-600">
-                          <CheckCircle className="h-4 w-4 mr-2" />
-                          All documents submitted
+                      {requirementsData.length === 0 ? (
+                        <li className="flex items-center text-gray-500">
+                          <HelpCircle className="h-4 w-4 mr-2" />
+                          Loading document requirements...
                         </li>
+                      ) : (
+                        <>
+                          {requirementsData
+                            .filter(req => req.status === 'pending' || req.status === 'rejected')
+                            .slice(0, 3)
+                            .map((req) => (
+                              <li key={req.id} className="flex items-center">
+                                <AlertCircle className="h-4 w-4 text-orange-500 mr-2" />
+                                Upload {req.documentName}
+                              </li>
+                            ))}
+                          {requirementsData.filter(req => req.status === 'pending' || req.status === 'rejected').length === 0 && (
+                            <li className="flex items-center text-green-600">
+                              <CheckCircle className="h-4 w-4 mr-2" />
+                              All documents submitted
+                            </li>
+                          )}
+                        </>
                       )}
                     </ul>
                   </div>
@@ -545,31 +577,94 @@ export default function ClientApplicationPage() {
         </TabsContent>
 
         <TabsContent value="documents" className="space-y-6">
-          {workflowData.stages.map((stage) => {
-            const stageRequirements = requirementsData.filter(req => 
-              stage.stageOrder === 1 ? req.category === 'personal' :
-              stage.stageOrder === 2 ? req.category === 'financial' :
-              stage.stageOrder === 3 ? req.category === 'legal' :
-              req.category === 'investment'
-            )
+          {requirementsData.length === 0 ? (
+            <Card>
+              <CardContent className="flex flex-col items-center justify-center py-12">
+                <FileText className="h-12 w-12 text-gray-400 mb-4" />
+                <h3 className="text-lg font-semibold text-gray-900 mb-2">Loading Document Requirements</h3>
+                <p className="text-gray-600 text-center max-w-md">
+                  We're loading your document requirements. If this takes too long, please refresh the page or contact your advisor.
+                </p>
+                <Button onClick={fetchApplicationData} variant="outline" className="mt-4">
+                  <RefreshCcw className="h-4 w-4 mr-2" />
+                  Refresh
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            workflowData.stages.map((stage) => {
+              // Find requirements that belong to this specific stage
+              const stageRequirements = requirementsData.filter(req => req.stageId === stage.id)
+              
+              console.log(`Stage ${stage.stageName}:`, {
+                stageId: stage.id,
+                stageRequirements: stageRequirements.length,
+                requirementIds: stageRequirements.map(r => r.id)
+              })
 
-            if (stageRequirements.length === 0) return null
+              if (stageRequirements.length === 0) return null
 
-            return (
-              <DocumentChecklistCard
-                key={stage.id}
-                requirements={stageRequirements}
-                stageTitle={stage.stageName}
-                stageDescription={stage.description}
-                isCurrentStage={stage.id === workflowData.currentStageId}
-                canUpload={stage.status !== 'completed'}
-                onUpload={(files, requirementId) => handleDocumentUpload(files, requirementId)}
-                onView={(documentId) => {
-                  window.open(`/api/client/applications/${applicationId}/documents/${documentId}/download`, '_blank')
-                }}
-              />
-            )
-          })}
+              return (
+                <div key={stage.id} className="space-y-6">
+                  <div className="mb-6">
+                    <h3 className="text-lg font-semibold text-gray-900">{stage.stageName}</h3>
+                    <p className="text-sm text-gray-600 mt-1">{stage.description}</p>
+                  </div>
+                  
+                  {stageRequirements.map(requirement => (
+                    <EnhancedDocumentUpload
+                      key={requirement.id}
+                      requirement={requirement}
+                      onUpload={async (file, _validationResult) => {
+                        // Create enhanced upload handler with correct requirement ID
+                        const formData = new FormData()
+                        formData.append('file', file)
+                        formData.append('requirementId', requirement.id)
+                        formData.append('replaceExisting', 'true')
+                        
+                        try {
+                          setUploading(true)
+                          const token = localStorage.getItem('clientToken')
+                          const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
+                          
+                          const response = await fetch(`/api/client/applications/${applicationId}/documents/upload`, {
+                            method: 'POST',
+                            headers,
+                            body: formData
+                          })
+                          
+                          if (!response.ok) {
+                            const errorData = await response.json()
+                            throw new Error(errorData.error || `Upload failed with status: ${response.status}`)
+                          }
+                          
+                          const result = await response.json()
+                          console.log('Enhanced upload successful with quality validation:', {
+                            fileName: result.fileName,
+                            qualityScore: result.qualityValidation?.score,
+                            issues: result.qualityValidation?.issues?.length || 0
+                          })
+                          
+                          await fetchApplicationData()
+                        } catch (err) {
+                          console.error('Enhanced upload error:', err)
+                          throw err
+                        } finally {
+                          setUploading(false)
+                        }
+                      }}
+                      onView={() => {
+                        if (requirement.fileName) {
+                          window.open(`/api/client/applications/${applicationId}/documents/${requirement.id}/download`, '_blank')
+                        }
+                      }}
+                      canUpload={stage.status !== 'completed'}
+                    />
+                  ))}
+                </div>
+              )
+            })
+          )}
         </TabsContent>
 
         <TabsContent value="upload" className="space-y-6">
@@ -586,80 +681,51 @@ export default function ClientApplicationPage() {
                 maxFileSizeMB={10}
                 multiple={true}
                 onFilesSelected={(files) => {
-                  console.log('Files selected:', files)
+                  console.log('Upload attempt:', { 
+                    filesCount: files.length, 
+                    requirementsCount: requirementsData.length,
+                    requirements: requirementsData.map(r => ({ id: r.id, name: r.documentName, status: r.status }))
+                  })
+                  
+                  if (requirementsData.length === 0) {
+                    alert('No document requirements are loaded yet. Please wait for the requirements to load or refresh the page.')
+                    return
+                  }
+                  
+                  if (files.length === 0) {
+                    alert('No files selected.')
+                    return
+                  }
+                  
+                  // For general uploads, prefer Passport Copy (which accepts multiple formats) or any pending requirement
+                  const passportRequirement = requirementsData.find(req => req.documentName === 'Passport Copy')
+                  const pendingRequirement = requirementsData.find(req => req.status === 'pending')
+                  const anyRequirement = requirementsData[0]
+                  const targetRequirement = passportRequirement || pendingRequirement || anyRequirement
+                  
+                  if (!targetRequirement || !targetRequirement.id) {
+                    alert('No valid document requirement found. Please contact your advisor.')
+                    return
+                  }
+                  
+                  // Validate that the requirement ID looks like a UUID
+                  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+                  if (!uuidRegex.test(targetRequirement.id)) {
+                    console.error('Invalid requirement ID (not a UUID):', targetRequirement.id)
+                    alert(`Cannot upload: Invalid requirement ID. Please refresh the page and try again.`)
+                    return
+                  }
+                  
+                  console.log('Using requirement:', {
+                    id: targetRequirement.id,
+                    name: targetRequirement.documentName,
+                    status: targetRequirement.status
+                  })
+                  
+                  handleDocumentUpload(files, targetRequirement.id)
                 }}
                 className="mb-6"
-              >
-                <div className="text-center py-12">
-                  <Upload className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-gray-900 mb-2">Upload Your Documents</h3>
-                  <p className="text-gray-600 mb-4">
-                    Drag and drop files here, or click to browse
-                  </p>
-                  <p className="text-sm text-gray-500">
-                    Supported formats: PDF, JPG, PNG, DOC, DOCX (max 10MB each)
-                  </p>
-                </div>
-              </DocumentUploadZone>
-
-              {/* Outstanding Requirements */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-gray-900">Outstanding Requirements</h3>
-                {requirementsData
-                  .filter(req => req.status === 'pending' || req.status === 'rejected')
-                  .map((req) => (
-                    <div key={req.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex-1">
-                        <div className="flex items-center mb-2">
-                          <h4 className="font-medium text-gray-900">{req.documentName}</h4>
-                          {req.status === 'rejected' && (
-                            <Badge variant="destructive" className="ml-2">Rejected</Badge>
-                          )}
-                        </div>
-                        <p className="text-sm text-gray-600 mb-2">{req.description}</p>
-                        {req.rejectionReason && (
-                          <p className="text-sm text-red-600 mb-2">
-                            <AlertCircle className="h-4 w-4 inline mr-1" />
-                            {req.rejectionReason}
-                          </p>
-                        )}
-                        <div className="flex items-center space-x-2">
-                          <Badge variant={req.isRequired ? 'destructive' : 'secondary'}>
-                            {req.isRequired ? 'Required' : 'Optional'}
-                          </Badge>
-                          <Badge variant="outline">
-                            {req.acceptedFormats.join(', ').toUpperCase()}
-                          </Badge>
-                          <Badge variant="outline">
-                            Max {req.maxFileSizeMB}MB
-                          </Badge>
-                        </div>
-                        {req.helpText && (
-                          <p className="text-xs text-gray-500 mt-2 flex items-center">
-                            <HelpCircle className="h-3 w-3 mr-1" />
-                            {req.helpText}
-                          </p>
-                        )}
-                      </div>
-                      <Button 
-                        size="sm" 
-                        onClick={() => handleDocumentUpload([], req.id)}
-                        className="ml-4"
-                      >
-                        <Upload className="h-4 w-4 mr-2" />
-                        {req.status === 'rejected' ? 'Resubmit' : 'Upload'}
-                      </Button>
-                    </div>
-                  ))}
-
-                {requirementsData.filter(req => req.status === 'pending' || req.status === 'rejected').length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    <CheckCircle className="h-12 w-12 mx-auto mb-4 text-green-500" />
-                    <p className="font-medium">All Required Documents Submitted</p>
-                    <p className="text-sm">Your advisor will review them shortly</p>
-                  </div>
-                )}
-              </div>
+              />
             </CardContent>
           </Card>
         </TabsContent>
