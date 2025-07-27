@@ -21,6 +21,7 @@ import { WorkflowProgressTracker, WorkflowStage } from '@/components/ui/workflow
 import { DocumentChecklistCard, DocumentRequirement } from '@/components/ui/document-checklist-card'
 import { DocumentUploadZone } from '@/components/ui/document-upload-zone'
 import { DocumentReviewInterface } from '@/components/ui/document-review-interface'
+import { hasWorkflowAccess } from '@/lib/utils'
 import Link from 'next/link'
 
 interface ApplicationWorkflow {
@@ -192,6 +193,33 @@ export default function ApplicationWorkflowPage() {
     )
   }
 
+  // Check if application has workflow access
+  if (!hasWorkflowAccess(application.status)) {
+    return (
+      <div className="text-center py-12">
+        <Clock className="h-12 w-12 text-blue-500 mx-auto mb-4" />
+        <h3 className="text-lg font-semibold text-gray-900 mb-2">Workflow Not Available</h3>
+        <p className="text-gray-600 mb-4">
+          The workflow features are only available after the application has been started. 
+          Please start the application first to access workflow management, document uploads, and tracking features.
+        </p>
+        <div className="space-y-2">
+          <p className="text-sm text-gray-500">
+            Application #{application.applicationNumber} • Status: Draft
+          </p>
+        </div>
+        <div className="mt-6">
+          <Link href="/dashboard/applications">
+            <Button variant="outline">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Applications
+            </Button>
+          </Link>
+        </div>
+      </div>
+    )
+  }
+
   const currentStage = workflow.stages.find(s => s.id === workflow.currentStageId)
   const completedStages = workflow.stages.filter(s => s.status === 'completed').length
 
@@ -247,20 +275,20 @@ export default function ApplicationWorkflowPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="text-center p-3 bg-blue-50 rounded-lg">
               <Clock className="h-6 w-6 text-blue-600 mx-auto mb-2" />
               <div className="font-semibold text-blue-900">Est. Timeline</div>
               <div className="text-sm text-blue-700">{workflow.estimatedTimeMonths} months</div>
             </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
+            <div className="text-center p-3 bg-green-50 rounded-lg">
               <FileText className="h-6 w-6 text-green-600 mx-auto mb-2" />
               <div className="font-semibold text-green-900">Documents</div>
               <div className="text-sm text-green-700">
                 {requirements.filter(r => r.status === 'approved').length} of {requirements.length} approved
               </div>
             </div>
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
+            <div className="text-center p-3 bg-purple-50 rounded-lg">
               <Users className="h-6 w-6 text-purple-600 mx-auto mb-2" />
               <div className="font-semibold text-purple-900">Client</div>
               <div className="text-sm text-purple-700">{application.client.firstName} {application.client.lastName}</div>
@@ -279,22 +307,11 @@ export default function ApplicationWorkflowPage() {
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>St. Kitts Citizenship Workflow Stages</CardTitle>
-              <p className="text-sm text-gray-600">
-                Track progress through each stage of the {application.program.programName} process
-              </p>
-            </CardHeader>
-            <CardContent>
-              <WorkflowProgressTracker
-                stages={workflow.stages}
-                currentStageId={workflow.currentStageId}
-                showTimeline={true}
-                className="mt-4"
-              />
-            </CardContent>
-          </Card>
+          <WorkflowProgressTracker
+            stages={workflow.stages}
+            currentStageId={workflow.currentStageId}
+            showTimeline={true}
+          />
         </TabsContent>
 
         <TabsContent value="documents" className="space-y-6">

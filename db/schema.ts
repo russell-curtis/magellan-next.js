@@ -240,7 +240,7 @@ export const applications = pgTable('applications', {
   
   // Application Details
   applicationNumber: varchar('application_number', { length: 100 }),
-  status: varchar('status', { length: 50 }).default('draft'), // draft, submitted, under_review, approved, rejected
+  status: varchar('status', { length: 50 }).default('draft'), // draft, started, submitted, ready_for_submission, submitted_to_government, under_review, approved, rejected, archived
   priority: varchar('priority', { length: 20 }).default('medium'), // low, medium, high, urgent
   
   // Timeline

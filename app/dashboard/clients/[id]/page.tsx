@@ -14,7 +14,7 @@ import { Alert, AlertDescription } from '@/components/ui/alert'
 import { DocumentUpload } from '../../_components/document-upload'
 import { DocumentList } from '../../_components/document-list'
 import { ApplicationCreateModal } from '../_components/application-create-modal'
-import { ApplicationStatusWorkflow } from '../_components/application-status-workflow'
+import { ApplicationCard } from '@/components/ui/application-card'
 import CommunicationHub from '../../_components/communication-hub'
 import { 
   User, 
@@ -118,6 +118,11 @@ export default function ClientProfilePage() {
   const [activeTab, setActiveTab] = useState('overview')
   const [showUpload, setShowUpload] = useState(false)
   const [showApplicationModal, setShowApplicationModal] = useState(false)
+  const [currentUser, setCurrentUser] = useState<{
+    id: string
+    role: string
+    firmId: string
+  } | null>(null)
   
   // Portal invitation state
   const [showInvitationDialog, setShowInvitationDialog] = useState(false)
@@ -168,6 +173,25 @@ export default function ClientProfilePage() {
   useEffect(() => {
     if (clientId) {
       fetchClientProfile()
+      // Fetch current user for ApplicationCard
+      const fetchCurrentUser = async () => {
+        try {
+          const userResponse = await fetch('/api/user/check-setup')
+          if (userResponse.ok) {
+            const userData = await userResponse.json()
+            if (userData.isSetup && userData.user) {
+              setCurrentUser({
+                id: userData.user.id,
+                role: userData.user.role || 'advisor',
+                firmId: userData.user.firmId || ''
+              })
+            }
+          }
+        } catch (error) {
+          console.error('Error fetching current user:', error)
+        }
+      }
+      fetchCurrentUser()
     }
   }, [clientId, fetchClientProfile])
 
@@ -619,71 +643,59 @@ export default function ClientProfilePage() {
           </div>
           
           {client.applications && client.applications.length > 0 ? (
-            <div className="space-y-6">
+            <div className="space-y-4">
               {client.applications.map((app) => (
-                <div key={app.id} className="space-y-4">
-                  <Card>
-                    <CardHeader>
-                      <CardTitle className="flex items-center justify-between">
-                        <div>
-                          <h3 className="text-xl">
-                            {app.program?.countryName || 'Unknown Country'} - {app.program?.programName || 'Unknown Program'}
-                          </h3>
-                          <p className="text-sm text-muted-foreground font-normal">
-                            Application #{app.applicationNumber}
-                          </p>
-                        </div>
-                        <div className="flex items-center space-x-2">
-                          <Badge className={getStatusColor(app.status)}>
-                            {app.status.replace('_', ' ')}
-                          </Badge>
-                          <Badge className={getPriorityColor(app.priority)}>
-                            {app.priority} priority
-                          </Badge>
-                        </div>
-                      </CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-sm">
-                        <div>
-                          <span className="text-muted-foreground">Investment Amount:</span>
-                          <div className="font-medium">{formatCurrency(app.investmentAmount)}</div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Investment Type:</span>
-                          <div className="font-medium">{app.investmentType || 'Not specified'}</div>
-                        </div>
-                        <div>
-                          <span className="text-muted-foreground">Processing Time:</span>
-                          <div className="font-medium">{app.program?.processingTimeMonths || 'TBD'} months</div>
-                        </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                  
-                  <ApplicationStatusWorkflow
-                    application={{
-                      id: app.id,
-                      applicationNumber: app.applicationNumber,
-                      status: app.status,
-                      priority: app.priority,
-                      submittedAt: app.submittedAt,
-                      decisionExpectedAt: app.decisionExpectedAt,
-                      decidedAt: app.decidedAt,
-                      notes: app.notes,
-                      internalNotes: app.internalNotes,
-                      program: {
-                        countryName: app.program?.countryName || 'Unknown Country',
-                        programName: app.program?.programName || 'Unknown Program'
-                      },
-                      client: {
-                        firstName: client.firstName,
-                        lastName: client.lastName
-                      }
-                    }}
-                    onStatusUpdate={fetchClientProfile}
-                  />
-                </div>
+                <ApplicationCard
+                  key={app.id}
+                  application={{
+                    id: app.id,
+                    applicationNumber: app.applicationNumber,
+                    status: app.status,
+                    priority: app.priority,
+                    investmentAmount: app.investmentAmount,
+                    investmentType: app.investmentType,
+                    submittedAt: app.submittedAt,
+                    decisionExpectedAt: app.decisionExpectedAt,
+                    decidedAt: app.decidedAt,
+                    notes: app.notes,
+                    internalNotes: app.internalNotes,
+                    createdAt: app.submittedAt || new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                    client: {
+                      id: client.id,
+                      firstName: client.firstName,
+                      lastName: client.lastName,
+                      email: client.email || ''
+                    },
+                    program: app.program ? {
+                      id: app.program.id,
+                      countryName: app.program.countryName,
+                      programName: app.program.programName,
+                      programType: app.program.programType,
+                      minInvestment: app.program.minInvestment,
+                      processingTimeMonths: app.program.processingTimeMonths
+                    } : null
+                  }}
+                  currentUser={currentUser}
+                  hideClientInfo={true}
+                  onStatusChange={(applicationId, newStatus) => {
+                    if (newStatus === 'deleted') {
+                      // Refresh client profile to remove deleted application
+                      fetchClientProfile()
+                    } else {
+                      // Update the application status in local state
+                      setClient(prev => {
+                        if (!prev) return prev
+                        return {
+                          ...prev,
+                          applications: prev.applications?.map(a => 
+                            a.id === applicationId ? { ...a, status: newStatus } : a
+                          )
+                        }
+                      })
+                    }
+                  }}
+                />
               ))}
             </div>
           ) : (

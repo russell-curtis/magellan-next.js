@@ -59,13 +59,13 @@ export async function GET() {
       }
     })
 
-    // Get applications in progress (submitted, under_review)
+    // Get applications in progress (started, submitted, under_review)
     const [{ activeApplications }] = await db
       .select({ activeApplications: count() })
       .from(applications)
       .where(and(
         eq(applications.firmId, firmId),
-        sql`${applications.status} IN ('submitted', 'under_review')`
+        sql`${applications.status} IN ('started', 'submitted', 'under_review')`
       ))
 
     // Get completed applications count

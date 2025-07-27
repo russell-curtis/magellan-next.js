@@ -3,7 +3,7 @@ import { db } from '@/db/drizzle'
 import { applications, clients, crbiPrograms } from '@/db/schema'
 import { createApplicationSchema } from '@/lib/validations/applications'
 import { requireAuth } from '@/lib/auth-utils'
-import { eq, and } from 'drizzle-orm'
+import { eq, and, ne } from 'drizzle-orm'
 
 export async function POST(req: NextRequest) {
   try {
@@ -59,11 +59,20 @@ export async function GET(req: NextRequest) {
     const user = await requireAuth()
     const url = new URL(req.url)
     const clientId = url.searchParams.get('clientId')
+    const statusFilter = url.searchParams.get('statusFilter')
     
     const whereConditions = [eq(applications.firmId, user.firmId)]
     
     if (clientId) {
       whereConditions.push(eq(applications.clientId, clientId))
+    }
+    
+    // Only show archived applications when specifically filtered for them
+    if (statusFilter === 'archived') {
+      whereConditions.push(eq(applications.status, 'archived'))
+    } else {
+      // By default, exclude archived applications
+      whereConditions.push(ne(applications.status, 'archived'))
     }
     
     const results = await db
@@ -81,6 +90,7 @@ export async function GET(req: NextRequest) {
         internalNotes: applications.internalNotes,
         createdAt: applications.createdAt,
         updatedAt: applications.updatedAt,
+        assignedAdvisorId: applications.assignedAdvisorId,
         client: {
           id: clients.id,
           firstName: clients.firstName,

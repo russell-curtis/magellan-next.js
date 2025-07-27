@@ -28,7 +28,7 @@ export const createApplicationSchema = z.object({
 })
 
 export const updateApplicationSchema = z.object({
-  status: z.enum(['draft', 'submitted', 'under_review', 'approved', 'rejected']).optional(),
+  status: z.enum(['draft', 'started', 'submitted', 'ready_for_submission', 'submitted_to_government', 'under_review', 'approved', 'rejected', 'archived']).optional(),
   investmentAmount: z.preprocess(
     (val) => {
       if (val === null || val === undefined || val === '') return undefined

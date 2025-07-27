@@ -68,7 +68,7 @@ export const CRBI_WORKFLOW_TEMPLATES = {
     name: 'Portugal Golden Visa Workflow',
     statusTransitions: {
       'draft': {
-        nextStatus: 'submitted',
+        nextStatus: 'started',
         requiredDocuments: ['passport', 'bank_statements', 'criminal_record'],
         autoTasks: [
           {
@@ -77,6 +77,18 @@ export const CRBI_WORKFLOW_TEMPLATES = {
             description: 'Review client documents for Portugal Golden Visa eligibility',
             priority: 'high' as const,
             assignmentLogic: 'senior_advisor'
+          }
+        ]
+      },
+      'started': {
+        nextStatus: 'submitted',
+        autoTasks: [
+          {
+            type: 'document_collection',
+            title: 'Document Collection and Preparation - Portugal',
+            description: 'Gather and prepare all required documents for Portugal Golden Visa',
+            priority: 'high' as const,
+            assignmentLogic: 'assigned_advisor'
           }
         ]
       },
@@ -125,7 +137,7 @@ export const CRBI_WORKFLOW_TEMPLATES = {
     name: 'Cyprus Investment Program Workflow',
     statusTransitions: {
       'draft': {
-        nextStatus: 'submitted',
+        nextStatus: 'started',
         requiredDocuments: ['passport', 'bank_statements', 'investment_proof', 'medical_certificate'],
         autoTasks: [
           {
@@ -134,6 +146,18 @@ export const CRBI_WORKFLOW_TEMPLATES = {
             description: 'Comprehensive compliance check for Cyprus Investment Program',
             priority: 'urgent' as const,
             assignmentLogic: 'compliance_officer'
+          }
+        ]
+      },
+      'started': {
+        nextStatus: 'submitted',
+        autoTasks: [
+          {
+            type: 'document_collection',
+            title: 'Document Collection and Preparation - Cyprus',
+            description: 'Gather and prepare all required documents for Cyprus Investment Program',
+            priority: 'high' as const,
+            assignmentLogic: 'assigned_advisor'
           }
         ]
       },
@@ -238,6 +262,109 @@ export class WorkflowEngine {
         }],
         isActive: true,
         priority: 3
+      },
+
+      // Government Submission Rules
+      {
+        id: 'auto-prepare-submission-package',
+        name: 'Auto-prepare submission package on submitted status',
+        description: 'Automatically check document completeness when application reaches submitted status',
+        trigger: {
+          type: 'status_change',
+          entity: 'application',
+          eventType: 'status_changed'
+        },
+        conditions: [{
+          field: 'newStatus',
+          operator: 'equals',
+          value: 'submitted'
+        }],
+        actions: [{
+          type: 'create_task',
+          target: 'application',
+          parameters: {
+            taskType: 'document_review',
+            title: 'Review documents for government submission readiness',
+            description: 'Verify all required documents are approved and ready for government submission',
+            priority: 'high',
+            assignmentLogic: 'assigned_advisor'
+          }
+        }],
+        isActive: true,
+        priority: 4
+      },
+
+      {
+        id: 'auto-notify-submission-ready',
+        name: 'Notify when ready for government submission',
+        description: 'Create notification task when application is ready for government submission',
+        trigger: {
+          type: 'status_change',
+          entity: 'application',
+          eventType: 'status_changed'
+        },
+        conditions: [{
+          field: 'newStatus',
+          operator: 'equals',
+          value: 'ready_for_submission'
+        }],
+        actions: [{
+          type: 'create_task',
+          target: 'application',
+          parameters: {
+            taskType: 'government_submission',
+            title: 'Submit application to government',
+            description: 'Application package is complete and ready for government submission',
+            priority: 'urgent',
+            assignmentLogic: 'assigned_advisor'
+          }
+        }, {
+          type: 'send_notification',
+          target: 'application',
+          parameters: {
+            type: 'submission_ready',
+            message: 'Application is ready for government submission'
+          }
+        }],
+        isActive: true,
+        priority: 5
+      },
+
+      {
+        id: 'auto-track-government-submission',
+        name: 'Track government submission status',
+        description: 'Create periodic tasks to check government submission status',
+        trigger: {
+          type: 'status_change',
+          entity: 'application',
+          eventType: 'status_changed'
+        },
+        conditions: [{
+          field: 'newStatus',
+          operator: 'equals',
+          value: 'submitted_to_government'
+        }],
+        actions: [{
+          type: 'create_task',
+          target: 'application',
+          parameters: {
+            taskType: 'status_check',
+            title: 'Check government processing status',
+            description: 'Weekly check on application status with government authorities',
+            priority: 'medium',
+            assignmentLogic: 'assigned_advisor',
+            recurrence: 'weekly'
+          }
+        }, {
+          type: 'send_notification',
+          target: 'application',
+          parameters: {
+            type: 'government_submitted',
+            message: 'Application successfully submitted to government'
+          }
+        }],
+        isActive: true,
+        priority: 6
       }
     ]
   }
@@ -509,7 +636,7 @@ export class WorkflowEngine {
 
     if (!app[0]) return null
 
-    const statusFlow = ['draft', 'submitted', 'under_review', 'approved']
+    const statusFlow = ['draft', 'started', 'submitted', 'ready_for_submission', 'submitted_to_government', 'under_review', 'approved']
     const currentIndex = statusFlow.indexOf(app[0].status)
     
     return currentIndex >= 0 && currentIndex < statusFlow.length - 1 

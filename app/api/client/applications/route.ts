@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server'
 import { db } from '@/db/drizzle'
 import { applications, crbiPrograms, users } from '@/db/schema'
 import { requireClientAuth } from '@/lib/client-auth'
-import { eq } from 'drizzle-orm'
+import { eq, and, ne } from 'drizzle-orm'
 
 export async function GET() {
   try {
@@ -40,7 +40,11 @@ export async function GET() {
       .from(applications)
       .leftJoin(crbiPrograms, eq(applications.programId, crbiPrograms.id))
       .leftJoin(users, eq(applications.assignedAdvisorId, users.id))
-      .where(eq(applications.clientId, client.clientId))
+      .where(and(
+        eq(applications.clientId, client.clientId),
+        ne(applications.status, 'draft'),
+        ne(applications.status, 'archived')
+      ))
       .orderBy(applications.createdAt)
     
     return NextResponse.json({ 

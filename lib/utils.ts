@@ -20,3 +20,22 @@ export function formatDate(dateString: string): string {
     day: 'numeric',
   })
 }
+
+/**
+ * Determines if an application has access to workflow features based on its status
+ * @param status - The application status
+ * @returns true if the application can access workflow features, false otherwise
+ */
+export function hasWorkflowAccess(status: string): boolean {
+  // Draft applications cannot access workflow features
+  // All other statuses (started, submitted, under_review, approved, rejected, archived) can access workflow
+  return status !== 'draft'
+}
+
+/**
+ * Gets a list of application statuses that have workflow access
+ * @returns Array of status strings that can access workflow features
+ */
+export function getWorkflowAccessibleStatuses(): string[] {
+  return ['started', 'submitted', 'under_review', 'approved', 'rejected', 'archived']
+}

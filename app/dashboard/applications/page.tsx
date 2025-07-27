@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useCallback } from 'react'
+import { authClient } from '@/lib/auth-client'
 import { Card, CardContent } from '@/components/ui/card'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -13,9 +14,15 @@ import {
   CheckCircle,
   AlertCircle,
   XCircle,
-  FileText
+  FileText,
+  Archive,
+  Activity,
+  Eye,
+  Edit
 } from 'lucide-react'
 import { ApplicationCard } from '@/components/ui/application-card'
+import { ApplicationEditModal } from './_components/application-edit-modal'
+import { StatsCard } from '@/components/ui/stats-card'
 
 interface Application {
   id: string
@@ -31,6 +38,7 @@ interface Application {
   internalNotes: string | null
   createdAt: string
   updatedAt: string
+  assignedAdvisorId: string | null
   client: {
     id: string
     firstName: string
@@ -55,13 +63,26 @@ export default function ApplicationsPage() {
   const [statusFilter, setStatusFilter] = useState<string>('all')
   const [priorityFilter, setPriorityFilter] = useState<string>('all')
   const [programFilter, setProgramFilter] = useState<string>('all')
+  const [customFilter, setCustomFilter] = useState<string[]>([])
+  const [currentUser, setCurrentUser] = useState<{
+    id: string
+    role: string
+    firmId: string
+  } | null>(null)
+  const [editModalOpen, setEditModalOpen] = useState(false)
+  const [editingApplicationId, setEditingApplicationId] = useState<string | null>(null)
 
   const fetchApplications = useCallback(async () => {
     setLoading(true)
     setError(null)
     
     try {
-      const response = await fetch('/api/applications')
+      const url = new URL('/api/applications', window.location.origin)
+      if (statusFilter && statusFilter !== 'all') {
+        url.searchParams.set('statusFilter', statusFilter)
+      }
+      
+      const response = await fetch(url.toString())
       
       if (response.ok) {
         const data = await response.json()
@@ -76,9 +97,80 @@ export default function ApplicationsPage() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [statusFilter])
 
+  // Handle edit application
+  const handleEditApplication = (applicationId: string) => {
+    setEditingApplicationId(applicationId)
+    setEditModalOpen(true)
+  }
+
+  const handleCloseEditModal = () => {
+    setEditModalOpen(false)
+    setEditingApplicationId(null)
+  }
+
+  const handleApplicationUpdated = () => {
+    fetchApplications() // Refresh the applications list
+    handleCloseEditModal()
+  }
+
+  // Handle stats card click filtering
+  const handleStatsFilter = (filterType: string) => {
+    // Reset other filters when using stats card filters
+    setPriorityFilter('all')
+    setProgramFilter('all')
+    
+    switch (filterType) {
+      case 'active':
+        setStatusFilter('all')
+        setCustomFilter(['started', 'submitted', 'ready_for_submission', 'submitted_to_government', 'under_review'])
+        break
+      case 'review':
+        setStatusFilter('all')
+        setCustomFilter(['submitted', 'ready_for_submission', 'under_review'])
+        break
+      case 'completed':
+        setStatusFilter('all')
+        setCustomFilter(['approved', 'rejected'])
+        break
+      case 'draft':
+        setStatusFilter('draft')
+        setCustomFilter([])
+        break
+      default:
+        setStatusFilter('all')
+        setCustomFilter([])
+    }
+  }
+
+  // Clear custom filter when regular status filter is used
+  const handleStatusFilterChange = (newFilter: string) => {
+    setStatusFilter(newFilter)
+    setCustomFilter([])
+  }
+
+  // Fetch current user
   useEffect(() => {
+    const fetchCurrentUser = async () => {
+      try {
+        const userResponse = await fetch('/api/user/check-setup')
+        if (userResponse.ok) {
+          const userData = await userResponse.json()
+          if (userData.isSetup && userData.user) {
+            setCurrentUser({
+              id: userData.user.id,
+              role: userData.user.role || 'advisor',
+              firmId: userData.user.firmId || ''
+            })
+          }
+        }
+      } catch (error) {
+        console.error('Error fetching current user:', error)
+      }
+    }
+    
+    fetchCurrentUser()
     fetchApplications()
   }, [fetchApplications])
 
@@ -93,7 +185,11 @@ export default function ApplicationsPage() {
       app.program?.countryName.toLowerCase().includes(searchQuery.toLowerCase()) ||
       app.program?.programName.toLowerCase().includes(searchQuery.toLowerCase())
 
-    const matchesStatus = statusFilter === 'all' || app.status === statusFilter
+    // Use custom filter if active, otherwise use regular status filter
+    const matchesStatus = customFilter.length > 0 
+      ? customFilter.includes(app.status)
+      : (statusFilter === 'all' || app.status === statusFilter)
+    
     const matchesPriority = priorityFilter === 'all' || app.priority === priorityFilter
     const matchesProgram = programFilter === 'all' || app.program?.id === programFilter
 
@@ -107,14 +203,22 @@ export default function ApplicationsPage() {
     applications.find(app => app.program?.id === programId)?.program
   ).filter(Boolean)
 
-  // Statistics
+  // Statistics - consolidated metrics
   const stats = {
     total: applications.length,
     draft: applications.filter(app => app.status === 'draft').length,
+    started: applications.filter(app => app.status === 'started').length,
     submitted: applications.filter(app => app.status === 'submitted').length,
+    ready_for_submission: applications.filter(app => app.status === 'ready_for_submission').length,
+    submitted_to_government: applications.filter(app => app.status === 'submitted_to_government').length,
     under_review: applications.filter(app => app.status === 'under_review').length,
     approved: applications.filter(app => app.status === 'approved').length,
     rejected: applications.filter(app => app.status === 'rejected').length,
+    archived: applications.filter(app => app.status === 'archived').length,
+    // Consolidated metrics
+    active: applications.filter(app => ['started', 'submitted', 'ready_for_submission', 'submitted_to_government', 'under_review'].includes(app.status)).length,
+    needsReview: applications.filter(app => ['submitted', 'ready_for_submission', 'under_review'].includes(app.status)).length,
+    completed: applications.filter(app => ['approved', 'rejected'].includes(app.status)).length,
   }
 
   if (loading) {
@@ -144,91 +248,55 @@ export default function ApplicationsPage() {
         </Button>
       </div>
 
-      {/* Statistics Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-6 gap-4">
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Briefcase className="h-5 w-5 text-blue-600" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-600">Total</p>
-                <p className="text-xl font-bold text-gray-900">{stats.total}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+      {/* Enhanced Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+        <StatsCard
+          title="Active Applications"
+          value={stats.active}
+          icon={<Activity />}
+          description="In progress applications"
+          color="blue"
+          onClick={() => handleStatsFilter('active')}
+          isActive={customFilter.length > 0 && customFilter.includes('started') && customFilter.includes('submitted') && customFilter.includes('ready_for_submission') && customFilter.includes('submitted_to_government') && customFilter.includes('under_review')}
+          badge={stats.active > 0 ? { text: `${stats.submitted_to_government} At Government`, variant: 'secondary' } : undefined}
+        />
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-gray-100 rounded-lg">
-                <FileText className="h-5 w-5 text-gray-600" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-600">Draft</p>
-                <p className="text-xl font-bold text-gray-900">{stats.draft}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Needs Review"
+          value={stats.needsReview}
+          icon={<Eye />}
+          description="Awaiting review or processing"
+          color="orange"
+          onClick={() => handleStatsFilter('review')}
+          isActive={customFilter.length > 0 && customFilter.includes('submitted') && customFilter.includes('ready_for_submission') && customFilter.includes('under_review')}
+          badge={stats.ready_for_submission > 0 ? { text: `${stats.ready_for_submission} Ready`, variant: 'outline' } : undefined}
+        />
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-yellow-100 rounded-lg">
-                <AlertCircle className="h-5 w-5 text-yellow-600" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-600">Submitted</p>
-                <p className="text-xl font-bold text-gray-900">{stats.submitted}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Completed"
+          value={stats.completed}
+          icon={<CheckCircle />}
+          description={`${stats.approved} approved, ${stats.rejected} rejected`}
+          color="green"
+          onClick={() => handleStatsFilter('completed')}
+          isActive={customFilter.length > 0 && customFilter.includes('approved') && customFilter.includes('rejected')}
+          trend={stats.approved > 0 ? { 
+            value: Math.round((stats.approved / Math.max(stats.completed, 1)) * 100), 
+            label: 'success rate',
+            isPositive: true 
+          } : undefined}
+        />
 
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-blue-100 rounded-lg">
-                <Clock className="h-5 w-5 text-blue-600" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-600">Review</p>
-                <p className="text-xl font-bold text-gray-900">{stats.under_review}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-green-100 rounded-lg">
-                <CheckCircle className="h-5 w-5 text-green-600" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-600">Approved</p>
-                <p className="text-xl font-bold text-gray-900">{stats.approved}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex items-center">
-              <div className="p-2 bg-red-100 rounded-lg">
-                <XCircle className="h-5 w-5 text-red-600" />
-              </div>
-              <div className="ml-3">
-                <p className="text-sm font-medium text-gray-600">Rejected</p>
-                <p className="text-xl font-bold text-gray-900">{stats.rejected}</p>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <StatsCard
+          title="Drafts"
+          value={stats.draft}
+          icon={<Edit />}
+          description="Ready to start"
+          color="gray"
+          onClick={() => handleStatsFilter('draft')}
+          isActive={statusFilter === 'draft'}
+          badge={stats.draft > 0 ? { text: 'Needs action', variant: 'outline' } : undefined}
+        />
       </div>
 
       {/* Filters */}
@@ -246,17 +314,21 @@ export default function ApplicationsPage() {
         </div>
         
         <div className="flex gap-2">
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
+          <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
             <SelectTrigger className="w-32">
               <SelectValue placeholder="Status" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="draft">Draft</SelectItem>
-              <SelectItem value="submitted">Submitted</SelectItem>
+              <SelectItem value="started">Started</SelectItem>
+              <SelectItem value="submitted">Internal Review</SelectItem>
+              <SelectItem value="ready_for_submission">Ready for Submission</SelectItem>
+              <SelectItem value="submitted_to_government">Submitted to Government</SelectItem>
               <SelectItem value="under_review">Under Review</SelectItem>
               <SelectItem value="approved">Approved</SelectItem>
               <SelectItem value="rejected">Rejected</SelectItem>
+              <SelectItem value="archived">Archived</SelectItem>
             </SelectContent>
           </Select>
 
@@ -333,11 +405,38 @@ export default function ApplicationsPage() {
           {filteredApplications.map((application) => (
             <ApplicationCard 
               key={application.id} 
-              application={application} 
+              application={application}
+              currentUser={currentUser}
+              onEditApplication={handleEditApplication}
+              onStatusChange={(applicationId, newStatus) => {
+                if (newStatus === 'deleted') {
+                  // Remove deleted application from the list
+                  setApplications(prev => 
+                    prev.filter(app => app.id !== applicationId)
+                  )
+                } else {
+                  // Update the local application state for status changes
+                  setApplications(prev => 
+                    prev.map(app => 
+                      app.id === applicationId 
+                        ? { ...app, status: newStatus }
+                        : app
+                    )
+                  )
+                }
+              }}
             />
           ))}
         </div>
       )}
+
+      {/* Edit Application Modal */}
+      <ApplicationEditModal
+        applicationId={editingApplicationId}
+        open={editModalOpen}
+        onOpenChange={handleCloseEditModal}
+        onApplicationUpdated={handleApplicationUpdated}
+      />
     </div>
   )
 }

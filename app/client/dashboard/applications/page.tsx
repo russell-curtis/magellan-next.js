@@ -106,6 +106,8 @@ export default function ClientApplicationsPage() {
         return <Clock className="h-4 w-4 text-blue-600" />
       case 'submitted':
         return <AlertCircle className="h-4 w-4 text-yellow-600" />
+      case 'started':
+        return <RefreshCcw className="h-4 w-4 text-blue-500" />
       case 'rejected':
         return <AlertCircle className="h-4 w-4 text-red-600" />
       case 'draft':
@@ -122,6 +124,8 @@ export default function ClientApplicationsPage() {
         return 'bg-blue-100 text-blue-800'
       case 'submitted':
         return 'bg-yellow-100 text-yellow-800'
+      case 'started':
+        return 'bg-blue-50 text-blue-700'
       case 'rejected':
         return 'bg-red-100 text-red-800'
       case 'draft':
@@ -137,15 +141,15 @@ export default function ClientApplicationsPage() {
   }
 
   const calculateProgress = (status: string, submittedAt: string | null): number => {
-    if (!submittedAt) return status === 'draft' ? 10 : 0
-    
     switch (status) {
       case 'draft':
         return 10
-      case 'submitted':
+      case 'started':
         return 25
+      case 'submitted':
+        return 50
       case 'under_review':
-        return 60
+        return 75
       case 'approved':
         return 100
       case 'rejected':
@@ -158,11 +162,13 @@ export default function ClientApplicationsPage() {
   const getNextStep = (status: string): string => {
     switch (status) {
       case 'draft':
-        return 'Complete and submit application'
+        return 'Application preparation'
+      case 'started':
+        return 'Document preparation in progress'
       case 'submitted':
-        return 'Initial review in progress'
+        return 'Submitted to government for review'
       case 'under_review':
-        return 'Due diligence and assessment'
+        return 'Due diligence and government assessment'
       case 'approved':
         return 'Application approved'
       case 'rejected':
@@ -397,7 +403,7 @@ export default function ClientApplicationsPage() {
                 <div className="ml-4">
                   <p className="text-sm font-medium text-gray-600">Under Review</p>
                   <p className="text-2xl font-bold text-gray-900">
-                    {applications.filter(app => app.status === 'under_review' || app.status === 'submitted').length}
+                    {applications.filter(app => app.status === 'under_review' || app.status === 'submitted' || app.status === 'started').length}
                   </p>
                 </div>
               </div>

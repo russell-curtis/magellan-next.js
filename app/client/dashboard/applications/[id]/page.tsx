@@ -481,22 +481,11 @@ export default function ClientApplicationPage() {
         </TabsList>
 
         <TabsContent value="progress" className="space-y-6">
-          <Card>
-            <CardHeader>
-              <CardTitle>Your Citizenship Journey</CardTitle>
-              <p className="text-sm text-gray-600">
-                Track your progress through the {application.program.programName} process
-              </p>
-            </CardHeader>
-            <CardContent>
-              <WorkflowProgressTracker
-                stages={workflowData.stages}
-                currentStageId={workflowData.currentStageId}
-                showTimeline={true}
-                className="mt-4"
-              />
-            </CardContent>
-          </Card>
+          <WorkflowProgressTracker
+            stages={workflowData.stages}
+            currentStageId={workflowData.currentStageId}
+            showTimeline={true}
+          />
 
           {/* Next Steps */}
           <Card>

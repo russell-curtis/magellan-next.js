@@ -1,6 +1,7 @@
 'use client'
 
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
@@ -71,19 +72,21 @@ export function ClientTable({ clients, onEdit, onDelete }: ClientTableProps) {
             <TableRow key={client.id}>
               <TableCell>
                 <div className="flex items-center gap-3">
-                  <Avatar className="h-8 w-8">
-                    <AvatarFallback className="text-xs">
-                      {getInitials(client.firstName, client.lastName)}
-                    </AvatarFallback>
-                  </Avatar>
-                  <div>
-                    <div className="font-medium">
-                      {formatClientName(client.firstName, client.lastName)}
+                  <Link href={`/dashboard/clients/${client.id}`} className="flex items-center gap-3 hover:opacity-80 transition-opacity">
+                    <Avatar className="h-8 w-8">
+                      <AvatarFallback className="text-xs">
+                        {getInitials(client.firstName, client.lastName)}
+                      </AvatarFallback>
+                    </Avatar>
+                    <div>
+                      <div className="font-medium text-blue-600 hover:text-blue-800 cursor-pointer">
+                        {formatClientName(client.firstName, client.lastName)}
+                      </div>
+                      {client.email && (
+                        <div className="text-sm text-muted-foreground">{client.email}</div>
+                      )}
                     </div>
-                    {client.email && (
-                      <div className="text-sm text-muted-foreground">{client.email}</div>
-                    )}
-                  </div>
+                  </Link>
                 </div>
               </TableCell>
               <TableCell>
