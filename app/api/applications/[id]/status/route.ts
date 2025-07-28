@@ -9,7 +9,7 @@ import { triggerStatusChange } from '@/lib/workflow-engine'
 import { z } from 'zod'
 
 const updateStatusSchema = z.object({
-  status: z.enum(['draft', 'submitted', 'under_review', 'approved', 'rejected']),
+  status: z.enum(['draft', 'started', 'submitted', 'ready_for_submission', 'submitted_to_government', 'under_review', 'approved', 'rejected', 'archived']),
   notes: z.string().optional(),
   triggerWorkflow: z.boolean().default(true)
 })
@@ -107,7 +107,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     }
 
     // Set timestamps based on status
-    if (newStatus === 'submitted' && !application.client) {
+    if (newStatus === 'submitted_to_government') {
       updateData.submittedAt = new Date()
     } else if (newStatus === 'approved' || newStatus === 'rejected') {
       updateData.decidedAt = new Date()
@@ -314,11 +314,15 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 // Helper function to get valid status transitions
 function getValidStatusTransitions(currentStatus: string): string[] {
   const transitions: Record<string, string[]> = {
-    'draft': ['submitted'],
-    'submitted': ['under_review', 'draft'], // Can go back to draft for corrections
-    'under_review': ['approved', 'rejected', 'submitted'], // Can go back to submitted for more info
+    'draft': ['started'],
+    'started': ['submitted', 'draft'],
+    'submitted': ['ready_for_submission', 'started'],
+    'ready_for_submission': ['submitted_to_government', 'submitted'],
+    'submitted_to_government': ['under_review', 'ready_for_submission'],
+    'under_review': ['approved', 'rejected', 'submitted_to_government'],
     'approved': [], // Final state
-    'rejected': ['submitted'] // Can resubmit after addressing issues
+    'rejected': ['started'], // Can restart the process
+    'archived': [] // Final state
   }
 
   return transitions[currentStatus] || []

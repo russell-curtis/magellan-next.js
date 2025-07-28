@@ -21,6 +21,7 @@ import { WorkflowProgressTracker, WorkflowStage } from '@/components/ui/workflow
 import { DocumentChecklistCard, DocumentRequirement } from '@/components/ui/document-checklist-card'
 import { DocumentUploadZone } from '@/components/ui/document-upload-zone'
 import { DocumentReviewInterface } from '@/components/ui/document-review-interface'
+import { OriginalDocumentsDashboard } from '@/components/original-documents/original-documents-dashboard'
 import { hasWorkflowAccess } from '@/lib/utils'
 import Link from 'next/link'
 
@@ -299,11 +300,12 @@ export default function ApplicationWorkflowPage() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList className="grid w-full grid-cols-5">
           <TabsTrigger value="overview">Workflow Overview</TabsTrigger>
           <TabsTrigger value="documents">Document Management</TabsTrigger>
           <TabsTrigger value="uploads">Upload Center</TabsTrigger>
           <TabsTrigger value="reviews">Document Reviews</TabsTrigger>
+          <TabsTrigger value="originals">Original Documents</TabsTrigger>
         </TabsList>
 
         <TabsContent value="overview" className="space-y-6">
@@ -582,6 +584,13 @@ export default function ApplicationWorkflowPage() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="originals" className="space-y-6">
+          <OriginalDocumentsDashboard 
+            applicationId={applicationId}
+            showApplicationFilter={false}
+          />
         </TabsContent>
       </Tabs>
     </div>

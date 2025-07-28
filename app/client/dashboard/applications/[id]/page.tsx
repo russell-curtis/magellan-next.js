@@ -21,7 +21,7 @@ import { WorkflowProgressTracker, WorkflowStage } from '@/components/ui/workflow
 import { DocumentRequirement } from '@/components/ui/document-checklist-card'
 import { DocumentUploadZone } from '@/components/ui/document-upload-zone'
 import { EnhancedDocumentUpload } from '@/components/ui/enhanced-document-upload'
-import { DocumentQualityResult } from '@/lib/document-validation'
+import { OriginalDocumentsStatus } from '@/components/client/original-documents-status'
 import Link from 'next/link'
 
 interface ApplicationWorkflow {
@@ -474,10 +474,11 @@ export default function ClientApplicationPage() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-3">
+        <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="progress">Progress Overview</TabsTrigger>
           <TabsTrigger value="documents">My Documents</TabsTrigger>
           <TabsTrigger value="upload">Upload Documents</TabsTrigger>
+          <TabsTrigger value="originals">Original Documents</TabsTrigger>
         </TabsList>
 
         <TabsContent value="progress" className="space-y-6">
@@ -717,6 +718,10 @@ export default function ClientApplicationPage() {
               />
             </CardContent>
           </Card>
+        </TabsContent>
+
+        <TabsContent value="originals" className="space-y-6">
+          <OriginalDocumentsStatus applicationId={applicationId} />
         </TabsContent>
       </Tabs>
     </div>

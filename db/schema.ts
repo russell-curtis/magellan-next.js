@@ -1113,6 +1113,62 @@ export const customDocumentRequirements = pgTable('custom_document_requirements'
   statusIdx: index('custom_doc_requirements_status_idx').on(table.status),
 }))
 
+// Original Documents Tracking (Physical document workflow after digital validation)
+export const originalDocuments = pgTable('original_documents', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  applicationId: uuid('application_id').notNull().references(() => applications.id, { onDelete: 'cascade' }),
+  documentRequirementId: uuid('document_requirement_id').notNull().references(() => documentRequirements.id, { onDelete: 'cascade' }),
+  digitalDocumentId: uuid('digital_document_id').references(() => applicationDocuments.id), // Link to validated digital version
+  
+  // Original Document Status Flow
+  status: varchar('status', { length: 50 }).default('digital_approved'), // digital_approved, originals_requested, originals_shipped, originals_received, originals_verified, ready_for_government
+  
+  // Request & Communication
+  requestedAt: timestamp('requested_at'),
+  requestedBy: text('requested_by').references(() => users.id),
+  clientNotifiedAt: timestamp('client_notified_at'),
+  remindersSent: integer('reminders_sent').default(0),
+  
+  // Shipping & Logistics
+  shippedAt: timestamp('shipped_at'),
+  courierService: varchar('courier_service', { length: 100 }), // DHL, FedEx, UPS, etc.
+  trackingNumber: varchar('tracking_number', { length: 100 }),
+  shippingAddress: text('shipping_address'),
+  clientReference: varchar('client_reference', { length: 100 }), // Client's own tracking reference
+  
+  // Receipt & Verification
+  receivedAt: timestamp('received_at'),
+  receivedBy: text('received_by').references(() => users.id),
+  verifiedAt: timestamp('verified_at'),
+  verifiedBy: text('verified_by').references(() => users.id),
+  
+  // Document Condition & Quality
+  documentCondition: varchar('document_condition', { length: 50 }), // excellent, good, acceptable, damaged
+  qualityNotes: text('quality_notes'),
+  isAuthenticated: boolean('is_authenticated').default(false), // For apostille/authentication verification
+  authenticationDetails: text('authentication_details'),
+  
+  // Deadlines & Compliance
+  deadline: timestamp('deadline'), // When originals must be received by
+  isUrgent: boolean('is_urgent').default(false),
+  governmentDeadline: timestamp('government_deadline'), // Final government submission deadline
+  
+  // Notes & Communication
+  internalNotes: text('internal_notes'),
+  clientInstructions: text('client_instructions'), // Special instructions sent to client
+  
+  // Metadata
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => ({
+  applicationIdx: index('original_documents_application_idx').on(table.applicationId),
+  requirementIdx: index('original_documents_requirement_idx').on(table.documentRequirementId),
+  statusIdx: index('original_documents_status_idx').on(table.status),
+  deadlineIdx: index('original_documents_deadline_idx').on(table.deadline),
+  receivedIdx: index('original_documents_received_idx').on(table.receivedAt),
+  trackingIdx: index('original_documents_tracking_idx').on(table.trackingNumber),
+}))
+
 // ============================================================================
 // DOCUMENT MANAGEMENT RELATIONS
 // ============================================================================
@@ -1249,6 +1305,7 @@ export const applicationsRelationsUpdated = relations(applications, ({ one, many
   workflowProgress: one(applicationWorkflowProgress),
   stageProgress: many(stageProgress),
   customDocumentRequirements: many(customDocumentRequirements),
+  originalDocuments: many(originalDocuments),
 }))
 
 export const crbiProgramsRelationsUpdated = relations(crbiPrograms, ({ many }) => ({
@@ -1279,6 +1336,34 @@ export const usersRelationsUpdated = relations(users, ({ one, many }) => ({
   // New document management relations
   documentReviews: many(documentReviews),
   customDocumentRequirements: many(customDocumentRequirements),
+}))
+
+// Original Documents Relations
+export const originalDocumentsRelations = relations(originalDocuments, ({ one }) => ({
+  application: one(applications, {
+    fields: [originalDocuments.applicationId],
+    references: [applications.id],
+  }),
+  documentRequirement: one(documentRequirements, {
+    fields: [originalDocuments.documentRequirementId],
+    references: [documentRequirements.id],
+  }),
+  digitalDocument: one(applicationDocuments, {
+    fields: [originalDocuments.digitalDocumentId],
+    references: [applicationDocuments.id],
+  }),
+  requestedBy: one(users, {
+    fields: [originalDocuments.requestedBy],
+    references: [users.id],
+  }),
+  receivedBy: one(users, {
+    fields: [originalDocuments.receivedBy],
+    references: [users.id],
+  }),
+  verifiedBy: one(users, {
+    fields: [originalDocuments.verifiedBy],
+    references: [users.id],
+  }),
 }))
 
 // ============================================================================
@@ -1361,6 +1446,9 @@ export type NewStageProgress = typeof stageProgress.$inferInsert
 export type CustomDocumentRequirement = typeof customDocumentRequirements.$inferSelect
 export type NewCustomDocumentRequirement = typeof customDocumentRequirements.$inferInsert
 
+export type OriginalDocument = typeof originalDocuments.$inferSelect
+export type NewOriginalDocument = typeof originalDocuments.$inferInsert
+
 // ============================================================================
 // ENUMS & CONSTANTS
 // ============================================================================
@@ -1403,6 +1491,18 @@ export const CUSTOM_DOC_STATUSES = ['pending', 'fulfilled', 'waived'] as const
 export const UPLOADED_BY_TYPES = ['client', 'advisor'] as const
 export const ACCEPTED_FILE_FORMATS = ['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx'] as const
 
+// Original Document Management Constants  
+export const ORIGINAL_DOCUMENT_STATUSES = [
+  'digital_approved', 
+  'originals_requested', 
+  'originals_shipped', 
+  'originals_received', 
+  'originals_verified', 
+  'ready_for_government'
+] as const
+export const DOCUMENT_CONDITIONS = ['excellent', 'good', 'acceptable', 'damaged'] as const
+export const COURIER_SERVICES = ['DHL', 'FedEx', 'UPS', 'USPS', 'Royal Mail', 'Other'] as const
+
 export type UserRole = typeof USER_ROLES[number]
 export type ClientStatus = typeof CLIENT_STATUSES[number]
 export type ApplicationStatus = typeof APPLICATION_STATUSES[number]
@@ -1431,3 +1531,8 @@ export type StageStatus = typeof STAGE_STATUSES[number]
 export type CustomDocStatus = typeof CUSTOM_DOC_STATUSES[number]
 export type UploadedByType = typeof UPLOADED_BY_TYPES[number]
 export type AcceptedFileFormat = typeof ACCEPTED_FILE_FORMATS[number]
+
+// Original Document Management Types
+export type OriginalDocumentStatus = typeof ORIGINAL_DOCUMENT_STATUSES[number]
+export type DocumentCondition = typeof DOCUMENT_CONDITIONS[number]
+export type CourierService = typeof COURIER_SERVICES[number]

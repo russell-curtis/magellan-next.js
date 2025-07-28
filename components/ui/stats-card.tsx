@@ -15,7 +15,7 @@ interface StatsCardProps {
     label: string
     isPositive?: boolean
   }
-  color: 'blue' | 'green' | 'orange' | 'red' | 'gray'
+  color: 'blue' | 'green' | 'orange' | 'red' | 'gray' | 'purple'
   onClick?: () => void
   isActive?: boolean
   isLoading?: boolean
@@ -65,6 +65,14 @@ const colorVariants = {
     accent: 'border-gray-200',
     hover: 'hover:bg-gray-100', 
     active: 'ring-2 ring-gray-500 bg-gray-50'
+  },
+  purple: {
+    bg: 'bg-purple-50',
+    iconBg: 'bg-purple-100',
+    iconText: 'text-purple-600',
+    accent: 'border-purple-200',
+    hover: 'hover:bg-purple-100',
+    active: 'ring-2 ring-purple-500 bg-purple-50'
   }
 }
 
@@ -80,7 +88,7 @@ export function StatsCard({
   isLoading = false,
   badge
 }: StatsCardProps) {
-  const colorClass = colorVariants[color]
+  const colorClass = colorVariants[color] || colorVariants.gray // Fallback to gray if color is invalid
   
   const cardClasses = cn(
     'transition-all duration-200 border cursor-pointer',

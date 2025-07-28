@@ -122,7 +122,7 @@ export function MessagingInterface({
     if (isInitialLoad) {
       setIsLoading(true)
     } else {
-      setIsPollingActive(true)
+      setIsPolling(true)
     }
     
     try {
@@ -176,7 +176,7 @@ export function MessagingInterface({
         setIsLoading(false)
         isInitialLoadRef.current = false
       } else {
-        setTimeout(() => setIsPollingActive(false), 200)
+        setTimeout(() => setIsPolling(false), 200)
       }
     }
   }, [conversationId, userType, getAuthHeaders, markMessagesAsRead])

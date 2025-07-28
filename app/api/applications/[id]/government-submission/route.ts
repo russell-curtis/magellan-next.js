@@ -192,6 +192,7 @@ export async function POST(
       )
 
       if (!result.success) {
+        console.error('Prepare for submission failed:', result.errors)
         return NextResponse.json(
           { error: 'Failed to prepare for submission', details: result.errors },
           { status: 400 }
