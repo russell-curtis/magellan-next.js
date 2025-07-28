@@ -2,6 +2,7 @@
 
 import UserProfile from "@/components/user-profile";
 import { MenuNotificationBadge } from "@/components/ui/notification-badge";
+import { MagellanLogo } from "@/components/ui/magellan-logo";
 import { useUnreadMessageCount } from "@/hooks/use-unread-message-count";
 import clsx from "clsx";
 import {
@@ -90,10 +91,10 @@ export default function DashboardSideBar() {
         <div className="flex h-[3.45rem] items-center border-b px-4">
           <Link
             prefetch={true}
-            className="flex items-center font-semibold hover:cursor-pointer"
+            className="flex items-center hover:cursor-pointer"
             href="/"
           >
-            <span>Magellan CRBI</span>
+            <MagellanLogo width={140} height={32} clickable />
           </Link>
         </div>
 

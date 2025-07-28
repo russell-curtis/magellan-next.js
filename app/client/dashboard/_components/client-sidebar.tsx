@@ -1,6 +1,7 @@
 "use client";
 
 import { MenuNotificationBadge } from "@/components/ui/notification-badge";
+import { MagellanLogo } from "@/components/ui/magellan-logo";
 import { useUnreadMessageCount } from "@/hooks/use-unread-message-count";
 import clsx from "clsx";
 import {
@@ -70,10 +71,10 @@ export default function ClientDashboardSideBar() {
         <div className="flex h-[3.45rem] items-center border-b px-4">
           <Link
             prefetch={true}
-            className="flex items-center font-semibold hover:cursor-pointer"
+            className="flex items-center hover:cursor-pointer"
             href="/client/dashboard"
           >
-            <span>Client Portal</span>
+            <MagellanLogo width={140} height={32} clickable />
           </Link>
         </div>
 
@@ -106,8 +107,8 @@ export default function ClientDashboardSideBar() {
 
           <div className="p-4 w-full">
             <div className="text-xs text-muted-foreground border-t pt-4">
-              <p className="mb-1">Magellan CRBI</p>
-              <p>Canadian Residency by Investment</p>
+              <p className="mb-1">Client Portal</p>
+              <p>Citizenship & Residency by Investment</p>
             </div>
           </div>
         </nav>

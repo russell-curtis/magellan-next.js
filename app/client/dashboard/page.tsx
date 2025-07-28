@@ -9,7 +9,7 @@ import { Avatar, AvatarFallback, AvatarInitials } from '@/components/ui/avatar'
 import { Badge } from '@/components/ui/badge'
 import { PriorityBadge } from '@/components/ui/priority-badge'
 import { formatConversationDate, isRecent } from '@/lib/date-utils'
-import { MessageSquare, FileText, Briefcase, Clock, ArrowRight, Plus, TrendingUp, CheckCircle, AlertCircle } from 'lucide-react'
+import { MessageSquare, FileText, Briefcase, Clock, ArrowRight, Plus, TrendingUp, CheckCircle, AlertCircle, CheckSquare, Upload, Calendar } from 'lucide-react'
 
 interface DashboardStats {
   totalConversations: number
@@ -27,6 +27,16 @@ interface RecentActivity {
   priority?: string
 }
 
+interface Task {
+  id: string
+  title: string
+  description: string
+  status: 'pending' | 'in_progress' | 'completed'
+  priority: 'low' | 'normal' | 'high' | 'urgent'
+  dueDate?: string
+  category: 'document' | 'application' | 'communication' | 'payment'
+}
+
 export default function ClientDashboardOverview() {
   const { client, isLoading } = useClientAuth()
   const router = useRouter()
@@ -37,6 +47,7 @@ export default function ClientDashboardOverview() {
     recentDocuments: 0,
   })
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([])
+  const [tasks, setTasks] = useState<Task[]>([])
   const [loadingStats, setLoadingStats] = useState(true)
 
   useEffect(() => {
@@ -105,6 +116,55 @@ export default function ClientDashboardOverview() {
       )
 
       setRecentActivity(activities)
+
+      // Add mock tasks for the client
+      const mockTasks: Task[] = [
+        {
+          id: 'task-1',
+          title: 'Upload Investment Portfolio',
+          description: 'Submit proof of investment funds',
+          status: 'pending',
+          priority: 'high',
+          dueDate: new Date(Date.now() + 172800000).toISOString(), // 2 days from now
+          category: 'document'
+        },
+        {
+          id: 'task-2',
+          title: 'Schedule Advisor Meeting',
+          description: 'Book consultation for next steps',
+          status: 'pending',
+          priority: 'normal',
+          dueDate: new Date(Date.now() + 604800000).toISOString(), // 1 week from now
+          category: 'communication'
+        },
+        {
+          id: 'task-3',
+          title: 'Review Application Status',
+          description: 'Check Quebec program progress',
+          status: 'in_progress',
+          priority: 'normal',
+          category: 'application'
+        },
+        {
+          id: 'task-4',
+          title: 'Update Personal Information',
+          description: 'Verify contact details are current',
+          status: 'pending',
+          priority: 'low',
+          dueDate: new Date(Date.now() + 1209600000).toISOString(), // 2 weeks from now
+          category: 'application'
+        },
+        {
+          id: 'task-5',
+          title: 'Payment Confirmation',
+          description: 'Confirm government fee payment',
+          status: 'completed',
+          priority: 'high',
+          category: 'payment'
+        }
+      ]
+      
+      setTasks(mockTasks)
     } catch (error) {
       console.error('Error fetching dashboard data:', error)
     } finally {
@@ -144,6 +204,48 @@ export default function ClientDashboardOverview() {
       default:
         return Clock
     }
+  }
+
+  const getTaskIcon = (category: string) => {
+    switch (category) {
+      case 'document':
+        return Upload
+      case 'application':
+        return Briefcase
+      case 'communication':
+        return MessageSquare
+      case 'payment':
+        return CheckCircle
+      default:
+        return CheckSquare
+    }
+  }
+
+  const getTaskStatusColor = (status: string) => {
+    switch (status) {
+      case 'completed':
+        return 'bg-green-100 text-green-700 border-green-200'
+      case 'in_progress':
+        return 'bg-blue-100 text-blue-700 border-blue-200'
+      case 'pending':
+        return 'bg-yellow-100 text-yellow-700 border-yellow-200'
+      default:
+        return 'bg-gray-100 text-gray-700 border-gray-200'
+    }
+  }
+
+  const formatDueDate = (dueDate?: string) => {
+    if (!dueDate) return null
+    const date = new Date(dueDate)
+    const now = new Date()
+    const diffTime = date.getTime() - now.getTime()
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24))
+    
+    if (diffDays < 0) return 'Overdue'
+    if (diffDays === 0) return 'Due today'
+    if (diffDays === 1) return 'Due tomorrow'
+    if (diffDays <= 7) return `Due in ${diffDays} days`
+    return date.toLocaleDateString()
   }
 
 
@@ -247,8 +349,8 @@ export default function ClientDashboardOverview() {
         </Card>
       </div>
 
-      {/* Recent Activity */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Recent Activity, Tasks, and Quick Actions */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
@@ -314,6 +416,91 @@ export default function ClientDashboardOverview() {
                   </div>
                 )
               })
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Task Management */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center space-x-2">
+                <CheckSquare className="h-5 w-5" />
+                <span>My Tasks</span>
+              </CardTitle>
+              <Badge variant="outline" className="text-xs">
+                {tasks.filter(t => t.status !== 'completed').length} pending
+              </Badge>
+            </div>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {loadingStats ? (
+              <div className="text-center py-4">
+                <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
+                <p className="text-sm text-gray-500">Loading tasks...</p>
+              </div>
+            ) : tasks.length === 0 ? (
+              <div className="text-center py-4 text-gray-500">
+                <p className="text-sm">No tasks assigned</p>
+              </div>
+            ) : (
+              tasks.slice(0, 4).map((task) => {
+                const Icon = getTaskIcon(task.category)
+                const dueDate = formatDueDate(task.dueDate)
+                
+                const categoryColors = {
+                  document: 'bg-purple-100 text-purple-600',
+                  application: 'bg-green-100 text-green-600',
+                  communication: 'bg-blue-100 text-blue-600',
+                  payment: 'bg-orange-100 text-orange-600',
+                }
+                
+                return (
+                  <div key={task.id} className="flex items-start space-x-3 p-3 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100">
+                    <div className="flex-shrink-0">
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center ${categoryColors[task.category] || categoryColors.document}`}>
+                        <Icon className="h-4 w-4" />
+                      </div>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center justify-between mb-1">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {task.title}
+                        </p>
+                        <Badge 
+                          className={`text-xs px-2 py-1 rounded-full border ${getTaskStatusColor(task.status)}`}
+                          variant="outline"
+                        >
+                          {task.status.replace('_', ' ')}
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-gray-600 mb-2">{task.description}</p>
+                      <div className="flex items-center justify-between">
+                        <PriorityBadge 
+                          priority={task.priority}
+                          variant="minimal"
+                          showIcon={false}
+                        />
+                        {dueDate && (
+                          <div className="flex items-center text-xs text-gray-500">
+                            <Calendar className="h-3 w-3 mr-1" />
+                            <span className={dueDate.includes('Overdue') || dueDate.includes('today') ? 'text-red-600 font-medium' : ''}>
+                              {dueDate}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )
+              })
+            )}
+            
+            {tasks.length > 4 && (
+              <Button variant="ghost" size="sm" className="w-full mt-3">
+                View All Tasks ({tasks.length})
+                <ArrowRight className="ml-2 h-4 w-4" />
+              </Button>
             )}
           </CardContent>
         </Card>

@@ -5,8 +5,10 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { MagellanLogo } from "@/components/ui/magellan-logo";
+import { MagellanLogomark } from "@/components/ui/magellan-logomark";
 import Link from "next/link";
-import { Globe, ChevronDown, Users, Building } from "lucide-react";
+import { ChevronDown, Users, Building } from "lucide-react";
 
 export default function HeaderNav() {
   return (
@@ -14,9 +16,15 @@ export default function HeaderNav() {
       <div className="mx-auto max-w-6xl px-6">
         <div className="flex h-16 items-center justify-between">
           {/* Logo */}
-          <Link href="/" className="flex items-center gap-2">
-            <Globe className="h-8 w-8 text-blue-600" />
-            <span className="text-xl font-bold text-gray-900">Magellan CRBI</span>
+          <Link href="/" className="flex items-center">
+            {/* Full logo for desktop */}
+            <div className="hidden sm:block">
+              <MagellanLogo width={160} height={36} clickable priority />
+            </div>
+            {/* Logomark for mobile */}
+            <div className="sm:hidden">
+              <MagellanLogomark size={36} clickable priority />
+            </div>
           </Link>
 
           {/* Navigation */}

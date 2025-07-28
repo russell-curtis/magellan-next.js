@@ -1,8 +1,9 @@
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { MagellanLogomark } from "@/components/ui/magellan-logomark";
 import Image from "next/image";
 import Link from "next/link";
-import { Globe, Shield, Clock, Users } from "lucide-react";
+import { Shield, Clock, Users } from "lucide-react";
 
 export default function HeroSection() {
   return (
@@ -13,7 +14,7 @@ export default function HeroSection() {
           <div className="space-y-8">
             <div className="space-y-4">
               <Badge variant="outline" className="inline-flex items-center gap-2">
-                <Globe className="h-4 w-4" />
+                <MagellanLogomark size={16} />
                 CRBI Advisory Platform
               </Badge>
               
@@ -63,7 +64,7 @@ export default function HeroSection() {
               
               <div className="flex items-center gap-3">
                 <div className="bg-orange-100 p-2 rounded-lg">
-                  <Globe className="h-5 w-5 text-orange-600" />
+                  <MagellanLogomark size={20} className="text-orange-600" />
                 </div>
                 <div>
                   <p className="font-semibold text-gray-900">4 Programs</p>

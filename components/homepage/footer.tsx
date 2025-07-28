@@ -1,5 +1,6 @@
 import Link from "next/link";
-import { Globe, Shield, Users, Mail } from "lucide-react";
+import { MagellanLogomark } from "@/components/ui/magellan-logomark";
+import { Shield, Users, Mail } from "lucide-react";
 
 const navigationLinks = [
   { title: "Features", href: "#features" },
@@ -29,8 +30,8 @@ export default function FooterSection() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {/* Company Info */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Globe className="h-8 w-8 text-blue-400" />
+            <div className="flex items-center gap-3">
+              <MagellanLogomark size={32} className="brightness-0 invert" />
               <span className="text-xl font-bold">Magellan CRBI</span>
             </div>
             <p className="text-gray-400 text-sm leading-relaxed">

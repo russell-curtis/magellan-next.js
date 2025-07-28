@@ -1,5 +1,6 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { MagellanLogomark } from "@/components/ui/magellan-logomark";
 import { 
   FileText, 
   Users, 
@@ -8,7 +9,6 @@ import {
   BarChart3, 
   MessageSquare,
   CheckCircle,
-  Globe,
   Upload,
   Eye,
   Workflow,
@@ -116,7 +116,7 @@ export default function FeaturesSection() {
               step="4"
               title="Government Submission"
               description="Official submission to relevant authorities"
-              icon={<Globe className="h-5 w-5" />}
+              icon={<MagellanLogomark size={20} />}
             />
             <ProcessStep
               step="5"
