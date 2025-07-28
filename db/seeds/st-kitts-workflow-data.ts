@@ -4,7 +4,7 @@
 export const stKittsWorkflowTemplate = {
   templateName: 'St. Kitts and Nevis Citizenship by Investment - Standard Workflow',
   description: 'Complete workflow template for St. Kitts citizenship applications including all required stages and document collection phases.',
-  totalStages: 6,
+  totalStages: 7,
   estimatedTimeMonths: 6, // 6 months total processing time
   isActive: true,
   version: 1,
@@ -40,6 +40,15 @@ export const stKittsWorkflowStages = [
   },
   {
     stageOrder: 4,
+    stageName: 'Original Documents Collection',
+    description: 'Collection and verification of original physical documents required for government submission',
+    estimatedDays: 10,
+    isRequired: true,
+    canSkip: false,
+    autoProgress: true, // Auto-advance when all required original documents are verified
+  },
+  {
+    stageOrder: 5,
     stageName: 'Government Submission',
     description: 'Complete application package preparation and submission to St. Kitts government',
     estimatedDays: 7,
@@ -48,7 +57,7 @@ export const stKittsWorkflowStages = [
     autoProgress: false,
   },
   {
-    stageOrder: 5,
+    stageOrder: 6,
     stageName: 'Review & Processing',
     description: 'Government review period, due diligence checks, and additional document requests',
     estimatedDays: 120, // 4 months
@@ -57,7 +66,7 @@ export const stKittsWorkflowStages = [
     autoProgress: false,
   },
   {
-    stageOrder: 6,
+    stageOrder: 7,
     stageName: 'Approval & Completion',
     description: 'Certificate issuance, passport processing, and final completion',
     estimatedDays: 14,
@@ -304,9 +313,9 @@ export const stKittsDocumentRequirements = [
     helpText: 'Must show the complete transfer of investment funds from your account to the required destination.',
   },
 
-  // Stage 4: Government Submission Documents
+  // Stage 5: Government Submission Documents
   {
-    stageOrder: 4,
+    stageOrder: 5,
     documentName: 'Government Application Package',
     description: 'Complete application package prepared for government submission',
     category: 'legal',
@@ -320,7 +329,7 @@ export const stKittsDocumentRequirements = [
     helpText: 'This comprehensive package will be prepared by your advisor and includes all required forms and supporting documents.',
   },
   {
-    stageOrder: 4,
+    stageOrder: 5,
     documentName: 'Government Fees Payment Receipt',
     description: 'Receipt confirming payment of all government processing fees',
     category: 'financial',
@@ -334,9 +343,9 @@ export const stKittsDocumentRequirements = [
     helpText: 'Government processing fees will be handled by your advisor as part of the submission process.',
   },
 
-  // Stage 5: Review & Processing (mostly government-side, few client documents)
+  // Stage 6: Review & Processing (mostly government-side, few client documents)
   {
-    stageOrder: 5,
+    stageOrder: 6,
     documentName: 'Additional Documentation (if requested)',
     description: 'Any additional documents requested by the government during review process',
     category: 'legal',
@@ -350,9 +359,9 @@ export const stKittsDocumentRequirements = [
     helpText: 'The government may request additional documentation during their review. We will notify you if anything is needed.',
   },
 
-  // Stage 6: Approval & Completion
+  // Stage 7: Approval & Completion
   {
-    stageOrder: 6,
+    stageOrder: 7,
     documentName: 'Passport Photos',
     description: 'Professional passport-style photographs meeting St. Kitts requirements',
     category: 'personal',
@@ -366,7 +375,7 @@ export const stKittsDocumentRequirements = [
     helpText: 'Photos must meet St. Kitts government specifications for passport/certificate photos.',
   },
   {
-    stageOrder: 6,
+    stageOrder: 7,
     documentName: 'Oath of Allegiance',
     description: 'Signed oath of allegiance to St. Kitts and Nevis',
     category: 'legal',
@@ -382,7 +391,7 @@ export const stKittsDocumentRequirements = [
 ]
 
 export const stKittsWorkflowSummary = {
-  totalStages: 6,
+  totalStages: 7,
   totalDocuments: stKittsDocumentRequirements.length,
   estimatedTimeMonths: 6,
   stages: [
@@ -402,19 +411,24 @@ export const stKittsWorkflowSummary = {
       documentCount: stKittsDocumentRequirements.filter(d => d.stageOrder === 3).length,
     },
     {
+      stageName: 'Original Documents Collection',
+      estimatedDays: 10,
+      documentCount: 0, // Original documents are tracked separately from document requirements
+    },
+    {
       stageName: 'Government Submission',
       estimatedDays: 7,
-      documentCount: stKittsDocumentRequirements.filter(d => d.stageOrder === 4).length,
+      documentCount: stKittsDocumentRequirements.filter(d => d.stageOrder === 5).length,
     },
     {
       stageName: 'Review & Processing',
       estimatedDays: 120,
-      documentCount: stKittsDocumentRequirements.filter(d => d.stageOrder === 5).length,
+      documentCount: stKittsDocumentRequirements.filter(d => d.stageOrder === 6).length,
     },
     {
       stageName: 'Approval & Completion',
       estimatedDays: 14,
-      documentCount: stKittsDocumentRequirements.filter(d => d.stageOrder === 6).length,
+      documentCount: stKittsDocumentRequirements.filter(d => d.stageOrder === 7).length,
     },
   ],
 }

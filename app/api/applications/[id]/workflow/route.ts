@@ -9,6 +9,7 @@ import {
   applicationDocuments
 } from '@/db/schema'
 import { eq, and, desc } from 'drizzle-orm'
+import { getOriginalDocumentsProgress, ORIGINAL_DOCUMENTS_STAGE_ORDER } from '@/lib/services/original-documents-workflow'
 
 export async function GET(
   request: NextRequest,
@@ -77,9 +78,34 @@ export async function GET(
     console.log(`Found ${documentReqs.length} document requirements`)
     console.log(`Found ${uploadedDocs.length} uploaded documents`)
 
+    // Get original documents progress for the Original Documents Collection stage
+    const originalDocsProgress = await getOriginalDocumentsProgress(applicationId)
+
     // Create workflow response with calculated progress
-    const stagesWithProgress = stages.map(stage => {
-      // Get requirements for this stage
+    const stagesWithProgress = await Promise.all(stages.map(async (stage) => {
+      // Handle Original Documents Collection stage specially
+      if (stage.stageOrder === ORIGINAL_DOCUMENTS_STAGE_ORDER && stage.stageName === 'Original Documents Collection') {
+        console.log(`Original Documents Collection stage: ${originalDocsProgress.verified}/${originalDocsProgress.totalRequested} documents verified, progress: ${originalDocsProgress.completionPercentage}%`)
+        
+        return {
+          id: stage.id,
+          stageOrder: stage.stageOrder,
+          stageName: stage.stageName,
+          description: stage.description,
+          estimatedDays: stage.estimatedDays,
+          isRequired: stage.isRequired,
+          canSkip: stage.canSkip,
+          autoProgress: stage.autoProgress,
+          status: originalDocsProgress.status,
+          progress: originalDocsProgress.completionPercentage,
+          startedAt: originalDocsProgress.status !== 'pending' ? new Date().toISOString() : null,
+          completedAt: originalDocsProgress.status === 'completed' ? new Date().toISOString() : null,
+          documentCount: originalDocsProgress.totalRequested,
+          completedDocuments: originalDocsProgress.verified
+        }
+      }
+
+      // Handle regular document-based stages
       const stageRequirements = documentReqs.filter(req => req.stageId === stage.id)
       
       // Get uploaded docs for this stage's requirements
@@ -136,7 +162,7 @@ export async function GET(
         documentCount: totalDocs,
         completedDocuments: approvedDocs.length
       }
-    })
+    }))
 
     // Find current stage and calculate overall progress
     const currentStage = stagesWithProgress.find(s => s.status === 'in_progress') || stagesWithProgress[0]

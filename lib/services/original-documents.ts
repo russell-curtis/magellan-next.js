@@ -13,6 +13,7 @@ import {
 } from '@/db/schema'
 import { eq, and, desc, gte, lte, inArray } from 'drizzle-orm'
 import { originalDocumentNotificationService } from './original-document-notifications'
+import { updateOriginalDocumentsStageProgress } from './original-documents-workflow'
 import { 
   validateOriginalDocumentStatusTransition,
   type RequestOriginalDocumentInput,
@@ -322,6 +323,17 @@ export class OriginalDocumentService {
         }
       )
 
+      // Update workflow stage progress
+      const doc = await db
+        .select({ applicationId: originalDocuments.applicationId })
+        .from(originalDocuments)
+        .where(eq(originalDocuments.id, originalDocumentId))
+        .limit(1)
+      
+      if (doc.length) {
+        await updateOriginalDocumentsStageProgress(doc[0].applicationId)
+      }
+
       return { success: true }
     } catch (error) {
       console.error('Error updating shipping info:', error)
@@ -409,6 +421,9 @@ export class OriginalDocumentService {
         }
       }
 
+      // Update workflow stage progress
+      await updateOriginalDocumentsStageProgress(currentDoc[0].applicationId)
+
       return { success: true }
     } catch (error) {
       console.error('Error confirming receipt:', error)
@@ -493,6 +508,9 @@ export class OriginalDocumentService {
           console.warn(`⚠️ Failed to send client notification for document verified: ${currentDoc[0].documentName}`)
         }
       }
+
+      // Update workflow stage progress
+      await updateOriginalDocumentsStageProgress(currentDoc[0].applicationId)
 
       return { success: true }
     } catch (error) {

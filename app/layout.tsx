@@ -5,25 +5,48 @@ import "./globals.css";
 import { Analytics } from "@vercel/analytics/next";
 import { ErrorBoundary } from "@/components/error-boundary";
 export const metadata: Metadata = {
-  title: "Next.js Starter Kit - Launch Your SAAS",
+  title: {
+    default: "Magellan CRBI - Citizenship & Residency Advisory Platform",
+    template: "%s | Magellan CRBI",
+  },
   description:
-    "A modern, full-stack Next.js starter kit with authentication, payments, and dashboard. Built with TypeScript, Tailwind CSS, and shadcn/ui.",
+    "The leading platform for Citizenship & Residency by Investment advisory firms. Streamline your CRBI practice with automated workflows, document management, and client portals.",
+  keywords: ["CRBI", "citizenship by investment", "residency by investment", "St. Kitts", "Antigua", "Dominica", "Grenada", "advisory platform", "immigration services"],
+  authors: [{ name: "Magellan CRBI" }],
+  creator: "Magellan CRBI",
+  publisher: "Magellan CRBI",
   openGraph: {
-    title: "Next.js Starter Kit",
+    title: "Magellan CRBI - CRBI Advisory Platform",
     description:
-      "A modern, full-stack Next.js starter kit with authentication, payments, and dashboard. Built with TypeScript, Tailwind CSS, and shadcn/ui.",
-    url: "nextstarter.xyz",
-    siteName: "Next.js Starter Kit",
+      "Streamline your Citizenship & Residency by Investment practice with our comprehensive management platform. Reduce administrative overhead by 30%.",
+    url: "https://magellancrbi.com",
+    siteName: "Magellan CRBI",
     images: [
       {
-        url: "https://jdj14ctwppwprnqu.public.blob.vercel-storage.com/nsk-w9fFwBBmLDLxrB896I4xqngTUEEovS.png",
+        url: "/og-image.png", // You can add a proper OG image later
         width: 1200,
         height: 630,
-        alt: "Next.js Starter Kit",
+        alt: "Magellan CRBI - CRBI Advisory Platform",
       },
     ],
     locale: "en-US",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Magellan CRBI - CRBI Advisory Platform",
+    description: "Streamline your Citizenship & Residency by Investment practice",
+  },
+  robots: {
+    index: true,
+    follow: true,
+    googleBot: {
+      index: true,
+      follow: true,
+      "max-video-preview": -1,
+      "max-image-preview": "large",
+      "max-snippet": -1,
+    },
   },
 };
 

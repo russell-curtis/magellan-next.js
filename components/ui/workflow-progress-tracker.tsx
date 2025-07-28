@@ -4,7 +4,8 @@ import { useState } from 'react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Progress } from '@/components/ui/progress'
-import { CheckCircle, Circle, Clock, AlertCircle } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { CheckCircle, Circle, Clock, AlertCircle, Package, ExternalLink } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 export interface WorkflowStage {
@@ -30,6 +31,7 @@ export interface WorkflowProgressTrackerProps {
   showTimeline?: boolean
   compact?: boolean
   className?: string
+  onOriginalDocumentsClick?: () => void // Callback for navigating to Original Documents tab
 }
 
 export function WorkflowProgressTracker({
@@ -37,7 +39,8 @@ export function WorkflowProgressTracker({
   currentStageId,
   showTimeline = true,
   compact = false,
-  className
+  className,
+  onOriginalDocumentsClick
 }: WorkflowProgressTrackerProps) {
   const [expandedStage, setExpandedStage] = useState<string | null>(null)
 
@@ -178,6 +181,25 @@ export function WorkflowProgressTracker({
                     </div>
                     
                     <p className="text-sm text-gray-600 mb-3">{stage.description}</p>
+                    
+                    {/* Special handling for Original Documents Collection stage */}
+                    {stage.stageName === 'Original Documents Collection' && onOriginalDocumentsClick && (
+                      <div className="mb-3">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation() // Prevent stage expansion
+                            onOriginalDocumentsClick()
+                          }}
+                          className="text-blue-600 border-blue-200 hover:bg-blue-50"
+                        >
+                          <Package className="mr-2 h-4 w-4" />
+                          View Original Documents
+                          <ExternalLink className="ml-2 h-3 w-3" />
+                        </Button>
+                      </div>
+                    )}
                     
                     {/* Progress bar for in-progress stages */}
                     {stage.status === 'in_progress' && stage.progress !== undefined && (

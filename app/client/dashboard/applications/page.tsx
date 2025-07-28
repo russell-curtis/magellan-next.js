@@ -357,13 +357,14 @@ export default function ClientApplicationsPage() {
 
                   {/* Actions */}
                   <div className="flex items-center justify-between pt-4 border-t">
-                    <Button variant="outline" size="sm" asChild>
+                    <Button className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-[#0071E3] text-white hover:bg-[#0071E3]/90 h-10 px-4 py-2" asChild>
                       <Link href={`/client/dashboard/applications/${application.id}`}>
-                        View Details
+                        <FileText className="mr-2 h-4 w-4" />
+                        View Application
                       </Link>
                     </Button>
                     <Button 
-                      size="sm"
+                      className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-[#0071E3] text-white hover:bg-[#0071E3]/90 h-10 px-4 py-2"
                       onClick={() => router.push('/client/dashboard/messages')}
                     >
                       Contact Advisor
@@ -377,72 +378,6 @@ export default function ClientApplicationsPage() {
         </div>
       )}
 
-      {/* Summary Stats */}
-      {applications.length > 0 && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Briefcase className="h-6 w-6 text-blue-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Total Applications</p>
-                  <p className="text-2xl font-bold text-gray-900">{applications.length}</p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-yellow-100 rounded-lg">
-                  <Clock className="h-6 w-6 text-yellow-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Under Review</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {applications.filter(app => app.status === 'under_review' || app.status === 'submitted' || app.status === 'started').length}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <CheckCircle className="h-6 w-6 text-green-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Approved</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {applications.filter(app => app.status === 'approved').length}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardContent className="p-6">
-              <div className="flex items-center">
-                <div className="p-2 bg-gray-100 rounded-lg">
-                  <FileText className="h-6 w-6 text-gray-600" />
-                </div>
-                <div className="ml-4">
-                  <p className="text-sm font-medium text-gray-600">Draft</p>
-                  <p className="text-2xl font-bold text-gray-900">
-                    {applications.filter(app => app.status === 'draft').length}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-      )}
     </div>
   )
 }

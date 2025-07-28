@@ -399,21 +399,16 @@ export default function ClientApplicationPage() {
     <div className="p-6 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
-        <div className="flex items-center space-x-4">
-          <Link href="/client/dashboard/applications">
-            <Button variant="ghost" size="sm">
-              <ArrowLeft className="h-4 w-4 mr-2" />
-              My Applications
-            </Button>
-          </Link>
-          <div>
-            <h1 className="text-2xl font-bold text-gray-900">
-              {application.program.programName}
-            </h1>
-            <p className="text-gray-600">
-              Application #{application.applicationNumber}
-            </p>
-          </div>
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">
+            {application.program.programName}
+          </h1>
+          <p className="text-gray-600 mt-1">
+            {application.program.countryName}
+          </p>
+          <p className="text-gray-500 text-sm mt-1">
+            Application #{application.applicationNumber}
+          </p>
         </div>
         <div className="flex items-center space-x-3">
           <Badge variant={workflowData.status === 'completed' ? 'default' : 'secondary'}>
@@ -422,6 +417,12 @@ export default function ClientApplicationPage() {
           <Button onClick={fetchApplicationData} variant="outline" size="sm">
             <RefreshCcw className="h-4 w-4 mr-2" />
             Refresh
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link href="/client/dashboard/applications">
+              <ArrowLeft className="h-4 w-4 mr-2" />
+              Back to Applications
+            </Link>
           </Button>
         </div>
       </div>
