@@ -10,9 +10,9 @@ export default async function DashboardLayout({
   children: ReactNode;
 }) {
   return (
-    <div className="flex h-screen overflow-hidden w-full">
+    <div className="flex h-screen overflow-hidden w-full bg-white">
       <DashboardSideBar />
-      <main className="flex-1 overflow-y-auto">
+      <main className="flex-1 bg-gray-50">
         <ErrorBoundary>
           <DashboardTopNav>{children}</DashboardTopNav>
         </ErrorBoundary>

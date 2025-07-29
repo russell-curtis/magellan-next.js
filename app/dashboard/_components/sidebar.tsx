@@ -1,83 +1,97 @@
 "use client";
 
+import { useState } from "react";
 import UserProfile from "@/components/user-profile";
-import { MenuNotificationBadge } from "@/components/ui/notification-badge";
-import { MagellanLogo } from "@/components/ui/magellan-logo";
+import { CollapsibleNav, SidebarProfileArea, SidebarSettingsItem } from "@/components/ui/collapsible-nav";
 import { useUnreadMessageCount } from "@/hooks/use-unread-message-count";
-import clsx from "clsx";
+import { NavSection, SidebarState } from "@/types/navigation";
 import {
-  Banknote,
-  HomeIcon,
-  LucideIcon,
-  MessageCircleIcon,
-  MessageSquare,
   Settings,
-  Upload,
   Users,
-  CheckSquare,
-  FileText,
   Briefcase,
+  FolderOpen,
+  Cog,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 
-interface NavItem {
-  label: string;
-  href: string;
-  icon: LucideIcon;
-}
-
-const navItems: NavItem[] = [
+const agentNavSections: NavSection[] = [
   {
-    label: "Overview",
-    href: "/dashboard",
-    icon: HomeIcon,
-  },
-  {
-    label: "Clients",
-    href: "/dashboard/clients",
-    icon: Users,
-  },
-  {
+    id: "applications",
     label: "Applications",
-    href: "/dashboard/applications",
     icon: Briefcase,
+    subItems: [
+      {
+        label: "Overview",
+        href: "/dashboard",
+      },
+      {
+        label: "Client Applications",
+        href: "/dashboard/applications",
+      },
+      {
+        label: "Tasks & Workflow",
+        href: "/dashboard/tasks",
+      },
+    ],
   },
   {
-    label: "Tasks",
-    href: "/dashboard/tasks",
-    icon: CheckSquare,
+    id: "client-management",
+    label: "Client Management",
+    icon: Users,
+    subItems: [
+      {
+        label: "Client Directory",
+        href: "/dashboard/clients",
+      },
+      {
+        label: "Communications",
+        href: "/dashboard/communications",
+      },
+      {
+        label: "Messages",
+        href: "/dashboard/messages",
+      },
+    ],
   },
   {
+    id: "documents",
     label: "Documents",
-    href: "/dashboard/documents",
-    icon: FileText,
+    icon: FolderOpen,
+    subItems: [
+      {
+        label: "Document Center",
+        href: "/dashboard/documents",
+      },
+      {
+        label: "Upload Management",
+        href: "/dashboard/upload",
+      },
+    ],
   },
   {
-    label: "Communications",
-    href: "/dashboard/communications",
-    icon: MessageCircleIcon,
-  },
-  {
-    label: "Messages",
-    href: "/dashboard/messages",
-    icon: MessageSquare,
-  },
-  {
-    label: "Upload",
-    href: "/dashboard/upload",
-    icon: Upload,
-  },
-  {
-    label: "Payment Gated",
-    href: "/dashboard/payment",
-    icon: Banknote,
+    id: "system",
+    label: "System",
+    icon: Cog,
+    subItems: [
+      {
+        label: "Payment Gateway",
+        href: "/dashboard/payment",
+      },
+    ],
   },
 ];
 
 export default function DashboardSideBar() {
   const pathname = usePathname();
-  const router = useRouter();
+  const [sidebarState, setSidebarState] = useState<SidebarState>({
+    collapsedSections: {
+      "applications": false,
+      "client-management": false,
+      "documents": false,
+      "system": false,
+    }
+  });
   
   // Get unread message count for advisor
   const { unreadCount } = useUnreadMessageCount({
@@ -85,63 +99,75 @@ export default function DashboardSideBar() {
     pollingInterval: 10000, // Poll every 10 seconds
   });
 
+  // Add message badge to the Messages sub-item
+  const navSectionsWithBadges = agentNavSections.map(section => {
+    if (section.id === "client-management" && section.subItems) {
+      return {
+        ...section,
+        subItems: section.subItems.map(subItem => {
+          if (subItem.href === "/dashboard/messages") {
+            return {
+              ...subItem,
+              badge: {
+                count: unreadCount,
+                pulse: unreadCount > 0,
+              }
+            };
+          }
+          return subItem;
+        })
+      };
+    }
+    return section;
+  });
+
+  const handleSectionToggle = (sectionId: string) => {
+    setSidebarState(prev => ({
+      ...prev,
+      collapsedSections: {
+        ...prev.collapsedSections,
+        [sectionId]: !prev.collapsedSections[sectionId]
+      }
+    }));
+  };
+
   return (
-    <div className="min-[1024px]:block hidden w-64 border-r h-full bg-background">
-      <div className="flex h-full flex-col">
-        <div className="flex h-[3.45rem] items-center border-b px-4">
+    <div className="min-[1024px]:block hidden w-[280px] h-full bg-black">
+      <div className="flex h-full flex-col px-3">
+        {/* Header with Logo */}
+        <div className="flex h-16 items-center pt-6 px-4 pb-8">
           <Link
             prefetch={true}
             className="flex items-center hover:cursor-pointer"
             href="/"
           >
-            <MagellanLogo width={140} height={32} clickable />
+            <img src="/logos/m-logo.svg" alt="Magellan" className="h-4 w-auto" />
           </Link>
         </div>
 
-        <nav className="flex flex-col h-full justify-between items-start w-full space-y-1">
-          <div className="w-full space-y-1 p-4">
-            {navItems.map((item) => (
-              <div
-                key={item.href}
-                onClick={() => router.push(item.href)}
-                className={clsx(
-                  "flex items-center gap-2 w-full rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:cursor-pointer",
-                  item.href === "/dashboard/messages" && "relative", // Add relative positioning for Messages item
-                  (pathname === item.href || (item.href !== "/dashboard" && pathname.startsWith(item.href)))
-                    ? "bg-primary/10 text-primary hover:bg-primary/20"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-                {/* Show notification badge for Messages menu item */}
-                {item.href === "/dashboard/messages" && (
-                  <MenuNotificationBadge 
-                    count={unreadCount}
-                    pulse={unreadCount > 0}
-                  />
-                )}
-              </div>
+        {/* Navigation */}
+        <nav className="flex flex-col h-full">
+          <div className="flex-1 py-4 space-y-0.5">
+            {navSectionsWithBadges.map((section) => (
+              <CollapsibleNav
+                key={section.id}
+                section={section}
+                isCollapsed={sidebarState.collapsedSections[section.id] || false}
+                onToggle={handleSectionToggle}
+              />
             ))}
           </div>
 
-          <div className="flex flex-col gap-2 w-full">
-            <div className="px-4">
-              <div
-                onClick={() => router.push("/dashboard/settings")}
-                className={clsx(
-                  "flex items-center w-full gap-2 rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:cursor-pointer",
-                  pathname === "/dashboard/settings"
-                    ? "bg-primary/10 text-primary hover:bg-primary/20"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
-              >
-                <Settings className="h-4 w-4" />
-                Settings
-              </div>
-            </div>
+          {/* Bottom Profile Area */}
+          <SidebarProfileArea>
+            <SidebarSettingsItem 
+              href="/dashboard/settings"
+              icon={Settings}
+              label="Settings"
+              isActive={pathname === "/dashboard/settings"}
+            />
             <UserProfile />
-          </div>
+          </SidebarProfileArea>
         </nav>
       </div>
     </div>

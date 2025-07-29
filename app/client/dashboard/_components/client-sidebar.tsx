@@ -1,63 +1,64 @@
 "use client";
 
-import { MenuNotificationBadge } from "@/components/ui/notification-badge";
-import { MagellanLogo } from "@/components/ui/magellan-logo";
+import { useState } from "react";
+import { CollapsibleNav, SidebarProfileArea } from "@/components/ui/collapsible-nav";
+import ClientUserProfile from "@/components/client-user-profile";
 import { useUnreadMessageCount } from "@/hooks/use-unread-message-count";
-import clsx from "clsx";
+import { NavSection, SidebarState } from "@/types/navigation";
 import {
-  HomeIcon,
-  LucideIcon,
-  MessageSquare,
-  FileText,
-  User,
-  HelpCircle,
   Briefcase,
+  UserCircle,
 } from "lucide-react";
 import Link from "next/link";
-import { usePathname, useRouter } from "next/navigation";
 
-interface NavItem {
-  label: string;
-  href: string;
-  icon: LucideIcon;
-}
-
-const clientNavItems: NavItem[] = [
+const clientNavSections: NavSection[] = [
   {
-    label: "Overview",
-    href: "/client/dashboard",
-    icon: HomeIcon,
-  },
-  {
-    label: "Messages",
-    href: "/client/dashboard/messages",
-    icon: MessageSquare,
-  },
-  {
-    label: "My Applications",
-    href: "/client/dashboard/applications",
+    id: "my-application",
+    label: "My Application",
     icon: Briefcase,
+    subItems: [
+      {
+        label: "Overview",
+        href: "/client/dashboard",
+      },
+      {
+        label: "Applications",
+        href: "/client/dashboard/applications",
+      },
+      {
+        label: "Documents",
+        href: "/client/dashboard/documents",
+      },
+      {
+        label: "Messages",
+        href: "/client/dashboard/messages",
+      },
+    ],
   },
   {
-    label: "Documents",
-    href: "/client/dashboard/documents",
-    icon: FileText,
-  },
-  {
-    label: "Profile",
-    href: "/client/dashboard/profile",
-    icon: User,
-  },
-  {
-    label: "Support",
-    href: "/client/dashboard/support",
-    icon: HelpCircle,
+    id: "account",
+    label: "Account",
+    icon: UserCircle,
+    subItems: [
+      {
+        label: "Profile Settings",
+        href: "/client/dashboard/profile",
+      },
+      {
+        label: "Support & Help",
+        href: "/client/dashboard/support",
+      },
+    ],
   },
 ];
 
 export default function ClientDashboardSideBar() {
-  const pathname = usePathname();
-  const router = useRouter();
+  const [sidebarState, setSidebarState] = useState<SidebarState>({
+    collapsedSections: {
+      "my-application": false,
+      "account": false,
+    }
+  });
   
   // Get unread message count for client
   const { unreadCount } = useUnreadMessageCount({
@@ -65,52 +66,73 @@ export default function ClientDashboardSideBar() {
     pollingInterval: 10000, // Poll every 10 seconds
   });
 
+  // Add message badge to the Messages sub-item
+  const navSectionsWithBadges = clientNavSections.map(section => {
+    if (section.id === "my-application" && section.subItems) {
+      return {
+        ...section,
+        subItems: section.subItems.map(subItem => {
+          if (subItem.href === "/client/dashboard/messages") {
+            return {
+              ...subItem,
+              badge: {
+                count: unreadCount,
+                pulse: unreadCount > 0,
+              }
+            };
+          }
+          return subItem;
+        })
+      };
+    }
+    return section;
+  });
+
+  const handleSectionToggle = (sectionId: string) => {
+    setSidebarState(prev => ({
+      ...prev,
+      collapsedSections: {
+        ...prev.collapsedSections,
+        [sectionId]: !prev.collapsedSections[sectionId]
+      }
+    }));
+  };
+
   return (
-    <div className="min-[1024px]:block hidden w-64 border-r h-full bg-background">
-      <div className="flex h-full flex-col">
-        <div className="flex h-[3.45rem] items-center border-b px-4">
+    <div className="min-[1024px]:block hidden w-[280px] h-full bg-black">
+      <div className="flex h-full flex-col px-3">
+        {/* Header with Logo */}
+        <div className="flex h-16 items-center pt-6 px-4 pb-8">
           <Link
             prefetch={true}
             className="flex items-center hover:cursor-pointer"
             href="/client/dashboard"
           >
-            <MagellanLogo width={140} height={32} clickable />
+            <img src="/logos/m-logo.svg" alt="Magellan" className="h-4 w-auto" />
           </Link>
         </div>
 
-        <nav className="flex flex-col h-full justify-between items-start w-full space-y-1">
-          <div className="w-full space-y-1 p-4">
-            {clientNavItems.map((item) => (
-              <div
-                key={item.href}
-                onClick={() => router.push(item.href)}
-                className={clsx(
-                  "flex items-center gap-2 w-full rounded-lg px-3 py-2 text-sm font-medium transition-colors hover:cursor-pointer",
-                  item.href === "/client/dashboard/messages" && "relative", // Add relative positioning for Messages item
-                  (pathname === item.href || (item.href !== "/client/dashboard" && pathname.startsWith(item.href)))
-                    ? "bg-primary/10 text-primary hover:bg-primary/20"
-                    : "text-muted-foreground hover:bg-muted hover:text-foreground",
-                )}
-              >
-                <item.icon className="h-4 w-4" />
-                {item.label}
-                {/* Show notification badge for Messages menu item */}
-                {item.href === "/client/dashboard/messages" && (
-                  <MenuNotificationBadge 
-                    count={unreadCount}
-                    pulse={unreadCount > 0}
-                  />
-                )}
-              </div>
+        {/* Navigation */}
+        <nav className="flex flex-col h-full">
+          <div className="flex-1 py-4 space-y-0.5">
+            {navSectionsWithBadges.map((section) => (
+              <CollapsibleNav
+                key={section.id}
+                section={section}
+                isCollapsed={sidebarState.collapsedSections[section.id] || false}
+                onToggle={handleSectionToggle}
+              />
             ))}
           </div>
 
-          <div className="p-4 w-full">
-            <div className="text-xs text-muted-foreground border-t pt-4">
-              <p className="mb-1">Client Portal</p>
-              <p>Citizenship & Residency by Investment</p>
+          {/* Bottom Profile Area */}
+          <SidebarProfileArea>
+            <ClientUserProfile />
+            <div className="text-xs text-gray-400 mt-3">
+              <p className="mb-1 font-medium">Client Portal</p>
+              <p className="text-gray-500">Citizenship & Residency by Investment</p>
             </div>
-          </div>
+          </SidebarProfileArea>
         </nav>
       </div>
     </div>

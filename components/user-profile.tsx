@@ -14,6 +14,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, useCallback } from "react";
 import { Avatar, AvatarFallback, AvatarImage } from "./ui/avatar";
+import clsx from "clsx";
 
 interface UserInfo {
   id: string;
@@ -69,9 +70,12 @@ export default function UserProfile({ mini }: { mini?: boolean }) {
   if (error) {
     return (
       <div
-        className={`flex gap-2 justify-start items-center w-full rounded ${mini ? "" : "px-4 pt-2 pb-3"}`}
+        className={clsx(
+          "flex gap-3 justify-start items-center w-full rounded-lg py-2",
+          mini ? "" : ""
+        )}
       >
-        <div className="text-red-500 text-sm flex-1">
+        <div className="text-red-400 text-sm flex-1">
           {mini ? "Error" : error}
         </div>
       </div>
@@ -82,19 +86,22 @@ export default function UserProfile({ mini }: { mini?: boolean }) {
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <div
-          className={`flex gap-2 justify-start items-center w-full rounded ${mini ? "" : "px-4 pt-2 pb-3"}`}
+          className={clsx(
+            "flex gap-3 justify-start items-center w-full rounded-lg py-2 text-white hover:bg-white/5 transition-colors duration-200 hover:cursor-pointer",
+            mini ? "" : ""
+          )}
         >
-          <Avatar>
+          <Avatar className="h-8 w-8">
             {loading ? (
               <div className="flex items-center justify-center w-full h-full">
-                <Loader2 className="h-4 w-4 animate-spin" />
+                <Loader2 className="h-4 w-4 animate-spin text-gray-400" />
               </div>
             ) : (
               <>
                 {userInfo?.image ? (
                   <AvatarImage src={userInfo?.image} alt="User Avatar" />
                 ) : (
-                  <AvatarFallback>
+                  <AvatarFallback className="bg-gray-700 text-white text-sm">
                     {userInfo?.name && userInfo.name.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 )}
@@ -102,11 +109,13 @@ export default function UserProfile({ mini }: { mini?: boolean }) {
             )}
           </Avatar>
           {mini ? null : (
-            <div className="flex items-center gap-2">
-              <p className="font-medium text-md">
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-sm text-white truncate">
                 {loading ? "Loading..." : userInfo?.name || "User"}
               </p>
-              {loading && <Loader2 className="h-3 w-3 animate-spin" />}
+              <p className="text-xs text-gray-400 truncate">
+                {userInfo?.email || ""}
+              </p>
             </div>
           )}
         </div>
