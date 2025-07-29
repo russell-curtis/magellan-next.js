@@ -641,22 +641,22 @@ export default function MessagesPage() {
                                 <div className="flex items-center">
                                   <button
                                     onClick={() => handleConversationSelect(conversation.id)}
-                                    className={`flex-1 p-3 pl-4 text-left hover:bg-gray-50 transition-colors ${
+                                    className={`flex-1 p-3 pl-4 text-left hover:bg-gray-50 transition-colors min-w-0 ${
                                       isConversationSelected 
                                         ? 'bg-blue-50' 
                                         : hasUnread ? 'bg-blue-50/30' : ''
                                     }`}
                                   >
-                                    <div className="flex items-start justify-between">
-                                      <div className="flex-1 min-w-0">
-                                        <div className="flex items-center space-x-2 mb-1">
+                                    <div className="flex items-start justify-between min-w-0">
+                                      <div className="flex-1 min-w-0 pr-2">
+                                        <div className="flex items-center mb-1 min-w-0">
                                           <h4 className={`text-sm truncate ${
                                             hasUnread ? 'font-semibold text-gray-900' : 'font-medium text-gray-900'
                                           }`}>
                                             {conversation.title}
                                           </h4>
                                           {conversation.lastMessageAt && isRecent(conversation.lastMessageAt) && (
-                                            <div className="h-1.5 w-1.5 bg-blue-500 rounded-full animate-pulse" />
+                                            <div className="h-1.5 w-1.5 bg-blue-500 rounded-full animate-pulse ml-2 flex-shrink-0" />
                                           )}
                                         </div>
                                         {conversation.lastMessageAt && (
@@ -667,7 +667,7 @@ export default function MessagesPage() {
                                         )}
                                       </div>
                                       
-                                      <div className="flex flex-col items-end space-y-1 ml-2">
+                                      <div className="flex flex-col items-end space-y-1 flex-shrink-0">
                                         <div className="flex items-center space-x-1">
                                           <Badge
                                             variant={conversation.status === 'active' ? 'default' : 'secondary'}
@@ -754,15 +754,15 @@ export default function MessagesPage() {
                       <div className="flex items-center">
                         <button
                           onClick={() => handleConversationSelect(conversation.id)}
-                          className={`flex-1 p-4 pl-5 text-left hover:bg-gray-50 transition-colors ${
+                          className={`flex-1 p-4 pl-5 text-left hover:bg-gray-50 transition-colors min-w-0 ${
                             isConversationSelected 
                               ? 'bg-blue-50' 
                               : hasUnread ? 'bg-blue-50/30' : ''
                           }`}
                         >
-                          <div className="flex items-start space-x-3">
+                          <div className="flex items-start space-x-3 min-w-0">
                             <OnlineStatusAvatar status="offline">
-                              <Avatar className="h-10 w-10">
+                              <Avatar className="h-10 w-10 flex-shrink-0">
                                 <AvatarFallback className="bg-gradient-to-br from-blue-100 to-blue-200">
                                   <AvatarInitials 
                                     name={`${conversation.client.firstName} ${conversation.client.lastName}`}
@@ -773,16 +773,16 @@ export default function MessagesPage() {
                             </OnlineStatusAvatar>
                             
                             <div className="flex-1 min-w-0">
-                              <div className="flex items-start justify-between">
-                                <div className="flex-1 min-w-0">
-                                  <div className="flex items-center space-x-2 mb-1">
+                              <div className="flex items-start justify-between min-w-0">
+                                <div className="flex-1 min-w-0 pr-2">
+                                  <div className="flex items-center mb-1 min-w-0">
                                     <h4 className={`text-sm truncate ${
                                       hasUnread ? 'font-semibold text-gray-900' : 'font-semibold text-gray-900'
                                     }`}>
                                       {conversation.title}
                                     </h4>
                                     {conversation.lastMessageAt && isRecent(conversation.lastMessageAt) && (
-                                      <div className="h-1.5 w-1.5 bg-blue-500 rounded-full animate-pulse" />
+                                      <div className="h-1.5 w-1.5 bg-blue-500 rounded-full animate-pulse ml-2 flex-shrink-0" />
                                     )}
                                   </div>
                                   <p className="text-xs text-gray-600 mb-1 flex items-center">
@@ -797,7 +797,7 @@ export default function MessagesPage() {
                                   )}
                                 </div>
                                 
-                                <div className="flex flex-col items-end space-y-1 ml-2">
+                                <div className="flex flex-col items-end space-y-1 flex-shrink-0">
                                   <div className="flex items-center space-x-1">
                                     <Badge
                                       variant={conversation.status === 'active' ? 'default' : 'secondary'}
@@ -866,7 +866,7 @@ export default function MessagesPage() {
       {/* Main Content - Messaging Interface */}
       <div className="flex-1 flex flex-col">
         {selectedConversation ? (
-          <div className="p-6">
+          <div className="p-6 h-full">
             <MessagingInterface
               conversationId={selectedConversation}
               userType="advisor"

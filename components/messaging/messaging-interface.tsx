@@ -321,7 +321,7 @@ export function MessagingInterface({
   }
 
   return (
-    <Card className="h-[600px] flex flex-col">
+    <Card className="h-full flex flex-col">
       {/* Header */}
       <CardHeader className="flex-shrink-0 pb-3">
         <div className="flex items-center justify-between">

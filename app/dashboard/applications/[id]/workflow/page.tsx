@@ -331,20 +331,96 @@ export default function ApplicationWorkflowPage() {
 
             if (stageRequirements.length === 0) return null
 
+            // Separate client-uploadable and agent-only documents
+            const clientDocuments = stageRequirements.filter(req => req.isClientUploadable)
+            const agentDocuments = stageRequirements.filter(req => !req.isClientUploadable)
+
             return (
-              <DocumentChecklistCard
-                key={stage.id}
-                requirements={stageRequirements}
-                stageTitle={stage.stageName}
-                stageDescription={stage.description}
-                isCurrentStage={stage.id === workflow.currentStageId}
-                canUpload={stage.status !== 'completed'}
-                onUpload={(files, requirementId) => handleDocumentUpload(files, requirementId)}
-                onView={(documentId) => {
-                  // Open document viewer
-                  window.open(`/api/applications/${applicationId}/documents/${documentId}/download`, '_blank')
-                }}
-              />
+              <div key={stage.id} className="space-y-4">
+                {/* Agent Documents - Can Upload */}
+                {agentDocuments.length > 0 && (
+                  <DocumentChecklistCard
+                    requirements={agentDocuments}
+                    stageTitle={`${stage.stageName} - Agent Documents`}
+                    stageDescription="Documents that you (the agent) need to prepare and upload"
+                    isCurrentStage={stage.id === workflow.currentStageId}
+                    canUpload={stage.status !== 'completed'}
+                    onUpload={(files, requirementId) => handleDocumentUpload(files, requirementId)}
+                    onView={(documentId) => {
+                      window.open(`/api/applications/${applicationId}/documents/${documentId}/download`, '_blank')
+                    }}
+                  />
+                )}
+
+                {/* Client Documents - View Only */}
+                {clientDocuments.length > 0 && (
+                  <Card>
+                    <CardHeader>
+                      <CardTitle className="flex items-center gap-2">
+                        <Users className="h-5 w-5 text-blue-600" />
+                        {stage.stageName} - Client Documents
+                      </CardTitle>
+                      <p className="text-sm text-muted-foreground">
+                        Documents that must be uploaded by the client. You can view and track their progress here.
+                      </p>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-4">
+                        {clientDocuments.map((req) => (
+                          <div key={req.id} className="flex items-center justify-between p-4 border rounded-lg bg-blue-50 border-blue-200">
+                            <div className="flex-1">
+                              <div className="flex items-center gap-2 mb-1">
+                                <h4 className="font-medium text-gray-900">{req.documentName}</h4>
+                                <Badge variant={req.isRequired ? 'destructive' : 'secondary'}>
+                                  {req.isRequired ? 'Required' : 'Optional'}
+                                </Badge>
+                                <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
+                                  Client Upload
+                                </Badge>
+                              </div>
+                              <p className="text-sm text-gray-600 mb-2">{req.description}</p>
+                              <div className="flex items-center space-x-2">
+                                <Badge variant="outline">{req.category}</Badge>
+                                {req.fileName ? (
+                                  <Badge className="bg-green-100 text-green-800 border-green-200">
+                                    ✓ Uploaded
+                                  </Badge>
+                                ) : (
+                                  <Badge variant="outline" className="bg-yellow-100 text-yellow-800 border-yellow-200">
+                                    Pending Client Upload
+                                  </Badge>
+                                )}
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {req.fileName && req.documentId ? (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => window.open(`/api/applications/${applicationId}/documents/${req.documentId}/download`, '_blank')}
+                                >
+                                  <FileText className="h-4 w-4 mr-2" />
+                                  View
+                                </Button>
+                              ) : (
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  disabled
+                                  className="text-muted-foreground"
+                                >
+                                  <Clock className="h-4 w-4 mr-2" />
+                                  Awaiting Client
+                                </Button>
+                              )}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                )}
+              </div>
             )
           })}
         </TabsContent>
@@ -352,53 +428,89 @@ export default function ApplicationWorkflowPage() {
         <TabsContent value="uploads" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Document Upload Center</CardTitle>
+              <CardTitle>Agent Document Upload Center</CardTitle>
               <p className="text-sm text-gray-600">
-                Upload documents for the current stage: {currentStage?.stageName}
+                Upload agent-prepared documents for the current stage: {currentStage?.stageName}
               </p>
+              <div className="mt-2 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-sm text-amber-800">
+                  <strong>Note:</strong> This upload center is for agent-prepared documents only. 
+                  Client documents must be uploaded by the client through their portal.
+                </p>
+              </div>
             </CardHeader>
             <CardContent>
-              <DocumentUploadZone
-                acceptedFormats={['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx']}
-                maxFileSizeMB={10}
-                multiple={true}
-                onFilesSelected={(files) => {
-                  // For demo - would need requirement selection in real implementation
-                  console.log('Files selected:', files)
-                }}
-                className="mb-6"
-              />
+              {(() => {
+                // Filter to only agent-uploadable documents that are pending
+                const agentRequirements = requirements.filter(req => 
+                  !req.isClientUploadable && 
+                  (req.status === 'pending' || req.status === 'rejected')
+                )
 
-              {/* Pending Requirements */}
-              <div className="space-y-4">
-                <h3 className="font-semibold text-gray-900">Pending Requirements</h3>
-                {requirements
-                  .filter(req => req.status === 'pending' || req.status === 'rejected')
-                  .map((req) => (
-                    <div key={req.id} className="flex items-center justify-between p-4 border rounded-lg">
-                      <div className="flex-1">
-                        <h4 className="font-medium text-gray-900">{req.documentName}</h4>
-                        <p className="text-sm text-gray-600">{req.description}</p>
-                        <div className="flex items-center space-x-2 mt-2">
-                          <Badge variant={req.isRequired ? 'destructive' : 'secondary'}>
-                            {req.isRequired ? 'Required' : 'Optional'}
-                          </Badge>
-                          <Badge variant="outline">
-                            {req.category}
-                          </Badge>
-                        </div>
-                      </div>
-                      <Button 
-                        size="sm" 
-                        onClick={() => handleDocumentUpload([], req.id)}
-                        disabled={!req.isClientUploadable}
-                      >
-                        <FileText className="h-4 w-4 mr-2" />
-                        Upload
-                      </Button>
+                if (agentRequirements.length === 0) {
+                  return (
+                    <div className="text-center py-12">
+                      <FileText className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No Agent Documents Pending</h3>
+                      <p className="text-gray-600 max-w-md mx-auto">
+                        All agent-prepared documents for the current stage have been completed. 
+                        Client documents are managed through the client portal.
+                      </p>
                     </div>
-                  ))}
-              </div>
+                  )
+                }
+
+                return (
+                  <>
+                    <DocumentUploadZone
+                      acceptedFormats={['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx']}
+                      maxFileSizeMB={10}
+                      multiple={true}
+                      onFilesSelected={(files) => {
+                        // For demo - would need requirement selection in real implementation
+                        console.log('Files selected for agent documents:', files)
+                      }}
+                      className="mb-6"
+                    />
+
+                    {/* Agent-Only Pending Requirements */}
+                    <div className="space-y-4">
+                      <h3 className="font-semibold text-gray-900">
+                        Pending Agent Documents ({agentRequirements.length})
+                      </h3>
+                      {agentRequirements.map((req) => (
+                        <div key={req.id} className="flex items-center justify-between p-4 border rounded-lg bg-green-50 border-green-200">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <h4 className="font-medium text-gray-900">{req.documentName}</h4>
+                              <Badge variant={req.isRequired ? 'destructive' : 'secondary'}>
+                                {req.isRequired ? 'Required' : 'Optional'}
+                              </Badge>
+                              <Badge variant="outline" className="bg-green-100 text-green-800 border-green-300">
+                                Agent Document
+                              </Badge>
+                            </div>
+                            <p className="text-sm text-gray-600 mb-2">{req.description}</p>
+                            <div className="flex items-center space-x-2">
+                              <Badge variant="outline">{req.category}</Badge>
+                              {req.status === 'rejected' && (
+                                <Badge variant="destructive">Rejected - Needs Reupload</Badge>
+                              )}
+                            </div>
+                          </div>
+                          <Button 
+                            size="sm" 
+                            onClick={() => handleDocumentUpload([], req.id)}
+                          >
+                            <FileText className="h-4 w-4 mr-2" />
+                            Upload
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  </>
+                )
+              })()}
             </CardContent>
           </Card>
         </TabsContent>

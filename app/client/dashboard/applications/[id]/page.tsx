@@ -476,44 +476,40 @@ export default function ClientApplicationPage() {
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList className="grid w-full grid-cols-4">
-          <TabsTrigger value="progress">Progress Overview</TabsTrigger>
-          <TabsTrigger value="documents">My Documents</TabsTrigger>
+          <TabsTrigger value="overview">Workflow Overview</TabsTrigger>
+          <TabsTrigger value="documents">Document Management</TabsTrigger>
           <TabsTrigger value="upload">Upload Documents</TabsTrigger>
           <TabsTrigger value="originals">Original Documents</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="progress" className="space-y-6">
+        <TabsContent value="overview" className="space-y-6">
+          {/* Clean Workflow Progress Tracker */}
           <WorkflowProgressTracker
             stages={workflowData.stages}
             currentStageId={workflowData.currentStageId}
             showTimeline={true}
           />
 
-          {/* Next Steps */}
-          <Card>
-            <CardHeader>
-              <CardTitle>What's Next?</CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {currentStage && (
-                  <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
-                    <h3 className="font-semibold text-blue-900 mb-2">
-                      Current Stage: {currentStage.stageName}
-                    </h3>
-                    <p className="text-blue-800 mb-3">{currentStage.description}</p>
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-blue-700">
-                        Progress: {currentStage.progress}%
-                      </span>
-                      <span className="text-sm text-blue-700">
-                        Est. {currentStage.estimatedDays} days
-                      </span>
-                    </div>
+          {/* Current Stage Summary */}
+          {currentStage && (
+            <Card>
+              <CardHeader>
+                <CardTitle>Current Stage: {currentStage.stageName}</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="p-4 bg-blue-50 rounded-lg border-l-4 border-blue-400">
+                  <p className="text-blue-800 mb-3">{currentStage.description}</p>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm text-blue-700">
+                      Progress: {currentStage.progress}%
+                    </span>
+                    <span className="text-sm text-blue-700">
+                      Est. {currentStage.estimatedDays} days
+                    </span>
                   </div>
-                )}
+                </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                   <div className="p-4 border rounded-lg">
                     <h4 className="font-semibold text-gray-900 mb-2">Pending Actions</h4>
                     <ul className="space-y-2 text-sm text-gray-600">
@@ -562,9 +558,9 @@ export default function ClientApplicationPage() {
                     </ul>
                   </div>
                 </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          )}
         </TabsContent>
 
         <TabsContent value="documents" className="space-y-6">
@@ -587,72 +583,114 @@ export default function ClientApplicationPage() {
               // Find requirements that belong to this specific stage
               const stageRequirements = requirementsData.filter(req => req.stageId === stage.id)
               
-              console.log(`Stage ${stage.stageName}:`, {
-                stageId: stage.id,
-                stageRequirements: stageRequirements.length,
-                requirementIds: stageRequirements.map(r => r.id)
-              })
-
               if (stageRequirements.length === 0) return null
 
+              const isCurrentStage = stage.id === workflowData.currentStageId
+              const completedCount = stageRequirements.filter(req => req.fileName).length
+              const totalCount = stageRequirements.length
+              const progressPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
+
               return (
-                <div key={stage.id} className="space-y-6">
-                  <div className="mb-6">
-                    <h3 className="text-lg font-semibold text-gray-900">{stage.stageName}</h3>
-                    <p className="text-sm text-gray-600 mt-1">{stage.description}</p>
-                  </div>
-                  
-                  {stageRequirements.map(requirement => (
-                    <EnhancedDocumentUpload
-                      key={requirement.id}
-                      requirement={requirement}
-                      onUpload={async (file, _validationResult) => {
-                        // Create enhanced upload handler with correct requirement ID
-                        const formData = new FormData()
-                        formData.append('file', file)
-                        formData.append('requirementId', requirement.id)
-                        formData.append('replaceExisting', 'true')
-                        
-                        try {
-                          setUploading(true)
-                          const token = localStorage.getItem('clientToken')
-                          const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
-                          
-                          const response = await fetch(`/api/client/applications/${applicationId}/documents/upload`, {
-                            method: 'POST',
-                            headers,
-                            body: formData
-                          })
-                          
-                          if (!response.ok) {
-                            const errorData = await response.json()
-                            throw new Error(errorData.error || `Upload failed with status: ${response.status}`)
-                          }
-                          
-                          const result = await response.json()
-                          console.log('Enhanced upload successful with quality validation:', {
-                            fileName: result.fileName,
-                            qualityScore: result.qualityValidation?.score,
-                            issues: result.qualityValidation?.issues?.length || 0
-                          })
-                          
-                          await fetchApplicationData()
-                        } catch (err) {
-                          console.error('Enhanced upload error:', err)
-                          throw err
-                        } finally {
-                          setUploading(false)
-                        }
-                      }}
-                      onView={() => {
-                        if (requirement.fileName) {
-                          window.open(`/api/client/applications/${applicationId}/documents/${requirement.id}/download`, '_blank')
-                        }
-                      }}
-                      canUpload={stage.status !== 'completed'}
-                    />
-                  ))}
-                </div>
+                <Card key={stage.id} className={isCurrentStage ? 'border-blue-300 bg-blue-50' : ''}>
+                  <CardHeader>
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <CardTitle className="text-lg">
+                          {stage.stageName}
+                        </CardTitle>
+                        {isCurrentStage && (
+                          <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
+                            Current Stage
+                          </Badge>
+                        )}
+                      </div>
+                      <div className="text-right">
+                        <div className="text-sm font-medium text-gray-900">
+                          {completedCount}/{totalCount}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          Required
+                        </div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-muted-foreground mt-1">
+                      {stage.description}
+                    </p>
+                    
+                    {/* Progress Bar */}
+                    <div className="mt-3">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm text-gray-600">Required Documents Progress</span>
+                        <span className="text-sm font-medium text-gray-900">{progressPercentage}%</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div 
+                          className={`h-2 rounded-full transition-all duration-300 ${
+                            progressPercentage === 100 ? 'bg-green-500' : 'bg-blue-500'
+                          }`}
+                          style={{ width: `${progressPercentage}%` }}
+                        />
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-1">
+                        {progressPercentage}% complete
+                      </div>
+                    </div>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {stageRequirements.map(requirement => (
+                        <EnhancedDocumentUpload
+                          key={requirement.id}
+                          requirement={requirement}
+                          onUpload={async (file, _validationResult) => {
+                            // Create enhanced upload handler with correct requirement ID
+                            const formData = new FormData()
+                            formData.append('file', file)
+                            formData.append('requirementId', requirement.id)
+                            formData.append('replaceExisting', 'true')
+                            
+                            try {
+                              setUploading(true)
+                              const token = localStorage.getItem('clientToken')
+                              const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
+                              
+                              const response = await fetch(`/api/client/applications/${applicationId}/documents/upload`, {
+                                method: 'POST',
+                                headers,
+                                body: formData
+                              })
+                              
+                              if (!response.ok) {
+                                const errorData = await response.json()
+                                throw new Error(errorData.error || `Upload failed with status: ${response.status}`)
+                              }
+                              
+                              const result = await response.json()
+                              console.log('Enhanced upload successful with quality validation:', {
+                                fileName: result.fileName,
+                                qualityScore: result.qualityValidation?.score,
+                                issues: result.qualityValidation?.issues?.length || 0
+                              })
+                              
+                              await fetchApplicationData()
+                            } catch (err) {
+                              console.error('Enhanced upload error:', err)
+                              throw err
+                            } finally {
+                              setUploading(false)
+                            }
+                          }}
+                          onView={() => {
+                            if (requirement.fileName) {
+                              window.open(`/api/client/applications/${applicationId}/documents/${requirement.id}/download`, '_blank')
+                            }
+                          }}
+                          canUpload={true}
+                        />
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
               )
             })
           )}
