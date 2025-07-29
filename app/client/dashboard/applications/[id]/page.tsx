@@ -66,7 +66,7 @@ export default function ClientApplicationPage() {
   const [requirements, setRequirements] = useState<DocumentRequirement[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState('progress')
+  const [activeTab, setActiveTab] = useState('overview')
   const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
@@ -448,13 +448,13 @@ export default function ClientApplicationPage() {
           </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
-            <div className="text-center p-4 bg-blue-50 rounded-lg">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div className="text-center p-3 bg-blue-50 rounded-lg">
               <Clock className="h-6 w-6 text-blue-600 mx-auto mb-2" />
               <div className="font-semibold text-blue-900">Est. Timeline</div>
               <div className="text-sm text-blue-700">{workflowData.estimatedTimeMonths} months</div>
             </div>
-            <div className="text-center p-4 bg-green-50 rounded-lg">
+            <div className="text-center p-3 bg-green-50 rounded-lg">
               <FileText className="h-6 w-6 text-green-600 mx-auto mb-2" />
               <div className="font-semibold text-green-900">Documents</div>
               <div className="text-sm text-green-700">
@@ -462,7 +462,7 @@ export default function ClientApplicationPage() {
                  `${requirementsData.filter(r => r.status === 'approved').length} of ${requirementsData.length} approved`}
               </div>
             </div>
-            <div className="text-center p-4 bg-purple-50 rounded-lg">
+            <div className="text-center p-3 bg-purple-50 rounded-lg">
               <MessageSquare className="h-6 w-6 text-purple-600 mx-auto mb-2" />
               <div className="font-semibold text-purple-900">Advisor</div>
               <div className="text-sm text-purple-700">
@@ -478,7 +478,7 @@ export default function ClientApplicationPage() {
         <TabsList className="grid w-full grid-cols-4">
           <TabsTrigger value="overview">Workflow Overview</TabsTrigger>
           <TabsTrigger value="documents">Document Management</TabsTrigger>
-          <TabsTrigger value="upload">Upload Documents</TabsTrigger>
+          <TabsTrigger value="upload">Upload Center</TabsTrigger>
           <TabsTrigger value="originals">Original Documents</TabsTrigger>
         </TabsList>
 
@@ -570,7 +570,7 @@ export default function ClientApplicationPage() {
                 <FileText className="h-12 w-12 text-gray-400 mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Loading Document Requirements</h3>
                 <p className="text-gray-600 text-center max-w-md">
-                  We're loading your document requirements. If this takes too long, please refresh the page or contact your advisor.
+                  We&apos;re loading your document requirements. If this takes too long, please refresh the page or contact your advisor.
                 </p>
                 <Button onClick={fetchApplicationData} variant="outline" className="mt-4">
                   <RefreshCcw className="h-4 w-4 mr-2" />
@@ -703,6 +703,12 @@ export default function ClientApplicationPage() {
               <p className="text-sm text-gray-600">
                 Upload required documents for your application
               </p>
+              <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-sm text-amber-800">
+                  <strong>Note:</strong> This upload center is for any additional documents requested by your advisor outside of the standard workflow requirements. 
+                  For standard document requirements, use the Document Management tab.
+                </p>
+              </div>
             </CardHeader>
             <CardContent>
               <DocumentUploadZone

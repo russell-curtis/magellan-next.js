@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -68,9 +68,18 @@ export function ConfirmReceiptModal({
     setLoading(true)
 
     try {
+      // Convert datetime-local format to ISO string for API
+      let isoReceivedAt: string | undefined = undefined
+      if (receivedAt) {
+        // datetime-local gives us "YYYY-MM-DDTHH:mm" format
+        // We need to convert it to proper ISO format with timezone
+        const localDate = new Date(receivedAt)
+        isoReceivedAt = localDate.toISOString()
+      }
+
       const payload = {
         action: 'confirm_receipt',
-        receivedAt: receivedAt || undefined,
+        receivedAt: isoReceivedAt,
         documentCondition,
         qualityNotes: qualityNotes.trim() || undefined,
         isAuthenticated,
@@ -112,13 +121,20 @@ export function ConfirmReceiptModal({
   }
 
   // Auto-fill received date with current time when modal opens
-  useState(() => {
+  useEffect(() => {
     if (open && !receivedAt) {
       const now = new Date()
-      now.setMinutes(now.getMinutes() - now.getTimezoneOffset())
-      setReceivedAt(now.toISOString().slice(0, 16))
+      // Format for datetime-local input: "YYYY-MM-DDTHH:MM"
+      const year = now.getFullYear()
+      const month = String(now.getMonth() + 1).padStart(2, '0')
+      const day = String(now.getDate()).padStart(2, '0')
+      const hours = String(now.getHours()).padStart(2, '0')
+      const minutes = String(now.getMinutes()).padStart(2, '0')
+      
+      const formattedDateTime = `${year}-${month}-${day}T${hours}:${minutes}`
+      setReceivedAt(formattedDateTime)
     }
-  })
+  }, [open, receivedAt])
 
   const selectedCondition = DOCUMENT_CONDITIONS.find(c => c.value === documentCondition)
 
