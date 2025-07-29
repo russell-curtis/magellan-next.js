@@ -26,7 +26,7 @@ export default function Chat() {
               className={cn(
                 "max-w-[65%] px-3 py-1.5 text-sm shadow-sm",
                 message.role === "user"
-                  ? "bg-[#0B93F6] text-white rounded-2xl rounded-br-sm"
+                  ? "bg-[#3E58DA] text-white rounded-2xl rounded-br-sm"
                   : "bg-[#E9E9EB] text-black rounded-2xl rounded-bl-sm",
               )}
             >

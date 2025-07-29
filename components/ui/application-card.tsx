@@ -739,7 +739,7 @@ export function ApplicationCard({ application, onStatusChange, onEditApplication
             {hasWorkflowAccess(application.status) && (
               <Link href={`/dashboard/applications/${application.id}/workflow`}>
                 <Button 
-                  className="bg-[#0071E3] hover:bg-[#0071E3] text-white font-medium px-3 py-2 rounded-md text-sm"
+                  className="bg-[#3E58DA] hover:bg-[#3E58DA] text-white font-medium px-3 py-2 rounded-md text-sm"
                   style={{ padding: '8px 12px' }}
                 >
                   <Eye className="h-4 w-4 mr-2" />

@@ -357,14 +357,14 @@ export default function ClientApplicationsPage() {
 
                   {/* Actions */}
                   <div className="flex items-center justify-between pt-4 border-t">
-                    <Button className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-[#0071E3] text-white hover:bg-[#0071E3]/90 h-10 px-4 py-2" asChild>
+                    <Button className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-[#3E58DA] text-white hover:bg-[#3E58DA]/90 h-10 px-4 py-2" asChild>
                       <Link href={`/client/dashboard/applications/${application.id}`}>
                         <FileText className="mr-2 h-4 w-4" />
                         View Application
                       </Link>
                     </Button>
                     <Button 
-                      className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-[#0071E3] text-white hover:bg-[#0071E3]/90 h-10 px-4 py-2"
+                      className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-md text-sm font-medium ring-offset-background transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:opacity-50 bg-[#3E58DA] text-white hover:bg-[#3E58DA]/90 h-10 px-4 py-2"
                       onClick={() => router.push('/client/dashboard/messages')}
                     >
                       Contact Advisor

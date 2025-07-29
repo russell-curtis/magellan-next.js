@@ -65,7 +65,7 @@ export function CollapsibleNav({ section, isCollapsed, onToggle, className }: Co
       {/* Main Section */}
       <div
         onClick={handleSectionClick}
-        className="relative flex items-center justify-between w-full h-9 py-0 px-3 text-[13px] font-medium transition-all duration-200 hover:cursor-pointer group text-white hover:bg-white/5 rounded-md leading-[18.2px]"
+        className="relative flex items-center justify-between w-full h-9 py-0 px-3 text-[14px] font-medium transition-all duration-200 hover:cursor-pointer group text-white hover:bg-white/5 rounded-md leading-[19.6px]"
       >
         <span className="flex-1 truncate">{section.label}</span>
         {section.subItems && section.subItems.length > 0 && (
@@ -129,7 +129,7 @@ export function SidebarSettingsItem({
     <div
       onClick={() => router.push(href)}
       className={clsx(
-        "flex items-center gap-3 w-full h-9 py-0 px-3 text-[13px] font-medium transition-all duration-200 hover:cursor-pointer rounded-md leading-[18.2px]",
+        "flex items-center gap-3 w-full h-9 py-0 px-3 text-[14px] font-medium transition-all duration-200 hover:cursor-pointer rounded-md leading-[19.6px]",
         isActive
           ? "bg-white/10 text-white hover:bg-white/15"
           : "text-white hover:bg-white/5",

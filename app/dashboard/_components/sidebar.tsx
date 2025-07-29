@@ -135,7 +135,7 @@ export default function DashboardSideBar() {
     <div className="min-[1024px]:block hidden w-[280px] h-full bg-black">
       <div className="flex h-full flex-col px-3">
         {/* Header with Logo */}
-        <div className="flex h-16 items-center pt-6 px-4 pb-8">
+        <div className="flex h-16 items-center pt-8 px-4 pb-8">
           <Link
             prefetch={true}
             className="flex items-center hover:cursor-pointer"
