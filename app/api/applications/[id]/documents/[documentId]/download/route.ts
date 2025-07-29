@@ -88,7 +88,7 @@ export async function GET(
     // Later this will be replaced with R2 signed URLs
     try {
       let fileBuffer: Buffer
-      let mimeType = document.mimeType || 'application/octet-stream'
+      const mimeType = document.mimeType || 'application/octet-stream'
       
       if (document.filePath && document.filePath.startsWith('/')) {
         // Absolute path - read directly

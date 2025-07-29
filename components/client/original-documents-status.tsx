@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { Card, CardContent } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
+import { Checkbox } from '@/components/ui/checkbox'
 import { 
   Package, 
   Truck, 
@@ -14,7 +15,9 @@ import {
   Calendar,
   FileText,
   ExternalLink,
-  RefreshCw
+  RefreshCw,
+  Check,
+  X
 } from 'lucide-react'
 import { format } from 'date-fns'
 import { UpdateShippingModal } from '@/components/client/update-shipping-modal'
@@ -63,6 +66,8 @@ export function OriginalDocumentsStatus({ applicationId }: OriginalDocumentsStat
   const [error, setError] = useState<string | null>(null)
   const [shippingModalOpen, setShippingModalOpen] = useState(false)
   const [selectedDocument, setSelectedDocument] = useState<OriginalDocumentStatus | null>(null)
+  const [selectedDocumentIds, setSelectedDocumentIds] = useState<Set<string>>(new Set())
+  const [batchMode, setBatchMode] = useState(false)
 
   const fetchOriginalDocuments = async () => {
     try {
@@ -162,7 +167,44 @@ export function OriginalDocumentsStatus({ applicationId }: OriginalDocumentsStat
   // Handle shipping updated
   const handleShippingUpdated = () => {
     fetchOriginalDocuments() // Refresh the list
+    setSelectedDocumentIds(new Set()) // Clear selection after update
   }
+
+  // Handle document selection
+  const handleDocumentSelection = (documentId: string, checked: boolean) => {
+    const newSelection = new Set(selectedDocumentIds)
+    if (checked) {
+      newSelection.add(documentId)
+    } else {
+      newSelection.delete(documentId)
+    }
+    setSelectedDocumentIds(newSelection)
+  }
+
+  // Handle select all
+  const handleSelectAll = (checked: boolean) => {
+    if (checked) {
+      const eligibleDocs = originalDocuments.filter(doc => doc.status === 'originals_requested')
+      setSelectedDocumentIds(new Set(eligibleDocs.map(doc => doc.id)))
+    } else {
+      setSelectedDocumentIds(new Set())
+    }
+  }
+
+  // Handle batch shipping update
+  const handleBatchShippingUpdate = () => {
+    setBatchMode(true)
+    setShippingModalOpen(true)
+  }
+
+  // Get eligible documents for batch operations (only 'originals_requested' status)
+  const eligibleDocuments = originalDocuments.filter(doc => doc.status === 'originals_requested')
+  const selectedEligibleCount = Array.from(selectedDocumentIds).filter(id => 
+    eligibleDocuments.some(doc => doc.id === id)
+  ).length
+  
+  // Check if all eligible documents are selected
+  const allEligibleSelected = eligibleDocuments.length > 0 && selectedEligibleCount === eligibleDocuments.length
 
   if (loading) {
     return (
@@ -200,7 +242,7 @@ export function OriginalDocumentsStatus({ applicationId }: OriginalDocumentsStat
             No Original Documents Requested Yet
           </h3>
           <p className="text-gray-600 mb-4">
-            When your advisor requests original documents, you'll see the status and instructions here.
+            When your advisor requests original documents, you&apos;ll see the status and instructions here.
           </p>
           <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 max-w-md mx-auto">
             <h4 className="font-medium text-blue-900 mb-2">What are Original Documents?</h4>
@@ -216,12 +258,59 @@ export function OriginalDocumentsStatus({ applicationId }: OriginalDocumentsStat
 
   return (
     <div className="space-y-6">
-      {/* Header with summary */}
+      {/* Header with summary and batch controls */}
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
-        <h3 className="font-medium text-blue-900 mb-2">Original Documents Status</h3>
-        <p className="text-sm text-blue-800">
+        <div className="flex items-center justify-between mb-2">
+          <h3 className="font-medium text-blue-900">Original Documents Status</h3>
+          {eligibleDocuments.length > 1 && (
+            <div className="flex items-center gap-2">
+              <Checkbox
+                id="select-all"
+                checked={allEligibleSelected}
+                onCheckedChange={handleSelectAll}
+                className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+              />
+              <label htmlFor="select-all" className="text-sm font-medium text-blue-900 cursor-pointer">
+                Select All Eligible
+              </label>
+            </div>
+          )}
+        </div>
+        <p className="text-sm text-blue-800 mb-3">
           Track the status of your physical documents throughout the submission process.
         </p>
+        
+        {/* Batch actions */}
+        {selectedDocumentIds.size > 0 && (
+          <div className="bg-white border border-blue-300 rounded-lg p-3 mt-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Check className="h-4 w-4 text-blue-600" />
+                <span className="text-sm font-medium text-blue-900">
+                  {selectedDocumentIds.size} document{selectedDocumentIds.size > 1 ? 's' : ''} selected
+                </span>
+              </div>
+              <div className="flex items-center gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => setSelectedDocumentIds(new Set())}
+                >
+                  <X className="h-4 w-4 mr-1" />
+                  Clear
+                </Button>
+                <Button
+                  size="sm"
+                  onClick={handleBatchShippingUpdate}
+                  disabled={selectedEligibleCount === 0}
+                >
+                  <Truck className="h-4 w-4 mr-1" />
+                  Update Shipping ({selectedEligibleCount})
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Document cards */}
@@ -231,9 +320,23 @@ export function OriginalDocumentsStatus({ applicationId }: OriginalDocumentsStat
           const overdue = isOverdue(doc.deadline)
           
           return (
-            <Card key={doc.id} className="hover:shadow-md transition-shadow">
+            <Card key={doc.id} className={`transition-all ${
+              selectedDocumentIds.has(doc.id) 
+                ? 'ring-2 ring-blue-500 bg-blue-50/30 hover:shadow-lg' 
+                : 'hover:shadow-md'
+            }`}>
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
+                  {/* Selection checkbox for eligible documents */}
+                  {doc.status === 'originals_requested' && eligibleDocuments.length > 1 && (
+                    <div className="mr-3 mt-1">
+                      <Checkbox
+                        checked={selectedDocumentIds.has(doc.id)}
+                        onCheckedChange={(checked) => handleDocumentSelection(doc.id, checked as boolean)}
+                        className="data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600"
+                      />
+                    </div>
+                  )}
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-2">
                       <h3 className="font-semibold text-gray-900">{doc.documentName}</h3>
@@ -390,13 +493,19 @@ export function OriginalDocumentsStatus({ applicationId }: OriginalDocumentsStat
                         <p className="text-sm text-gray-700 whitespace-pre-line bg-blue-50 p-3 rounded mb-3">
                           {doc.shippingAddress}
                         </p>
-                        <Button 
-                          onClick={() => handleUpdateShipping(doc)}
-                          className="w-full sm:w-auto"
-                        >
-                          <Truck className="h-4 w-4 mr-2" />
-                          Update Shipping Info
-                        </Button>
+                        {!selectedDocumentIds.has(doc.id) ? (
+                          <Button 
+                            onClick={() => handleUpdateShipping(doc)}
+                            className="w-full sm:w-auto"
+                          >
+                            <Truck className="h-4 w-4 mr-2" />
+                            Update Shipping Info
+                          </Button>
+                        ) : (
+                          <div className="text-sm text-blue-600 bg-blue-100 px-3 py-2 rounded font-medium">
+                            Selected for batch update
+                          </div>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -408,13 +517,21 @@ export function OriginalDocumentsStatus({ applicationId }: OriginalDocumentsStat
       </div>
 
       {/* Update Shipping Modal */}
-      {selectedDocument && (
+      {(selectedDocument || batchMode) && (
         <UpdateShippingModal
           isOpen={shippingModalOpen}
-          onOpenChange={setShippingModalOpen}
-          originalDocumentId={selectedDocument.id}
-          documentName={selectedDocument.documentName}
+          onOpenChange={(open) => {
+            setShippingModalOpen(open)
+            if (!open) {
+              setBatchMode(false)
+              setSelectedDocument(null)
+            }
+          }}
+          originalDocumentId={batchMode ? '' : selectedDocument?.id || ''}
+          documentName={batchMode ? 'Multiple Documents' : selectedDocument?.documentName || ''}
           onShippingUpdated={handleShippingUpdated}
+          batchMode={batchMode}
+          selectedDocumentIds={batchMode ? selectedDocumentIds : undefined}
         />
       )}
     </div>

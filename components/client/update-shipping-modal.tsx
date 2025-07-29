@@ -5,10 +5,9 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Textarea } from '@/components/ui/textarea'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { toast } from 'sonner'
-import { Truck, Package, Calendar } from 'lucide-react'
+import { Truck, Package } from 'lucide-react'
 
 interface UpdateShippingModalProps {
   isOpen: boolean
@@ -16,6 +15,8 @@ interface UpdateShippingModalProps {
   originalDocumentId: string
   documentName: string
   onShippingUpdated: () => void
+  batchMode?: boolean
+  selectedDocumentIds?: Set<string>
 }
 
 const courierOptions = [
@@ -33,7 +34,9 @@ export function UpdateShippingModal({
   onOpenChange,
   originalDocumentId,
   documentName,
-  onShippingUpdated
+  onShippingUpdated,
+  batchMode = false,
+  selectedDocumentIds
 }: UpdateShippingModalProps) {
   const [courierService, setCourierService] = useState('')
   const [trackingNumber, setTrackingNumber] = useState('')
@@ -63,31 +66,67 @@ export function UpdateShippingModal({
         ...(token && { 'Authorization': `Bearer ${token}` })
       }
 
-      const response = await fetch(`/api/client/original-documents/${originalDocumentId}/shipping`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({
-          courierService: courierService === 'other' ? `Other` : courierOptions.find(opt => opt.value === courierService)?.label,
-          trackingNumber: trackingNumber.trim(),
-          shippedAt: shippedDate || new Date().toISOString(),
-          clientReference: clientReference.trim() || undefined
-        })
-      })
-
-      if (response.ok) {
-        toast.success('Shipping information updated successfully')
-        onShippingUpdated()
-        onOpenChange(false)
-        
-        // Reset form
-        setCourierService('')
-        setTrackingNumber('')
-        setShippedDate('')
-        setClientReference('')
-      } else {
-        const errorData = await response.json()
-        toast.error(errorData.error || 'Failed to update shipping information')
+      const shippingData = {
+        courierService: courierService === 'other' ? `Other` : courierOptions.find(opt => opt.value === courierService)?.label,
+        trackingNumber: trackingNumber.trim(),
+        shippedAt: shippedDate || new Date().toISOString(),
+        clientReference: clientReference.trim() || undefined
       }
+
+      if (batchMode && selectedDocumentIds && selectedDocumentIds.size > 0) {
+        // Batch update multiple documents
+        const documentIds = Array.from(selectedDocumentIds)
+        const promises = documentIds.map(docId => 
+          fetch(`/api/client/original-documents/${docId}/shipping`, {
+            method: 'POST',
+            headers,
+            body: JSON.stringify(shippingData)
+          })
+        )
+
+        const responses = await Promise.all(promises)
+        const failedUpdates: string[] = []
+        
+        for (let i = 0; i < responses.length; i++) {
+          if (!responses[i].ok) {
+            failedUpdates.push(documentIds[i])
+          }
+        }
+
+        if (failedUpdates.length === 0) {
+          toast.success(`Shipping information updated for ${documentIds.length} documents`)
+        } else if (failedUpdates.length < documentIds.length) {
+          toast.success(`Shipping updated for ${documentIds.length - failedUpdates.length} documents. ${failedUpdates.length} failed.`)
+        } else {
+          toast.error('Failed to update shipping information for all documents')
+        }
+      } else {
+        // Single document update
+        const response = await fetch(`/api/client/original-documents/${originalDocumentId}/shipping`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(shippingData)
+        })
+
+        if (response.ok) {
+          toast.success('Shipping information updated successfully')
+        } else {
+          const errorData = await response.json()
+          toast.error(errorData.error || 'Failed to update shipping information')
+          return
+        }
+      }
+
+      // Success - close modal and refresh
+      onShippingUpdated()
+      onOpenChange(false)
+      
+      // Reset form
+      setCourierService('')
+      setTrackingNumber('')
+      setShippedDate('')
+      setClientReference('')
+      
     } catch (error) {
       console.error('Error updating shipping:', error)
       toast.error('Network error while updating shipping information')
@@ -116,7 +155,15 @@ export function UpdateShippingModal({
             Update Shipping Information
           </DialogTitle>
           <p className="text-sm text-gray-600">
-            Provide tracking details for: <span className="font-medium">{documentName}</span>
+            {batchMode ? (
+              <>
+                Provide tracking details for <span className="font-medium">{selectedDocumentIds?.size || 0} selected documents</span>
+              </>
+            ) : (
+              <>
+                Provide tracking details for: <span className="font-medium">{documentName}</span>
+              </>
+            )}
           </p>
         </DialogHeader>
 
@@ -179,12 +226,21 @@ export function UpdateShippingModal({
             <div className="flex items-start gap-2">
               <Package className="h-4 w-4 text-blue-600 mt-0.5" />
               <div className="text-sm">
-                <p className="font-medium text-blue-900 mb-1">Important Shipping Tips</p>
+                <p className="font-medium text-blue-900 mb-1">
+                  {batchMode ? 'Batch Shipping Tips' : 'Important Shipping Tips'}
+                </p>
                 <ul className="text-blue-800 space-y-1 text-xs">
                   <li>• Use a trackable courier service for security</li>
                   <li>• Keep your tracking receipt until documents arrive</li>
-                  <li>• Package documents in a protective envelope</li>
-                  <li>• We'll notify you once we receive your documents</li>
+                  {batchMode ? (
+                    <>
+                      <li>• Package all documents in the same shipment</li>
+                      <li>• The same tracking details will apply to all selected documents</li>
+                    </>
+                  ) : (
+                    <li>• Package documents in a protective envelope</li>
+                  )}
+                  <li>• We&apos;ll notify you once we receive your documents</li>
                 </ul>
               </div>
             </div>
@@ -213,7 +269,7 @@ export function UpdateShippingModal({
               ) : (
                 <>
                   <Truck className="h-4 w-4 mr-2" />
-                  Update Shipping
+                  {batchMode ? `Update ${selectedDocumentIds?.size || 0} Documents` : 'Update Shipping'}
                 </>
               )}
             </Button>
