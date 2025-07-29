@@ -3,6 +3,71 @@
 
 @custom-variant dark (&:is(.dark *));
 
+/* Suisse Intl Font Family */
+@font-face {
+    font-family: 'Suisse Intl';
+    src: url('/typeface/Suisse Intl/SuisseIntl-Regular.otf') format('opentype');
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Suisse Intl';
+    src: url('/typeface/Suisse Intl/SuisseIntl-Italic.otf') format('opentype');
+    font-weight: 400;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Suisse Intl';
+    src: url('/typeface/Suisse Intl/SuisseIntl-Medium.otf') format('opentype');
+    font-weight: 500;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Suisse Intl';
+    src: url('/typeface/Suisse Intl/SuisseIntl-MediumItalic.otf') format('opentype');
+    font-weight: 500;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Suisse Intl';
+    src: url('/typeface/Suisse Intl/SuisseIntl-SemiBold.otf') format('opentype');
+    font-weight: 600;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Suisse Intl';
+    src: url('/typeface/Suisse Intl/SuisseIntl-SemiBoldItalic.otf') format('opentype');
+    font-weight: 600;
+    font-style: italic;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Suisse Intl';
+    src: url('/typeface/Suisse Intl/SuisseIntl-Bold.otf') format('opentype');
+    font-weight: 700;
+    font-style: normal;
+    font-display: swap;
+}
+
+@font-face {
+    font-family: 'Suisse Intl';
+    src: url('/typeface/Suisse Intl/SuisseIntl-BoldItalic.otf') format('opentype');
+    font-weight: 700;
+    font-style: italic;
+    font-display: swap;
+}
+
 @theme inline {
     --color-background: var(--background);
     --color-foreground: var(--foreground);
@@ -77,9 +142,9 @@
     --sidebar-accent-foreground: #1d1d1f;
     --sidebar-border: #e2e2e7; /* Lighter border */
     --sidebar-ring: #3E58DA;
-    /* Apple Fonts */
+    /* Suisse Intl with Apple System Fonts as fallback */
     --font-apple-system:
-        -apple-system, BlinkMacSystemFont, "San Francisco", "Helvetica Neue",
+        "Suisse Intl", -apple-system, BlinkMacSystemFont, "San Francisco", "Helvetica Neue",
         Helvetica, sans-serif;
     --font-sf-mono: "SF Mono", Menlo, monospace;
     --font-sans: var(--font-apple-system);
