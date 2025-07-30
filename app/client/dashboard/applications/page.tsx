@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
 import { Briefcase, Clock, CheckCircle, AlertCircle, FileText, ArrowRight, RefreshCcw } from 'lucide-react'
+import { calculateApplicationProgress, getNextStepDescription } from '@/lib/utils/progress-calculation'
 
 interface Application {
   id: string
@@ -140,43 +141,6 @@ export default function ClientApplicationsPage() {
     ).join(' ')
   }
 
-  const calculateProgress = (status: string, submittedAt: string | null): number => {
-    switch (status) {
-      case 'draft':
-        return 10
-      case 'started':
-        return 25
-      case 'submitted':
-        return 50
-      case 'under_review':
-        return 75
-      case 'approved':
-        return 100
-      case 'rejected':
-        return 0
-      default:
-        return 0
-    }
-  }
-
-  const getNextStep = (status: string): string => {
-    switch (status) {
-      case 'draft':
-        return 'Application preparation'
-      case 'started':
-        return 'Document preparation in progress'
-      case 'submitted':
-        return 'Submitted to government for review'
-      case 'under_review':
-        return 'Due diligence and government assessment'
-      case 'approved':
-        return 'Application approved'
-      case 'rejected':
-        return 'Review feedback and resubmit'
-      default:
-        return 'Contact your advisor'
-    }
-  }
 
   const formatCurrency = (amount: string | null) => {
     if (!amount) return 'Not specified'
@@ -264,7 +228,11 @@ export default function ClientApplicationsPage() {
       {applications.length > 0 && (
         <div className="space-y-6">
           {applications.map((application) => {
-            const progress = calculateProgress(application.status, application.submittedAt)
+            const progressData = calculateApplicationProgress({
+              status: application.status,
+              submittedAt: application.submittedAt
+            })
+            
             return (
               <Card key={application.id}>
                 <CardHeader>
@@ -298,43 +266,54 @@ export default function ClientApplicationsPage() {
                     </div>
                   </div>
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {/* Progress Bar */}
-                  <div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm font-medium text-gray-700">Progress</span>
-                      <span className="text-sm text-gray-500">{progress}%</span>
+                <CardContent className="space-y-6">
+                  {/* Progress Section - Clearly Separated */}
+                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+                    <div className="flex items-center justify-between mb-3">
+                      <div>
+                        <h4 className="text-sm font-semibold text-blue-900">Application Progress</h4>
+                        <p className="text-xs text-blue-700">{progressData.description}</p>
+                      </div>
+                      <div className="text-right">
+                        <div className="text-lg font-bold text-blue-900">{progressData.progress}%</div>
+                        <div className="text-xs text-blue-700">Complete</div>
+                      </div>
                     </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div className="w-full bg-blue-200 rounded-full h-2.5">
                       <div 
-                        className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
-                        style={{ width: `${progress}%` }}
+                        className={`h-2.5 rounded-full transition-all duration-500 ${
+                          progressData.progress === 100 ? 'bg-green-500' : 'bg-blue-600'
+                        }`}
+                        style={{ width: `${progressData.progress}%` }}
                       ></div>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className="text-xs text-blue-700">Current Stage: {progressData.stage}</span>
+                      <span className="text-xs text-blue-700">Next: {getNextStepDescription(application.status)}</span>
                     </div>
                   </div>
 
-                  {/* Application Details */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">Investment Amount</p>
-                      <p className="text-sm text-gray-900">{formatCurrency(application.investmentAmount)}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">Investment Type</p>
-                      <p className="text-sm text-gray-900">{application.investmentType || 'Not specified'}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">Next Step</p>
-                      <p className="text-sm text-gray-900">{getNextStep(application.status)}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-700">Expected Decision</p>
-                      <p className="text-sm text-gray-900">
-                        {application.decisionExpectedAt ? 
-                          new Date(application.decisionExpectedAt).toLocaleDateString() : 
-                          'TBD'
-                        }
-                      </p>
+                  {/* Application Details Section - Clearly Separated */}
+                  <div>
+                    <h4 className="text-sm font-semibold text-gray-900 mb-3">Application Details</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Investment Amount</p>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">{formatCurrency(application.investmentAmount)}</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Investment Type</p>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">{application.investmentType || 'Not specified'}</p>
+                      </div>
+                      <div className="bg-gray-50 rounded-lg p-3">
+                        <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Expected Decision</p>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">
+                          {application.decisionExpectedAt ? 
+                            new Date(application.decisionExpectedAt).toLocaleDateString() : 
+                            'TBD'
+                          }
+                        </p>
+                      </div>
                     </div>
                   </div>
 

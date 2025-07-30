@@ -22,6 +22,7 @@ import { DocumentRequirement } from '@/components/ui/document-checklist-card'
 import { DocumentUploadZone } from '@/components/ui/document-upload-zone'
 import { EnhancedDocumentUpload } from '@/components/ui/enhanced-document-upload'
 import { OriginalDocumentsStatus } from '@/components/client/original-documents-status'
+import { calculateApplicationProgress } from '@/lib/utils/progress-calculation'
 import Link from 'next/link'
 
 interface ApplicationWorkflow {
@@ -283,8 +284,8 @@ export default function ClientApplicationPage() {
     description: 'Complete citizenship by investment workflow',
     totalStages: 6,
     estimatedTimeMonths: 6,
-    currentStageId: 'stage-2',
-    overallProgress: 35,
+    currentStageId: 'stage-1',
+    overallProgress: 5, // More realistic starting progress
     status: 'in_progress',
     startedAt: new Date().toISOString(),
     completedAt: null,
@@ -298,11 +299,11 @@ export default function ClientApplicationPage() {
         isRequired: true,
         canSkip: false,
         autoProgress: false,
-        status: 'completed',
-        completedAt: new Date().toISOString(),
-        progress: 100,
+        status: 'in_progress',
+        startedAt: new Date().toISOString(),
+        progress: 25,
         documentCount: 8,
-        completedDocuments: 8
+        completedDocuments: 2
       },
       {
         id: 'stage-2',
@@ -313,11 +314,10 @@ export default function ClientApplicationPage() {
         isRequired: true,
         canSkip: false,
         autoProgress: false,
-        status: 'in_progress',
-        startedAt: new Date().toISOString(),
-        progress: 60,
+        status: 'pending',
+        progress: 0,
         documentCount: 6,
-        completedDocuments: 3
+        completedDocuments: 0
       },
       {
         id: 'stage-3',
@@ -382,6 +382,17 @@ export default function ClientApplicationPage() {
   const currentStage = workflowData.stages.find(s => s.id === workflowData.currentStageId)
   const completedStages = workflowData.stages.filter(s => s.status === 'completed').length
   
+  // Calculate consistent progress using the shared utility (only after requirements are loaded)
+  const applicationProgressData = calculateApplicationProgress({
+    status: application.status,
+    submittedAt: null, // Not available in this interface
+    workflowProgress: workflowData.overallProgress,
+    completedStages,
+    totalStages: workflowData.totalStages,
+    documentsApproved: requirements.filter(r => r.status === 'approved').length,
+    totalDocuments: requirements.length
+  })
+  
   console.log('Workflow data:', {
     hasRealWorkflow: !!workflow,
     usingMock: !workflow,
@@ -442,7 +453,7 @@ export default function ClientApplicationPage() {
               </p>
             </div>
             <div className="text-right">
-              <div className="text-2xl font-bold text-gray-900">{workflowData.overallProgress}%</div>
+              <div className="text-2xl font-bold text-gray-900">{applicationProgressData.progress}%</div>
               <div className="text-sm text-gray-500">Complete</div>
             </div>
           </div>
