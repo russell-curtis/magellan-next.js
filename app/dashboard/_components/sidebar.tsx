@@ -246,7 +246,7 @@ export default function DashboardSideBar() {
 
         {/* Navigation */}
         <nav className="flex flex-col h-full">
-          <div className="flex-1 py-4 space-y-0.5">
+          <div className="flex-1 py-3 space-y-0">
             {navSectionsWithBadges.map((section) => (
               <CollapsibleNav
                 key={section.id}

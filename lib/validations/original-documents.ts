@@ -41,7 +41,7 @@ export const requestOriginalDocumentSchema = z.object({
   documentRequirementId: z.string().uuid(),
   digitalDocumentId: z.string().uuid().optional(),
   clientInstructions: z.string().optional(),
-  deadline: z.string().datetime().optional(),
+  deadline: z.string().optional(),
   isUrgent: z.boolean().default(false),
   shippingAddress: z.string().min(10, 'Shipping address is required'),
   internalNotes: z.string().optional()
@@ -102,7 +102,7 @@ export const bulkRequestOriginalDocumentsSchema = z.object({
   applicationId: z.string().uuid(),
   documentRequirementIds: z.array(z.string().uuid()).min(1),
   clientInstructions: z.string().optional(),
-  deadline: z.string().datetime().optional(),
+  deadline: z.string().optional(),
   isUrgent: z.boolean().default(false),
   shippingAddress: z.string().min(10, 'Shipping address is required'),
   internalNotes: z.string().optional()

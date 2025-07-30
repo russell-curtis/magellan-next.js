@@ -122,6 +122,25 @@ export interface OriginalDocumentStats {
 export class OriginalDocumentService {
 
   /**
+   * Parse deadline date from datetime-local input or ISO string
+   */
+  private parseDeadlineDate(deadline: string): Date {
+    try {
+      // If the string doesn't include timezone info (from datetime-local input)
+      // it will be in format "2025-01-15T14:30"
+      if (deadline.includes('T') && !deadline.includes('+') && !deadline.endsWith('Z')) {
+        // Assume local timezone for datetime-local inputs
+        return new Date(deadline)
+      }
+      // Otherwise parse as-is (for ISO datetime strings)
+      return new Date(deadline)
+    } catch (error) {
+      console.warn('Failed to parse deadline date:', deadline, error)
+      return new Date() // Fallback to current date
+    }
+  }
+
+  /**
    * Request original documents from client
    */
   async requestOriginalDocument(
@@ -194,7 +213,7 @@ export class OriginalDocumentService {
         requestedBy,
         clientNotifiedAt: new Date(),
         clientInstructions: input.clientInstructions || null,
-        deadline: input.deadline ? new Date(input.deadline) : null,
+        deadline: input.deadline ? this.parseDeadlineDate(input.deadline) : null,
         isUrgent: input.isUrgent,
         shippingAddress: input.shippingAddress,
         internalNotes: input.internalNotes || null,

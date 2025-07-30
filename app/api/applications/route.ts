@@ -4,6 +4,7 @@ import { applications, clients, crbiPrograms } from '@/db/schema'
 import { createApplicationSchema } from '@/lib/validations/applications'
 import { requireAuth } from '@/lib/auth-utils'
 import { eq, and, ne } from 'drizzle-orm'
+import { notifyClientApplicationCreated } from '@/lib/services/application-notifications'
 
 export async function POST(req: NextRequest) {
   try {
@@ -31,6 +32,22 @@ export async function POST(req: NextRequest) {
       createdAt: new Date(),
       updatedAt: new Date()
     }).returning()
+
+    // Send notification to client about new application
+    try {
+      await notifyClientApplicationCreated(
+        newApplication[0].id,
+        applicationNumber,
+        user.id,
+        validatedData.clientId,
+        user.firmId,
+        validatedData.programId
+      )
+      console.log('✅ Client notification sent successfully for application:', applicationNumber)
+    } catch (notificationError) {
+      console.error('⚠️ Failed to send client notification:', notificationError)
+      // Don't fail the entire request if notification fails
+    }
 
     return NextResponse.json({
       application: newApplication[0],
@@ -110,6 +127,14 @@ export async function GET(req: NextRequest) {
       .leftJoin(clients, eq(applications.clientId, clients.id))
       .leftJoin(crbiPrograms, eq(applications.programId, crbiPrograms.id))
       .where(and(...whereConditions))
+    
+    // Debug logging
+    console.log('🔍 Applications API Debug:')
+    console.log('Current user:', { id: user.id, firmId: user.firmId, role: user.role })
+    console.log('Results count:', results.length)
+    results.forEach(app => {
+      console.log(`App ${app.applicationNumber}: assignedAdvisorId = ${app.assignedAdvisorId}`)
+    })
     
     return NextResponse.json({ applications: results })
 

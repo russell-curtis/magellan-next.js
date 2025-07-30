@@ -24,7 +24,7 @@ function NavSubItemComponent({ item, isActive, onClick }: NavSubItemProps) {
     <div
       onClick={onClick}
       className={clsx(
-        "relative flex items-center gap-3 w-full h-8 py-0 pl-10 pr-3 text-[14px] font-normal transition-all duration-200 hover:cursor-pointer group text-white/70 hover:text-white leading-[19.6px] rounded-md hover:bg-white/5",
+        "relative flex items-center gap-3 w-full h-7 py-0 pl-10 pr-3 text-[14px] font-normal transition-all duration-200 hover:cursor-pointer group text-white/70 hover:text-white leading-[19.6px] rounded-md hover:bg-white/5",
         isActive && "text-white before:absolute before:left-6 before:top-1/2 before:-translate-y-1/2 before:w-0.5 before:h-4 before:bg-white"
       )}
     >
@@ -61,11 +61,13 @@ export function CollapsibleNav({ section, isCollapsed, onToggle, className }: Co
   };
 
   return (
-    <div className={clsx("w-full", className)}>
+    <div className={clsx("w-full", className, {
+      "mb-1.5": section.subItems && section.subItems.length > 0 && !isCollapsed
+    })}>
       {/* Main Section */}
       <div
         onClick={handleSectionClick}
-        className="relative flex items-center justify-between w-full h-9 py-0 px-3 text-[14px] font-medium transition-all duration-200 hover:cursor-pointer group text-white hover:bg-white/5 rounded-md leading-[19.6px]"
+        className="relative flex items-center justify-between w-full h-8 py-0 px-3 text-[14px] font-medium transition-all duration-200 hover:cursor-pointer group text-white hover:bg-white/5 rounded-md leading-[19.6px]"
       >
         <span className="flex-1 truncate">{section.label}</span>
         {section.subItems && section.subItems.length > 0 && (
@@ -85,7 +87,7 @@ export function CollapsibleNav({ section, isCollapsed, onToggle, className }: Co
           "overflow-hidden transition-all duration-300 ease-in-out",
           isCollapsed ? "max-h-0 opacity-0" : "max-h-96 opacity-100"
         )}>
-          <div className="mt-1 space-y-0.5">
+          <div className="mt-0.5 space-y-0">
             {section.subItems.map((item) => {
               const isSubItemActive = pathname === item.href || (item.href !== "/dashboard" && item.href !== "/client/dashboard" && pathname.startsWith(item.href));
               return (
@@ -106,7 +108,7 @@ export function CollapsibleNav({ section, isCollapsed, onToggle, className }: Co
 
 export function SidebarProfileArea({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex flex-col gap-3 w-full py-4 border-t border-white/10 mt-auto">
+    <div className="flex flex-col gap-2 w-full py-3 border-t border-white/10 mt-auto">
       {children}
     </div>
   );
@@ -129,7 +131,7 @@ export function SidebarSettingsItem({
     <div
       onClick={() => router.push(href)}
       className={clsx(
-        "flex items-center gap-3 w-full h-9 py-0 px-3 text-[14px] font-medium transition-all duration-200 hover:cursor-pointer rounded-md leading-[19.6px]",
+        "flex items-center gap-3 w-full h-8 py-0 px-3 text-[14px] font-medium transition-all duration-200 hover:cursor-pointer rounded-md leading-[19.6px]",
         isActive
           ? "bg-white/10 text-white hover:bg-white/15"
           : "text-white hover:bg-white/5",

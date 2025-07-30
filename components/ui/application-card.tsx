@@ -639,10 +639,18 @@ export function ApplicationCard({ application, onStatusChange, onEditApplication
   // Debug logging
   console.log('ApplicationCard Debug:', {
     applicationId: application.id,
+    applicationNumber: application.applicationNumber,
     currentStatus: application.status,
+    assignedAdvisorId: application.assignedAdvisorId,
     currentUser: currentUser,
+    currentUserId: currentUser?.id,
+    canEdit: currentUser && (
+      currentUser.role === 'admin' || 
+      application.assignedAdvisorId === currentUser.id
+    ),
     statusActionsCount: statusActions.length,
-    statusActions: statusActions.map(a => a.label)
+    statusActions: statusActions.map(a => a.label),
+    validTransitions: getValidStatusTransitions(application.status)
   })
 
   return (
