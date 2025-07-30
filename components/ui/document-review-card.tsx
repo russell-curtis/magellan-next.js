@@ -174,7 +174,7 @@ export function DocumentReviewCard({
   const canReview = !document.review || document.review.status === 'pending'
 
   return (
-    <Card className={cn("transition-all duration-200 hover:shadow-md", className)}>
+    <Card className={cn("border border-gray-200", className)}>
       <CardContent className="p-4">
         {/* Header Section */}
         <div className="flex items-start justify-between mb-3">
