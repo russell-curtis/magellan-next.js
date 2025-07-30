@@ -85,7 +85,7 @@ export function CollapsibleNav({ section, isCollapsed, onToggle, className }: Co
           "overflow-hidden transition-all duration-300 ease-in-out",
           isCollapsed ? "max-h-0 opacity-0" : "max-h-96 opacity-100"
         )}>
-          <div className="mt-1 space-y-1">
+          <div className="mt-1 space-y-0.5">
             {section.subItems.map((item) => {
               const isSubItemActive = pathname === item.href || (item.href !== "/dashboard" && item.href !== "/client/dashboard" && pathname.startsWith(item.href));
               return (

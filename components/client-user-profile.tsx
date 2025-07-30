@@ -28,7 +28,7 @@ export default function ClientUserProfile({ mini }: { mini?: boolean }) {
     return (
       <div
         className={clsx(
-          "flex gap-3 justify-start items-center w-full rounded-lg py-2",
+          "flex gap-3 justify-start items-center w-full rounded-lg py-2 px-3",
           mini ? "" : ""
         )}
       >
@@ -44,7 +44,7 @@ export default function ClientUserProfile({ mini }: { mini?: boolean }) {
       <DropdownMenuTrigger asChild>
         <div
           className={clsx(
-            "flex gap-3 justify-start items-center w-full rounded-lg py-2 text-white hover:bg-white/5 transition-colors duration-200 hover:cursor-pointer",
+            "flex gap-3 justify-start items-center w-full rounded-lg py-2 px-3 text-white hover:bg-white/5 transition-colors duration-200 hover:cursor-pointer",
             mini ? "" : ""
           )}
         >

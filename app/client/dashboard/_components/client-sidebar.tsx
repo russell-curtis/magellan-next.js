@@ -128,7 +128,7 @@ export default function ClientDashboardSideBar() {
           {/* Bottom Profile Area */}
           <SidebarProfileArea>
             <ClientUserProfile />
-            <div className="text-xs text-gray-400 mt-3">
+            <div className="text-xs text-gray-400 mt-3 px-3">
               <p className="mb-1 font-medium">Client Portal</p>
               <p className="text-gray-500">Citizenship & Residency by Investment</p>
             </div>
