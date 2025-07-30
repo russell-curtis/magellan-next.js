@@ -253,6 +253,10 @@ export const applications = pgTable('applications', {
   investmentType: varchar('investment_type', { length: 100 }), // real_estate, government_bonds, business
   selectedInvestmentOptionId: uuid('selected_investment_option_id').references(() => investmentOptions.id),
   
+  // Government Submission
+  governmentReferenceNumber: varchar('government_reference_number', { length: 100 }),
+  lastStatusCheck: timestamp('last_status_check'),
+  
   // Notes
   notes: text('notes'),
   internalNotes: text('internal_notes'),
