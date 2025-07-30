@@ -7,7 +7,7 @@ import { Shield, Clock, Users, Globe, Building } from "lucide-react";
 
 export default function HeroSection() {
   return (
-    <section className="relative min-h-screen flex items-center py-20 lg:py-32 overflow-hidden" style={{backgroundColor: '#000'}}>
+    <section className="relative min-h-screen flex items-center py-20 lg:py-32 overflow-hidden" style={{backgroundColor: '#1a1a1a'}}>
       {/* Background Effects */}
       <div className="absolute inset-0 bg-gradient-radial from-blue-900/20 via-transparent to-transparent"></div>
       <div className="absolute top-1/4 right-1/4 w-96 h-96 bg-blue-600/10 rounded-full blur-3xl animate-pulse"></div>

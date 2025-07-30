@@ -20,7 +20,7 @@ import {
 import { WorkflowProgressTracker, WorkflowStage } from '@/components/ui/workflow-progress-tracker'
 import { DocumentChecklistCard, DocumentRequirement } from '@/components/ui/document-checklist-card'
 import { DocumentUploadZone } from '@/components/ui/document-upload-zone'
-import { DocumentReviewInterface } from '@/components/ui/document-review-interface'
+import { DocumentReviewCard } from '@/components/ui/document-review-card'
 import { OriginalDocumentsDashboard } from '@/components/original-documents/original-documents-dashboard'
 import { hasWorkflowAccess } from '@/lib/utils'
 import Link from 'next/link'
@@ -518,183 +518,277 @@ export default function ApplicationWorkflowPage() {
         <TabsContent value="reviews" className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Document Review Status</CardTitle>
+              <CardTitle className="flex items-center justify-between">
+                <span>Document Reviews</span>
+                <Badge variant="outline" className="ml-2">
+                  {(() => {
+                    const reviewableCount = requirements.filter(req => 
+                      req.fileName && req.documentId && 
+                      (req.status === 'under_review' || req.status === 'uploaded' || req.status === 'approved' || req.status === 'rejected')
+                    ).length
+                    const pendingCount = requirements.filter(req => 
+                      req.fileName && req.documentId && 
+                      (req.status === 'under_review' || req.status === 'uploaded')
+                    ).length
+                    return `${pendingCount} pending • ${reviewableCount} total`
+                  })()}
+                </Badge>
+              </CardTitle>
               <p className="text-sm text-gray-600">
-                Review and approve submitted documents
+                Review submitted documents and provide feedback to clients
               </p>
             </CardHeader>
             <CardContent>
-              <div className="space-y-6">
-                {(() => {
-                  // Show documents that need review OR have been reviewed (for history)
-                  const reviewableRequirements = requirements.filter(req => 
-                    req.fileName && req.documentId && 
-                    (req.status === 'under_review' || req.status === 'uploaded' || req.status === 'approved' || req.status === 'rejected')
-                  )
-                  console.log('Agent Reviews Tab - All requirements:', requirements.length)
-                  console.log('Agent Reviews Tab - Documents for review/history:', reviewableRequirements.length)
-                  console.log('Agent Reviews Tab - Document statuses:', reviewableRequirements.map(r => ({ 
-                    id: r.id, 
-                    documentId: r.documentId,
-                    name: r.documentName, 
-                    status: r.status, 
-                    fileName: r.fileName,
-                    uploadedAt: r.uploadedAt 
-                  })))
-                  return reviewableRequirements
-                })().map((req) => (
-                    <div key={req.id} className="border rounded-lg p-6">
-                      <DocumentReviewInterface
-                        document={{
-                          id: req.id,
-                          requirement: {
-                            id: req.id,
-                            documentName: req.documentName,
-                            description: req.description,
-                            category: req.category,
-                            isRequired: req.isRequired,
-                            acceptedFormats: req.acceptedFormats,
-                            maxFileSizeMB: req.maxFileSizeMB,
-                            helpText: req.helpText,
-                            stageId: req.stageId,
-                            status: req.status,
-                            isClientUploadable: req.isClientUploadable,
-                            expirationMonths: req.expirationMonths,
-                            displayGroup: req.displayGroup,
-                            sortOrder: req.sortOrder,
-                            examples: req.examples,
-                            validationRules: req.validationRules
-                          },
-                          file: {
-                            id: req.documentId || req.id,
-                            fileName: req.fileName || 'document.pdf',
-                            fileSize: req.fileSize || 1024000,
-                            fileType: 'application/pdf',
-                            uploadedAt: req.uploadedAt || new Date().toISOString(),
-                            uploadedBy: 'client',
-                            url: `/api/applications/${applicationId}/documents/${req.documentId}/download`,
-                            thumbnailUrl: undefined
-                          },
-                          review: {
-                            id: req.status === 'approved' || req.status === 'rejected' ? 'completed-review' : 'pending-review',
-                            documentId: req.documentId || req.id,
-                            applicationId: applicationId,
-                            requirementId: req.id,
-                            status: req.status === 'under_review' || req.status === 'uploaded' ? 'pending' : req.status,
-                            reviewedAt: req.status === 'approved' || req.status === 'rejected' ? new Date().toISOString() : undefined,
-                            priority: 'medium' as const
-                          },
-                          client: {
-                            id: 'client-id',
-                            name: application?.client ? `${application.client.firstName} ${application.client.lastName}` : 'Client',
-                            email: application?.client?.email || 'client@example.com'
-                          },
-                          application: {
-                            id: applicationId,
-                            programName: application?.program?.programName || 'St. Kitts Citizenship',
-                            status: application?.status || 'in_progress'
-                          }
-                        }}
-                        onApprove={async (documentId, comments) => {
-                          try {
-                            console.log('=== FRONTEND APPROVAL CALLED ===')
-                            console.log('Document ID being sent:', documentId)
-                            console.log('Application ID:', applicationId)
-                            console.log('Comments:', comments)
-                            console.log('Full requirement data:', req)
-                            
-                            const response = await fetch(`/api/applications/${applicationId}/documents/review`, {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                documentId,
-                                action: 'approve',
-                                comments
-                              })
-                            })
-                            
-                            console.log('Response received:', response.status, response.statusText)
-                            
-                            if (response.ok) {
-                              const result = await response.json()
-                              console.log('Approval successful:', result)
-                              console.log('Refreshing application data...')
-                              await fetchApplicationData() // Refresh data
-                              console.log('Application data refreshed')
-                            } else {
-                              const errorText = await response.text()
-                              console.error('Approve failed with status:', response.status)
-                              console.error('Error response:', errorText)
-                              console.error('Response headers:', Object.fromEntries(response.headers.entries()))
-                              alert(`Approval failed: ${errorText}`)
-                            }
-                          } catch (err) {
-                            console.error('Error approving document:', err)
-                            alert(`Error approving document: ${err instanceof Error ? err.message : 'Unknown error'}`)
-                          }
-                        }}
-                        onReject={async (documentId, reason, comments) => {
-                          try {
-                            const response = await fetch(`/api/applications/${applicationId}/documents/review`, {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                documentId,
-                                action: 'reject',
-                                reason,
-                                comments
-                              })
-                            })
-                            
-                            if (response.ok) {
-                              await fetchApplicationData() // Refresh data
-                            } else {
-                              const errorText = await response.text()
-                              console.error('Reject failed:', errorText)
-                            }
-                          } catch (err) {
-                            console.error('Error rejecting document:', err)
-                          }
-                        }}
-                        onRequestClarification={async (documentId, comments) => {
-                          try {
-                            const response = await fetch(`/api/applications/${applicationId}/documents/review`, {
-                              method: 'POST',
-                              headers: { 'Content-Type': 'application/json' },
-                              body: JSON.stringify({
-                                documentId,
-                                action: 'request_clarification',
-                                comments
-                              })
-                            })
-                            
-                            if (response.ok) {
-                              await fetchApplicationData() // Refresh data
-                            } else {
-                              const errorText = await response.text()
-                              console.error('Request clarification failed:', errorText)
-                            }
-                          } catch (err) {
-                            console.error('Error requesting clarification:', err)
-                          }
-                        }}
-                        onViewDocument={(documentId) => {
-                          window.open(`/api/applications/${applicationId}/documents/${documentId}/download`, '_blank')
-                        }}
-                        onDownloadDocument={(documentId) => {
-                          window.open(`/api/applications/${applicationId}/documents/${documentId}/download?download=true`, '_blank')
-                        }}
-                      />
-                    </div>
-                  ))}
+              {(() => {
+                // Show documents that need review OR have been reviewed (for history)
+                const reviewableRequirements = requirements.filter(req => 
+                  req.fileName && req.documentId && 
+                  (req.status === 'under_review' || req.status === 'uploaded' || req.status === 'approved' || req.status === 'rejected')
+                )
+                
+                // Group by status for better organization
+                const pendingReviews = reviewableRequirements.filter(req => 
+                  req.status === 'under_review' || req.status === 'uploaded'
+                )
+                const completedReviews = reviewableRequirements.filter(req => 
+                  req.status === 'approved' || req.status === 'rejected'
+                )
 
-                {requirements.filter(req => req.status === 'under_review' || req.status === 'uploaded').length === 0 && (
-                  <div className="text-center py-12 text-gray-500">
-                    <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
-                    <p>No documents pending review</p>
+                if (reviewableRequirements.length === 0) {
+                  return (
+                    <div className="text-center py-12">
+                      <MessageSquare className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                      <h3 className="text-lg font-semibold text-gray-900 mb-2">No Documents for Review</h3>
+                      <p className="text-gray-600">Documents will appear here once clients upload them</p>
+                    </div>
+                  )
+                }
+
+                return (
+                  <div className="space-y-6">
+                    {/* Pending Reviews Section */}
+                    {pendingReviews.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <h3 className="text-lg font-semibold text-gray-900">Pending Reviews</h3>
+                          <Badge className="bg-orange-100 text-orange-800">
+                            {pendingReviews.length} {pendingReviews.length === 1 ? 'document' : 'documents'}
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                          {pendingReviews.map((req) => (
+                            <DocumentReviewCard
+                              key={req.id}
+                              document={{
+                                id: req.id,
+                                requirement: {
+                                  id: req.id,
+                                  documentName: req.documentName,
+                                  description: req.description,
+                                  category: req.category,
+                                  isRequired: req.isRequired,
+                                  acceptedFormats: req.acceptedFormats,
+                                  maxFileSizeMB: req.maxFileSizeMB,
+                                  helpText: req.helpText,
+                                  stageId: req.stageId,
+                                  status: req.status,
+                                  isClientUploadable: req.isClientUploadable,
+                                  expirationMonths: req.expirationMonths,
+                                  displayGroup: req.displayGroup,
+                                  sortOrder: req.sortOrder,
+                                  examples: req.examples,
+                                  validationRules: req.validationRules
+                                },
+                                file: {
+                                  id: req.documentId || req.id,
+                                  fileName: req.fileName || 'document.pdf',
+                                  fileSize: req.fileSize || 1024000,
+                                  fileType: 'application/pdf',
+                                  uploadedAt: req.uploadedAt || new Date().toISOString(),
+                                  uploadedBy: 'client',
+                                  url: `/api/applications/${applicationId}/documents/${req.documentId}/download`,
+                                  thumbnailUrl: undefined
+                                },
+                                review: {
+                                  id: 'pending-review',
+                                  documentId: req.documentId || req.id,
+                                  applicationId: applicationId,
+                                  requirementId: req.id,
+                                  status: 'pending',
+                                  priority: req.isRequired ? 'high' : 'medium' as const
+                                },
+                                client: {
+                                  id: 'client-id',
+                                  name: application?.client ? `${application.client.firstName} ${application.client.lastName}` : 'Client',
+                                  email: application?.client?.email || 'client@example.com'
+                                },
+                                application: {
+                                  id: applicationId,
+                                  programName: application?.program?.programName || 'St. Kitts Citizenship',
+                                  status: application?.status || 'in_progress'
+                                }
+                              }}
+                              onApprove={async (documentId, comments) => {
+                                try {
+                                  const response = await fetch(`/api/applications/${applicationId}/documents/review`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      documentId,
+                                      action: 'approve',
+                                      comments
+                                    })
+                                  })
+                                  
+                                  if (response.ok) {
+                                    await fetchApplicationData()
+                                  } else {
+                                    const errorText = await response.text()
+                                    throw new Error(errorText)
+                                  }
+                                } catch (err) {
+                                  console.error('Error approving document:', err)
+                                  throw err
+                                }
+                              }}
+                              onReject={async (documentId, reason, comments) => {
+                                try {
+                                  const response = await fetch(`/api/applications/${applicationId}/documents/review`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      documentId,
+                                      action: 'reject',
+                                      reason,
+                                      comments
+                                    })
+                                  })
+                                  
+                                  if (response.ok) {
+                                    await fetchApplicationData()
+                                  } else {
+                                    const errorText = await response.text()
+                                    throw new Error(errorText)
+                                  }
+                                } catch (err) {
+                                  console.error('Error rejecting document:', err)
+                                  throw err
+                                }
+                              }}
+                              onRequestClarification={async (documentId, comments) => {
+                                try {
+                                  const response = await fetch(`/api/applications/${applicationId}/documents/review`, {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json' },
+                                    body: JSON.stringify({
+                                      documentId,
+                                      action: 'request_clarification',
+                                      comments
+                                    })
+                                  })
+                                  
+                                  if (response.ok) {
+                                    await fetchApplicationData()
+                                  } else {
+                                    const errorText = await response.text()
+                                    throw new Error(errorText)
+                                  }
+                                } catch (err) {
+                                  console.error('Error requesting clarification:', err)
+                                  throw err
+                                }
+                              }}
+                              onViewDocument={(documentId) => {
+                                window.open(`/api/applications/${applicationId}/documents/${documentId}/download`, '_blank')
+                              }}
+                              onDownloadDocument={(documentId) => {
+                                window.open(`/api/applications/${applicationId}/documents/${documentId}/download?download=true`, '_blank')
+                              }}
+                              compact={true}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Completed Reviews Section */}
+                    {completedReviews.length > 0 && (
+                      <div>
+                        <div className="flex items-center gap-2 mb-4">
+                          <h3 className="text-lg font-semibold text-gray-900">Review History</h3>
+                          <Badge variant="outline">
+                            {completedReviews.length} completed
+                          </Badge>
+                        </div>
+                        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                          {completedReviews.map((req) => (
+                            <DocumentReviewCard
+                              key={req.id}
+                              document={{
+                                id: req.id,
+                                requirement: {
+                                  id: req.id,
+                                  documentName: req.documentName,
+                                  description: req.description,
+                                  category: req.category,
+                                  isRequired: req.isRequired,
+                                  acceptedFormats: req.acceptedFormats,
+                                  maxFileSizeMB: req.maxFileSizeMB,
+                                  helpText: req.helpText,
+                                  stageId: req.stageId,
+                                  status: req.status,
+                                  isClientUploadable: req.isClientUploadable,
+                                  expirationMonths: req.expirationMonths,
+                                  displayGroup: req.displayGroup,
+                                  sortOrder: req.sortOrder,
+                                  examples: req.examples,
+                                  validationRules: req.validationRules
+                                },
+                                file: {
+                                  id: req.documentId || req.id,
+                                  fileName: req.fileName || 'document.pdf',
+                                  fileSize: req.fileSize || 1024000,
+                                  fileType: 'application/pdf',
+                                  uploadedAt: req.uploadedAt || new Date().toISOString(),
+                                  uploadedBy: 'client',
+                                  url: `/api/applications/${applicationId}/documents/${req.documentId}/download`,
+                                  thumbnailUrl: undefined
+                                },
+                                review: {
+                                  id: 'completed-review',
+                                  documentId: req.documentId || req.id,
+                                  applicationId: applicationId,
+                                  requirementId: req.id,
+                                  status: req.status as 'approved' | 'rejected',
+                                  reviewedAt: new Date().toISOString(),
+                                  priority: req.isRequired ? 'high' : 'medium' as const
+                                },
+                                client: {
+                                  id: 'client-id',
+                                  name: application?.client ? `${application.client.firstName} ${application.client.lastName}` : 'Client',
+                                  email: application?.client?.email || 'client@example.com'
+                                },
+                                application: {
+                                  id: applicationId,
+                                  programName: application?.program?.programName || 'St. Kitts Citizenship',
+                                  status: application?.status || 'in_progress'
+                                }
+                              }}
+                              onViewDocument={(documentId) => {
+                                window.open(`/api/applications/${applicationId}/documents/${documentId}/download`, '_blank')
+                              }}
+                              onDownloadDocument={(documentId) => {
+                                window.open(`/api/applications/${applicationId}/documents/${documentId}/download?download=true`, '_blank')
+                              }}
+                              compact={true}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
-                )}
-              </div>
+                )
+              })()}
             </CardContent>
           </Card>
         </TabsContent>
