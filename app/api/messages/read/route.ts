@@ -161,11 +161,28 @@ export async function GET(request: NextRequest) {
 
     // Determine user type and authenticate accordingly
     if (userType === 'client') {
-      currentUser = await requireClientAuth()
-      isAdvisor = false
+      try {
+        currentUser = await requireClientAuth()
+        isAdvisor = false
+      } catch (error) {
+        // Return 0 unread count for unauthenticated clients
+        return NextResponse.json({
+          unreadCount: 0,
+          conversationId: conversationId || null,
+        })
+      }
     } else {
-      currentUser = await requireAuth()
-      isAdvisor = true
+      try {
+        currentUser = await requireAuth()
+        isAdvisor = true
+      } catch (error) {
+        console.log('Auth failed for advisor, returning 0 unread count:', error)
+        // Return 0 unread count for unauthenticated advisors (like magic link users)
+        return NextResponse.json({
+          unreadCount: 0,
+          conversationId: conversationId || null,
+        })
+      }
     }
 
     const recipientType = isAdvisor ? 'advisor' : 'client'

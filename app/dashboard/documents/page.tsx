@@ -46,8 +46,8 @@ export default function DocumentsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Document Management</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-semibold tracking-tight">Document Center</h1>
+          <p style={{color: '#00000080'}}>
             Manage, organize, and track all client documents and compliance materials
           </p>
         </div>
@@ -138,7 +138,7 @@ export default function DocumentsPage() {
       {/* Document Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
         <div className="flex items-center justify-between">
-          <TabsList className="grid w-full max-w-md grid-cols-4">
+          <TabsList>
             <TabsTrigger value="all">
               All ({stats.total})
             </TabsTrigger>

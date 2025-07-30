@@ -223,8 +223,8 @@ export default function ClientsPage() {
       <div className="w-full space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">Clients</h1>
-            <p className="text-muted-foreground">
+            <h1 className="text-3xl font-semibold tracking-tight">Client Directory</h1>
+            <p className="text-sm" style={{color: '#00000080'}}>
               Manage your CRBI clients and track their applications
             </p>
           </div>
@@ -273,7 +273,7 @@ export default function ClientsPage() {
           
           {pagination.totalPages > 1 && (
             <div className="flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
+              <p className="text-sm" style={{color: '#00000080'}}>
                 Showing {(filters.page - 1) * 50 + 1} to {Math.min(filters.page * 50, pagination.totalCount)} of {pagination.totalCount} clients
               </p>
               <div className="flex gap-2">

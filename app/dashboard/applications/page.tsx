@@ -237,8 +237,8 @@ export default function ApplicationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Applications</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Client Applications</h1>
+          <p className="mt-1" style={{color: '#00000080'}}>
             Manage CRBI applications across all clients
           </p>
         </div>

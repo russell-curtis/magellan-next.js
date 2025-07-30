@@ -27,7 +27,7 @@ export default function SuccessPage() {
           <CardTitle className="text-2xl font-bold mb-2">
             Payment Successful!
           </CardTitle>
-          <CardDescription className="text-base">
+          <CardDescription className="text-sm">
             Thank you for your subscription. Your account has been activated and
             you&apos;re ready to start creating.
           </CardDescription>

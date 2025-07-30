@@ -475,7 +475,7 @@ export default function ClientApplicationPage() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-4">
+        <TabsList>
           <TabsTrigger value="overview">Workflow Overview</TabsTrigger>
           <TabsTrigger value="documents">Document Management</TabsTrigger>
           <TabsTrigger value="upload">Upload Center</TabsTrigger>

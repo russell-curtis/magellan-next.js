@@ -269,11 +269,11 @@ function SettingsContent() {
   }
 
   return (
-    <div className="flex flex-col gap-6 p-6">
+    <div className="flex flex-col gap-8 p-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight">Settings</h1>
-        <p className="text-muted-foreground mt-2">
+        <h1 className="text-3xl font-semibold tracking-tight text-foreground">Settings</h1>
+        <p className="mt-2 text-sm" style={{color: '#00000080'}}>
           Manage your account settings and preferences
         </p>
       </div>
@@ -288,19 +288,18 @@ function SettingsContent() {
           <TabsTrigger value="billing">Billing</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="profile" className="space-y-6">
+        <TabsContent value="profile" className="space-y-8">
           {/* Profile Information */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Settings2 className="h-5 w-5" />
-                Profile Information
+          <Card className="p-8">
+            <CardHeader className="px-0 pb-6">
+              <CardTitle className="text-xl font-semibold text-foreground">
+                Personal details
               </CardTitle>
-              <CardDescription>
+              <CardDescription className="text-muted-foreground">
                 Update your personal information and profile settings
               </CardDescription>
             </CardHeader>
-            <CardContent className="space-y-6">
+            <CardContent className="px-0 space-y-6">
               <div className="flex items-center gap-4">
                 <Avatar className="h-20 w-20">
                   <AvatarImage src={imagePreview || user?.image || ""} />
@@ -421,7 +420,7 @@ function SettingsContent() {
                         <div className="flex items-start justify-between gap-3">
                           <div>
                             <div className="flex justify-center gap-2">
-                              <h4 className="font-medium text-base">
+                              <h4 className="font-medium text-sm">
                                 {order.product?.name || "Subscription"}
                               </h4>
                               <div className="flex items-center gap-2">
@@ -476,7 +475,7 @@ function SettingsContent() {
                           </div>
 
                           <div className="text-right">
-                            <div className="font-medium text-base">
+                            <div className="font-medium text-sm">
                               ${(order.totalAmount / 100).toFixed(2)}
                             </div>
                             <div className="text-xs text-muted-foreground">

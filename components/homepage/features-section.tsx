@@ -17,16 +17,23 @@ import {
 
 export default function FeaturesSection() {
   return (
-    <section id="features" className="py-20 bg-gray-50">
-      <div className="mx-auto max-w-6xl px-6">
-        <div className="text-center mb-16">
-          <Badge variant="outline" className="mb-4">
+    <section id="features" className="py-20 lg:py-32 bg-black relative overflow-hidden">
+      {/* Background Effects */}
+      <div className="absolute inset-0 bg-black"></div>
+      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-full h-px bg-gradient-to-r from-transparent via-blue-500 to-transparent"></div>
+      
+      <div className="relative mx-auto max-w-7xl px-6">
+        <div className="text-center mb-20">
+          <Badge variant="outline" className="mb-6 bg-black border-slate-700 text-slate-300 hover:bg-slate-700/50 transition-colors backdrop-blur-sm">
             Platform Features
           </Badge>
-          <h2 className="text-3xl lg:text-4xl font-bold text-gray-900 mb-6">
-            Everything You Need to Manage CRBI Applications
+          <h2 className="text-4xl lg:text-6xl font-bold text-white mb-8 tracking-tight">
+            Everything You Need to Manage{" "}
+            <span className="bg-clip-text text-transparent" style={{backgroundImage: 'linear-gradient(to right, #5B73E8, #3f59d9)'}}>
+              CRBI Applications
+            </span>
           </h2>
-          <p className="text-xl text-gray-600 max-w-3xl mx-auto">
+          <p className="text-lg text-slate-300 max-w-4xl mx-auto leading-relaxed">
             From client onboarding to citizenship approval, our comprehensive platform 
             handles every aspect of the CRBI process with precision and efficiency.
           </p>
@@ -83,12 +90,15 @@ export default function FeaturesSection() {
         </div>
 
         {/* Process Flow */}
-        <div className="bg-white rounded-2xl p-8 shadow-lg">
-          <div className="text-center mb-12">
-            <h3 className="text-2xl font-bold text-gray-900 mb-4">
-              Streamlined CRBI Process
+        <div className="p-12">
+          <div className="text-center mb-16">
+            <h3 className="text-3xl lg:text-4xl font-bold text-white mb-6">
+              Streamlined{" "}
+              <span className="bg-clip-text text-transparent" style={{backgroundImage: 'linear-gradient(to right, #5B73E8, #3f59d9)'}}>
+                CRBI Process
+              </span>
             </h3>
-            <p className="text-gray-600">
+            <p className="text-lg text-slate-300 max-w-2xl mx-auto">
               Our platform guides you through every step of the citizenship application process
             </p>
           </div>
@@ -141,35 +151,98 @@ interface FeatureCardProps {
 
 const FeatureCard = ({ icon, title, description, features, color }: FeatureCardProps) => {
   const colorClasses = {
-    blue: "bg-blue-100 text-blue-600 border-blue-200",
-    green: "bg-green-100 text-green-600 border-green-200",
-    purple: "bg-purple-100 text-purple-600 border-purple-200",
-    red: "bg-red-100 text-red-600 border-red-200",
-    indigo: "bg-indigo-100 text-indigo-600 border-indigo-200",
-    orange: "bg-orange-100 text-orange-600 border-orange-200",
+    blue: {
+      bg: "from-blue-500/10 to-blue-600/5",
+      border: "border-blue-500/20",
+      glow: "shadow-blue-500/10",
+      icon: "text-blue-400"
+    },
+    green: {
+      bg: "from-green-500/10 to-emerald-600/5", 
+      border: "border-green-500/20",
+      glow: "shadow-green-500/10",
+      icon: "text-green-400"
+    },
+    purple: {
+      bg: "from-purple-500/10 to-purple-600/5",
+      border: "border-purple-500/20", 
+      glow: "shadow-purple-500/10",
+      icon: "text-purple-400"
+    },
+    red: {
+      bg: "from-red-500/10 to-red-600/5",
+      border: "border-red-500/20",
+      glow: "shadow-red-500/10", 
+      icon: "text-red-400"
+    },
+    indigo: {
+      bg: "from-indigo-500/10 to-indigo-600/5",
+      border: "border-indigo-500/20",
+      glow: "shadow-indigo-500/10",
+      icon: "text-indigo-400"
+    },
+    orange: {
+      bg: "from-orange-500/10 to-orange-600/5",
+      border: "border-orange-500/20",
+      glow: "shadow-orange-500/10",
+      icon: "text-orange-400"
+    },
   };
 
+  const currentColor = colorClasses[color as keyof typeof colorClasses];
+
   return (
-    <Card className="p-6 h-full hover:shadow-lg transition-shadow">
-      <div className="space-y-4">
-        <div className={`inline-flex p-3 rounded-xl ${colorClasses[color as keyof typeof colorClasses]}`}>
-          {icon}
+    <Card className="group relative p-8 h-full backdrop-blur-xl border-gray-700/50 hover:border-gray-600/30 hover:shadow-2xl hover:-translate-y-2 transition-all duration-500 overflow-hidden" style={{backgroundColor: '#111'}}>
+      {/* Animated background gradient */}
+      <div className={`absolute inset-0 bg-gradient-to-br ${currentColor.bg} opacity-0 group-hover:opacity-100 transition-opacity duration-500`}></div>
+      
+      {/* Subtle glow effect */}
+      <div className={`absolute inset-0 ${currentColor.glow} shadow-2xl opacity-0 group-hover:opacity-50 transition-opacity duration-500 blur-xl`}></div>
+      
+      {/* Top accent line */}
+      <div className={`absolute top-0 left-0 right-0 h-0.5 bg-gradient-to-r from-transparent via-gray-600 to-transparent group-hover:via-gray-400 transition-colors duration-500`}></div>
+      
+      <div className="relative z-10 space-y-6">
+        {/* Enhanced icon container */}
+        <div className="relative">
+          <div className={`inline-flex p-5 rounded-3xl border-2 ${currentColor.border} bg-gradient-to-br ${currentColor.bg} group-hover:scale-110 group-hover:rotate-3 transition-all duration-500 ${currentColor.glow} group-hover:shadow-lg`}>
+            <div className={`${currentColor.icon} transition-colors duration-300`}>
+              {icon}
+            </div>
+          </div>
+          
+          {/* Floating accent dot */}
+          <div className={`absolute -top-1 -right-1 w-4 h-4 rounded-full ${currentColor.bg} ${currentColor.border} border opacity-0 group-hover:opacity-100 transition-all duration-500 animate-pulse`}></div>
         </div>
         
-        <div>
-          <h3 className="text-xl font-semibold text-gray-900 mb-2">{title}</h3>
-          <p className="text-gray-600 mb-4">{description}</p>
+        {/* Enhanced content */}
+        <div className="space-y-4">
+          <h3 className="text-2xl font-bold text-white mb-3 group-hover:text-gray-100 transition-colors duration-300">
+            {title}
+          </h3>
+          <p className="text-slate-300 group-hover:text-slate-200 leading-relaxed transition-colors duration-300">
+            {description}
+          </p>
         </div>
 
-        <div className="space-y-2">
+        {/* Enhanced feature list */}
+        <div className="space-y-4 pt-2">
           {features.map((feature, index) => (
-            <div key={index} className="flex items-center gap-2 text-sm">
-              <CheckCircle className="h-4 w-4 text-green-500" />
-              <span className="text-gray-700">{feature}</span>
+            <div key={index} className="flex items-center gap-3 text-sm group/item">
+              <div className="relative">
+                <CheckCircle className="h-5 w-5 text-green-400 flex-shrink-0 group-hover/item:scale-110 transition-transform duration-300" />
+                <div className="absolute inset-0 bg-green-400/20 rounded-full scale-0 group-hover/item:scale-150 transition-transform duration-300 blur-sm"></div>
+              </div>
+              <span className="text-slate-300 group-hover:text-slate-200 group-hover/item:text-white transition-colors duration-300">
+                {feature}
+              </span>
             </div>
           ))}
         </div>
       </div>
+      
+      {/* Bottom highlight */}
+      <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-16 h-1 bg-gradient-to-r ${currentColor.bg} opacity-0 group-hover:opacity-100 transition-opacity duration-500 blur-sm`}></div>
     </Card>
   );
 };
@@ -183,19 +256,19 @@ interface ProcessStepProps {
 
 const ProcessStep = ({ step, title, description, icon }: ProcessStepProps) => {
   return (
-    <div className="text-center space-y-4">
+    <div className="text-center space-y-6 group">
       <div className="relative">
-        <div className="w-16 h-16 bg-blue-600 text-white rounded-full flex items-center justify-center mx-auto mb-4">
-          <span className="text-xl font-bold">{step}</span>
+        <div className="w-20 h-20 bg-gradient-to-br from-gray-600 to-gray-700 text-white rounded-2xl flex items-center justify-center mx-auto mb-4 shadow-lg shadow-gray-600/25 group-hover:scale-110 transition-transform duration-300">
+          <span className="text-2xl font-bold">{step}</span>
         </div>
-        <div className="absolute -top-2 -right-2 bg-blue-100 p-2 rounded-lg">
-          {icon}
+        <div className="absolute -top-3 -right-3 bg-gray-900/80 backdrop-blur-sm p-3 rounded-xl border border-gray-600/50">
+          <div className="text-gray-400">{icon}</div>
         </div>
       </div>
       
       <div>
-        <h4 className="font-semibold text-gray-900 mb-2">{title}</h4>
-        <p className="text-sm text-gray-600">{description}</p>
+        <h4 className="font-semibold text-white mb-3 text-lg group-hover:text-gray-300 transition-colors duration-300">{title}</h4>
+        <p className="text-sm text-gray-400 leading-relaxed">{description}</p>
       </div>
     </div>
   );

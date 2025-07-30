@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MagellanLogomark } from "@/components/ui/magellan-logomark";
+import Image from "next/image";
 import { Shield, Users, Mail } from "lucide-react";
 
 const navigationLinks = [
@@ -25,14 +25,19 @@ const supportLinks = [
 
 export default function FooterSection() {
   return (
-    <footer className="bg-gray-900 text-white py-20">
+    <footer className="bg-black text-white py-20">
       <div className="mx-auto max-w-6xl px-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
           {/* Company Info */}
           <div className="space-y-4">
-            <div className="flex items-center gap-3">
-              <MagellanLogomark size={32} className="brightness-0 invert" />
-              <span className="text-xl font-bold">Magellan CRBI</span>
+            <div className="flex items-center">
+              <Image
+                src="/logos/logomark-white.svg"
+                alt="Magellan"
+                width={48}
+                height={48}
+                className="h-12 w-12"
+              />
             </div>
             <p className="text-gray-400 text-sm leading-relaxed">
               The leading platform for Citizenship & Residency by Investment advisory firms. 

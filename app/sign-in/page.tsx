@@ -8,30 +8,49 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { authClient } from "@/lib/auth-client";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { toast } from "sonner";
+import { Mail } from "lucide-react";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 function SignInContent() {
   const [loading, setLoading] = useState(false);
   const searchParams = useSearchParams();
   const returnTo = searchParams.get("returnTo");
+  const message = searchParams.get("message");
+  const email = searchParams.get("email");
+
+  // Show success message if invitation was accepted
+  useEffect(() => {
+    if (message === "invitation-accepted") {
+      toast.success("Invitation accepted successfully! Please sign in to access your dashboard.");
+    }
+  }, [message]);
 
   return (
     <div className="flex flex-col justify-center items-center w-full h-screen">
       <Card className="max-w-md w-full">
         <CardHeader>
           <CardTitle className="text-lg md:text-xl">
-            Welcome to Nextjs Starter Kit
+            Welcome to CRBI Advisory
           </CardTitle>
           <CardDescription className="text-xs md:text-sm">
-            Use your google account to login to your account
+            Sign in to your account using Google or email
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {message === "invitation-accepted" && (
+            <Alert className="mb-4">
+              <AlertDescription>
+                <strong>Success!</strong> Your invitation has been accepted. Sign in with your {email ? `email (${email})` : 'account'} to access your dashboard.
+              </AlertDescription>
+            </Alert>
+          )}
           <div className="grid gap-4">
             <div
               className={cn(
@@ -97,6 +116,26 @@ function SignInContent() {
                   ></path>
                 </svg>
                 Login with Google
+              </Button>
+              
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <Separator className="w-full" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-white px-2 text-muted-foreground">Or</span>
+                </div>
+              </div>
+              
+              <Button
+                variant="outline"
+                className="w-full gap-2"
+                asChild
+              >
+                <Link href={`/auth/magic-link${returnTo ? `?redirect=${encodeURIComponent(returnTo)}` : ''}`}>
+                  <Mail className="w-4 h-4" />
+                  Sign in with Email
+                </Link>
               </Button>
             </div>
           </div>

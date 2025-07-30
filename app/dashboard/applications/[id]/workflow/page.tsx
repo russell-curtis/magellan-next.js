@@ -301,7 +301,7 @@ export default function ApplicationWorkflowPage() {
 
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
-        <TabsList className="grid w-full grid-cols-5">
+        <TabsList>
           <TabsTrigger value="overview">Workflow Overview</TabsTrigger>
           <TabsTrigger value="documents">Document Management</TabsTrigger>
           <TabsTrigger value="uploads">Upload Center</TabsTrigger>

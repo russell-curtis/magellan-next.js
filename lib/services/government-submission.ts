@@ -6,9 +6,11 @@ import {
   applications, 
   documents,
   documentRequirements,
-  activityLogs
+  activityLogs,
+  clients,
+  crbiPrograms
 } from '@/db/schema'
-import { eq, and } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 
 // ============================================================================
 // INTERFACES AND TYPES
@@ -138,55 +140,203 @@ export class DocumentCompilationService {
    * Get application details with related data
    */
   private async getApplicationDetails(applicationId: string) {
-    // Simple query without joins to avoid complexity
-    const result = await db
-      .select({
-        id: applications.id,
-        applicationNumber: applications.applicationNumber,
-        status: applications.status,
-        firmId: applications.firmId,
-        programId: applications.programId,
-        clientId: applications.clientId
-      })
-      .from(applications)
-      .where(eq(applications.id, applicationId))
-      .limit(1)
+    try {
+      console.log('Getting application details for:', applicationId)
+      
+      // Get application with related client and program data
+      const result = await db
+        .select({
+          // Application fields
+          id: applications.id,
+          applicationNumber: applications.applicationNumber,
+          status: applications.status,
+          firmId: applications.firmId,
+          programId: applications.programId,
+          clientId: applications.clientId,
+          investmentAmount: applications.investmentAmount,
+          createdAt: applications.createdAt,
+          // Client fields
+          clientFirstName: clients.firstName,
+          clientLastName: clients.lastName,
+          clientEmail: clients.email,
+          clientPhone: clients.phone,
+          clientNationality: clients.nationality,
+          clientPassportNumber: clients.passportNumber,
+          // Program fields
+          programName: crbiPrograms.programName,
+          countryCode: crbiPrograms.countryCode,
+          countryName: crbiPrograms.countryName,
+          programType: crbiPrograms.programType,
+          minInvestment: crbiPrograms.minInvestment,
+          processingTimeMonths: crbiPrograms.processingTimeMonths
+        })
+        .from(applications)
+        .leftJoin(clients, eq(applications.clientId, clients.id))
+        .leftJoin(crbiPrograms, eq(applications.programId, crbiPrograms.id))
+        .where(eq(applications.id, applicationId))
+        .limit(1)
 
-    if (!result.length) return null
-
-    const app = result[0]
-    
-    return {
-      ...app,
-      applicationNumber: app.applicationNumber || `APP-${applicationId.slice(-8).toUpperCase()}`,
-      client: {
-        firstName: 'Client',
-        lastName: 'Name',
-        email: 'client@example.com'
-      },
-      program: {
-        programName: 'St. Kitts Citizenship',
-        countryCode: 'KN',
-        countryName: 'St. Kitts and Nevis'
+      if (!result.length) {
+        console.log('Application not found:', applicationId)
+        return null
       }
+
+      const data = result[0]
+      console.log('Application details retrieved:', {
+        applicationId: data.id,
+        hasClient: !!data.clientFirstName,
+        hasProgram: !!data.programName
+      })
+
+      return {
+        id: data.id,
+        applicationNumber: data.applicationNumber || `APP-${applicationId.slice(-8).toUpperCase()}`,
+        status: data.status,
+        firmId: data.firmId,
+        programId: data.programId,
+        clientId: data.clientId,
+        investmentAmount: data.investmentAmount,
+        createdAt: data.createdAt,
+        client: {
+          firstName: data.clientFirstName || 'Unknown',
+          lastName: data.clientLastName || 'Client',
+          email: data.clientEmail || 'client@example.com',
+          phone: data.clientPhone,
+          nationality: data.clientNationality,
+          passportNumber: data.clientPassportNumber
+        },
+        program: {
+          programName: data.programName || 'Unknown Program',
+          countryCode: data.countryCode || 'XX',
+          countryName: data.countryName || 'Unknown Country',
+          programType: data.programType || 'unknown',
+          minInvestment: data.minInvestment,
+          processingTimeMonths: data.processingTimeMonths
+        }
+      }
+    } catch (error) {
+      console.error('Error getting application details:', error)
+      return null
     }
   }
 
   /**
-   * Get document requirements for a program
+   * Get document requirements for a program with enhanced validation data
    */
   private async getDocumentRequirements(programId: string) {
-    return await db
-      .select({
-        id: documentRequirements.id,
-        documentName: documentRequirements.documentName,
-        description: documentRequirements.description,
-        category: documentRequirements.category,
-        isRequired: documentRequirements.isRequired,
-        stageId: documentRequirements.stageId
-      })
-      .from(documentRequirements)
-      .where(eq(documentRequirements.programId, programId))
+    try {
+      console.log('Getting document requirements for program:', programId)
+      
+      const requirements = await db
+        .select({
+          id: documentRequirements.id,
+          documentName: documentRequirements.documentName,
+          description: documentRequirements.description,
+          category: documentRequirements.category,
+          isRequired: documentRequirements.isRequired,
+          stageId: documentRequirements.stageId,
+          acceptedFormats: documentRequirements.acceptedFormats,
+          maxFileSize: documentRequirements.maxFileSize,
+          validityDays: documentRequirements.validityDays,
+          notes: documentRequirements.notes
+        })
+        .from(documentRequirements)
+        .where(eq(documentRequirements.programId, programId))
+      
+      console.log('Document requirements retrieved:', requirements.length)
+      
+      // If no specific requirements found, return default CRBI requirements
+      if (requirements.length === 0) {
+        console.log('No specific requirements found, using default CRBI requirements')
+        return this.getDefaultCRBIRequirements()
+      }
+      
+      return requirements
+    } catch (error) {
+      console.error('Error getting document requirements:', error)
+      // Fallback to default requirements on error
+      return this.getDefaultCRBIRequirements()
+    }
+  }
+
+  /**
+   * Get default CRBI document requirements when program-specific ones are not available
+   */
+  private getDefaultCRBIRequirements() {
+    return [
+      {
+        id: 'default-passport',
+        documentName: 'Valid Passport',
+        description: 'Current passport with at least 6 months validity',
+        category: 'identity',
+        isRequired: true,
+        stageId: null,
+        acceptedFormats: ['pdf', 'jpg', 'png'],
+        maxFileSize: 10485760, // 10MB
+        validityDays: 180,
+        notes: 'All pages must be clearly visible'
+      },
+      {
+        id: 'default-birth-certificate',
+        documentName: 'Birth Certificate',
+        description: 'Certified copy of birth certificate',
+        category: 'identity',
+        isRequired: true,
+        stageId: null,
+        acceptedFormats: ['pdf'],
+        maxFileSize: 5242880, // 5MB
+        validityDays: null,
+        notes: 'Must be apostilled or legalized'
+      },
+      {
+        id: 'default-police-clearance',
+        documentName: 'Police Clearance Certificate',
+        description: 'Police clearance from country of residence',
+        category: 'background',
+        isRequired: true,
+        stageId: null,
+        acceptedFormats: ['pdf'],
+        maxFileSize: 5242880, // 5MB
+        validityDays: 90,
+        notes: 'Must be issued within 3 months'
+      },
+      {
+        id: 'default-financial-statement',
+        documentName: 'Financial Statements',
+        description: 'Bank statements or investment proofs',
+        category: 'financial',
+        isRequired: true,
+        stageId: null,
+        acceptedFormats: ['pdf'],
+        maxFileSize: 10485760, // 10MB
+        validityDays: 90,
+        notes: 'Last 6 months of statements required'
+      },
+      {
+        id: 'default-medical-certificate',
+        documentName: 'Medical Certificate',
+        description: 'Health certificate from approved medical facility',
+        category: 'medical',
+        isRequired: true,
+        stageId: null,
+        acceptedFormats: ['pdf'],
+        maxFileSize: 5242880, // 5MB
+        validityDays: 30,
+        notes: 'Must include HIV/AIDS and tuberculosis tests'
+      },
+      {
+        id: 'default-investment-proof',
+        documentName: 'Investment Documentation',
+        description: 'Proof of investment commitment',
+        category: 'investment',
+        isRequired: true,
+        stageId: null,
+        acceptedFormats: ['pdf'],
+        maxFileSize: 20971520, // 20MB
+        validityDays: 180,
+        notes: 'Investment agreement and proof of funds'
+      }
+    ]
   }
 
   /**
@@ -238,46 +388,341 @@ export class DocumentCompilationService {
   }
 
   /**
-   * Validate submission package completeness
+   * Validate submission package completeness against program requirements
    */
   private validatePackage(
-    requirements: any[], 
+    requirements: Array<{
+      id: string
+      documentName: string
+      description: string
+      category: string
+      isRequired: boolean
+      stageId: string | null
+      acceptedFormats?: string[]
+      maxFileSize?: number
+      validityDays?: number
+      notes?: string
+    }>, 
     documents: DocumentPackageItem[]
   ): { isComplete: boolean; missingRequiredDocs: string[]; warnings: string[] } {
     const warnings: string[] = []
-    
-    // For now, just check basic document validations
-    // In a full implementation, this would check against actual requirements
-    
-    // Check for large files
-    const largeFiles = documents.filter(doc => doc.fileSize > 50 * 1024 * 1024) // 50MB
-    if (largeFiles.length > 0) {
-      warnings.push(`${largeFiles.length} large file(s) detected. May cause submission delays.`)
-    }
-
-    // Check for old documents
-    const oldDocuments = documents.filter(doc => {
-      const uploadDate = new Date(doc.uploadedAt)
-      const daysOld = (Date.now() - uploadDate.getTime()) / (1000 * 60 * 60 * 24)
-      return daysOld > 90 // 3 months old
-    })
-    if (oldDocuments.length > 0) {
-      warnings.push(`${oldDocuments.length} document(s) are older than 3 months.`)
-    }
-
-    // For testing, always consider complete (remove document requirement)
-    const isComplete = true
     const missingRequiredDocs: string[] = []
     
-    // Add info about document count
-    if (documents.length === 0) {
-      warnings.push('No documents found - this is a test implementation')
+    console.log('Validating package with requirements:', requirements.length, 'documents:', documents.length)
+    
+    // Enhanced file size validation based on requirements
+    for (const doc of documents) {
+      // Find matching requirement for more precise validation
+      const matchingReq = requirements.find(req => 
+        this.isDocumentMatchingRequirement(doc, req)
+      )
+      
+      if (matchingReq?.maxFileSize && doc.fileSize > matchingReq.maxFileSize) {
+        warnings.push(`${doc.documentName} exceeds maximum file size (${this.formatFileSize(matchingReq.maxFileSize)})`)
+      } else if (!matchingReq && doc.fileSize > 50 * 1024 * 1024) {
+        // General large file warning for unmatched documents
+        warnings.push(`${doc.documentName} is very large (>50MB). May cause submission delays.`)
+      }
     }
+
+    // Enhanced document age validation based on requirements
+    for (const doc of documents) {
+      const uploadDate = new Date(doc.uploadedAt)
+      const daysOld = (Date.now() - uploadDate.getTime()) / (1000 * 60 * 60 * 24)
+      
+      const matchingReq = requirements.find(req => 
+        this.isDocumentMatchingRequirement(doc, req)
+      )
+      
+      if (matchingReq?.validityDays && daysOld > matchingReq.validityDays) {
+        warnings.push(`${doc.documentName} is older than required validity period (${matchingReq.validityDays} days)`)
+      } else if (!matchingReq && daysOld > 90) {
+        // General age warning for unmatched documents
+        warnings.push(`${doc.documentName} is older than 3 months. Consider requesting updated version.`)
+      }
+    }
+
+    // File format validation
+    for (const doc of documents) {
+      const fileExtension = doc.fileName.split('.').pop()?.toLowerCase()
+      
+      if (!fileExtension) {
+        warnings.push(`${doc.documentName} missing file extension. May cause processing issues.`)
+        continue
+      }
+      
+      const matchingReq = requirements.find(req => 
+        this.isDocumentMatchingRequirement(doc, req)
+      )
+      
+      if (matchingReq?.acceptedFormats && !matchingReq.acceptedFormats.includes(fileExtension)) {
+        warnings.push(`${doc.documentName} format (${fileExtension}) not accepted. Expected: ${matchingReq.acceptedFormats.join(', ')}`)
+      }
+    }
+
+    // Validate against program requirements with improved matching
+    const requiredDocs = requirements.filter(req => req.isRequired)
+    
+    for (const requirement of requiredDocs) {
+      const matchingDocs = documents.filter(doc => 
+        this.isDocumentMatchingRequirement(doc, requirement)
+      )
+      
+      if (matchingDocs.length === 0) {
+        missingRequiredDocs.push(`${requirement.documentName} (${requirement.category})`)
+      } else if (matchingDocs.length > 1) {
+        warnings.push(`Multiple documents found for ${requirement.documentName}. Please ensure only the most current version is included.`)
+      }
+    }
+
+    // Quality checks
+    if (documents.length === 0) {
+      warnings.push('No documents uploaded. Submission cannot proceed.')
+      missingRequiredDocs.push('At least one document is required')
+    }
+
+    // Check for documents without matching requirements
+    const unmatchedDocs = documents.filter(doc => 
+      !requirements.some(req => this.isDocumentMatchingRequirement(doc, req))
+    )
+    
+    if (unmatchedDocs.length > 0) {
+      warnings.push(`${unmatchedDocs.length} document(s) don't match program requirements: ${unmatchedDocs.map(d => d.documentName).join(', ')}`)
+    }
+
+    // Check for critical document categories
+    const criticalCategories = ['identity', 'financial', 'background']
+    const presentCategories = new Set(documents.map(doc => doc.category.toLowerCase()))
+    
+    for (const category of criticalCategories) {
+      if (!presentCategories.has(category)) {
+        const missingCategoryReqs = requirements.filter(req => 
+          req.category?.toLowerCase() === category && req.isRequired
+        )
+        if (missingCategoryReqs.length > 0) {
+          warnings.push(`No ${category} documents found. This category is typically required for CRBI applications.`)
+        }
+      }
+    }
+
+    const isComplete = missingRequiredDocs.length === 0
+    
+    console.log('Enhanced validation result:', {
+      isComplete,
+      missingRequiredDocs: missingRequiredDocs.length,
+      warnings: warnings.length,
+      unmatchedDocuments: unmatchedDocs.length
+    })
 
     return {
       isComplete,
       missingRequiredDocs,
       warnings
+    }
+  }
+
+  /**
+   * Check if a document matches a requirement using enhanced matching logic
+   */
+  private isDocumentMatchingRequirement(document: DocumentPackageItem, requirement: {
+    id: string
+    documentName: string
+    description: string
+    category: string
+    isRequired: boolean
+    stageId: string | null
+    acceptedFormats?: string[]
+    maxFileSize?: number
+    validityDays?: number
+    notes?: string
+  }): boolean {
+    const docCategory = document.category?.toLowerCase() || ''
+    const docName = document.documentName?.toLowerCase() || ''
+    const docFileName = document.fileName?.toLowerCase() || ''
+    
+    const reqCategory = requirement.category?.toLowerCase() || ''
+    const reqName = requirement.documentName?.toLowerCase() || ''
+    
+    // Direct category match
+    if (docCategory === reqCategory) {
+      return true
+    }
+    
+    // Document name contains requirement name
+    if (reqName && (docName.includes(reqName) || docFileName.includes(reqName))) {
+      return true
+    }
+    
+    // Category-based keyword matching
+    const categoryKeywords: Record<string, string[]> = {
+      identity: ['passport', 'birth', 'certificate', 'id', 'identity'],
+      financial: ['bank', 'statement', 'financial', 'investment', 'funds'],
+      background: ['police', 'clearance', 'criminal', 'background'],
+      medical: ['medical', 'health', 'certificate', 'examination'],
+      investment: ['investment', 'proof', 'commitment', 'agreement']
+    }
+    
+    const reqKeywords = categoryKeywords[reqCategory] || []
+    const docText = `${docName} ${docFileName} ${docCategory}`
+    
+    return reqKeywords.some(keyword => docText.includes(keyword))
+  }
+
+  /**
+   * Format file size for human reading
+   */
+  private formatFileSize(bytes: number): string {
+    if (bytes === 0) return '0 Bytes'
+    
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+  }
+
+  /**
+   * Get detailed validation report for frontend display
+   */
+  async getValidationReport(applicationId: string): Promise<{
+    applicationDetails: {
+      id: string
+      applicationNumber: string
+      status: string
+      firmId: string
+      programId: string
+      clientId: string
+      investmentAmount: number | null
+      createdAt: Date | null
+      client: {
+        firstName: string
+        lastName: string
+        email: string
+        phone: string | null
+        nationality: string | null
+        passportNumber: string | null
+      }
+      program: {
+        programName: string
+        countryCode: string
+        countryName: string
+        programType: string
+        minInvestment: number | null
+        processingTimeMonths: number | null
+      }
+    }
+    requirements: Array<{
+      id: string
+      documentName: string
+      description: string
+      category: string
+      isRequired: boolean
+      stageId: string | null
+      acceptedFormats?: string[]
+      maxFileSize?: number
+      validityDays?: number
+      notes?: string
+    }>
+    documents: DocumentPackageItem[]
+    validation: { isComplete: boolean; missingRequiredDocs: string[]; warnings: string[] }
+    detailedChecks: {
+      requirementName: string
+      status: 'complete' | 'missing' | 'warning'
+      documents: DocumentPackageItem[]
+      issues: string[]
+      notes?: string
+    }[]
+  }> {
+    try {
+      console.log('Generating validation report for application:', applicationId)
+      
+      // Get application details
+      const application = await this.getApplicationDetails(applicationId)
+      if (!application) {
+        throw new Error('Application not found')
+      }
+      
+      // Get requirements and documents
+      const requirements = await this.getDocumentRequirements(application.programId)
+      const documents = await this.getApprovedDocuments(applicationId)
+      
+      // Run validation
+      const validation = this.validatePackage(requirements, documents)
+      
+      // Generate detailed checks for each requirement
+      const detailedChecks = requirements.map(requirement => {
+        const matchingDocs = documents.filter(doc => 
+          this.isDocumentMatchingRequirement(doc, requirement)
+        )
+        
+        const issues: string[] = []
+        let status: 'complete' | 'missing' | 'warning' = 'complete'
+        
+        if (matchingDocs.length === 0 && requirement.isRequired) {
+          status = 'missing'
+          issues.push('Required document not uploaded')
+        } else if (matchingDocs.length === 0 && !requirement.isRequired) {
+          status = 'warning'
+          issues.push('Optional document not provided')
+        } else {
+          // Check individual document issues
+          for (const doc of matchingDocs) {
+            // File size check
+            if (requirement.maxFileSize && doc.fileSize > requirement.maxFileSize) {
+              status = 'warning'
+              issues.push(`File size exceeds limit (${this.formatFileSize(requirement.maxFileSize)})`)
+            }
+            
+            // Age check
+            if (requirement.validityDays) {
+              const uploadDate = new Date(doc.uploadedAt)
+              const daysOld = (Date.now() - uploadDate.getTime()) / (1000 * 60 * 60 * 24)
+              if (daysOld > requirement.validityDays) {
+                status = 'warning'
+                issues.push(`Document is ${Math.floor(daysOld)} days old (max: ${requirement.validityDays} days)`)
+              }
+            }
+            
+            // Format check
+            const fileExtension = doc.fileName.split('.').pop()?.toLowerCase()
+            if (requirement.acceptedFormats && fileExtension && !requirement.acceptedFormats.includes(fileExtension)) {
+              status = 'warning'
+              issues.push(`Format ${fileExtension} not accepted (expected: ${requirement.acceptedFormats.join(', ')})`)
+            }
+          }
+          
+          // Multiple documents check
+          if (matchingDocs.length > 1) {
+            status = status === 'complete' ? 'warning' : status
+            issues.push(`Multiple documents found (${matchingDocs.length}). Consider keeping only the most recent.`)
+          }
+        }
+        
+        return {
+          requirementName: requirement.documentName || requirement.category || 'Unknown',
+          status,
+          documents: matchingDocs,
+          issues,
+          notes: requirement.notes
+        }
+      })
+      
+      console.log('Validation report generated:', {
+        requirements: requirements.length,
+        documents: documents.length,
+        detailedChecks: detailedChecks.length
+      })
+      
+      return {
+        applicationDetails: application,
+        requirements,
+        documents,
+        validation,
+        detailedChecks
+      }
+    } catch (error) {
+      console.error('Error generating validation report:', error)
+      throw error
     }
   }
 
@@ -432,8 +877,8 @@ export class GovernmentSubmissionService {
    * Check submission status with government portal
    */
   async checkSubmissionStatus(
-    applicationId: string,
-    governmentReferenceNumber: string
+    _applicationId: string,
+    _governmentReferenceNumber: string
   ): Promise<{
     status: string
     lastUpdated: string

@@ -168,8 +168,8 @@ export default function TasksPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-bold tracking-tight">Task Management</h1>
-          <p className="text-muted-foreground">
+          <h1 className="text-3xl font-semibold tracking-tight">Tasks & Workflow</h1>
+          <p style={{color: '#00000080'}}>
             Manage and track tasks across all clients and applications
           </p>
         </div>
@@ -235,7 +235,7 @@ export default function TasksPage() {
       {/* Task Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab} className="flex-1">
         <div className="flex items-center justify-between">
-          <TabsList className="grid w-full max-w-md grid-cols-5">
+          <TabsList>
             <TabsTrigger value="all">
               All ({stats.total})
             </TabsTrigger>

@@ -1,6 +1,26 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 
+/* Custom hover effect for feature cards */
+.hover-card-dark:hover {
+  background-color: #222 !important;
+}
+
+/* Custom blue button hover effects */
+.purple-button {
+  background-color: #3f59d9;
+  box-shadow: 0 10px 15px -3px rgba(63, 89, 217, 0.25);
+}
+
+.purple-button:hover {
+  background-color: #364cc7 !important;
+}
+
+/* Feature card title hover effect */
+.group:hover .group-hover-title {
+  color: #3f59d9 !important;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 /* Suisse Intl Font Family */
@@ -109,25 +129,25 @@
 }
 
 :root {
-    /* Apple Light Theme Colors */
-    --background: #ffffff;
-    --foreground: #000000;
+    /* Modern Light Theme Colors (Pipe-inspired) */
+    --background: #f8f9fa;
+    --foreground: #1a1a1a;
     --card: #ffffff;
-    --card-foreground: #000000;
+    --card-foreground: #1a1a1a;
     --popover: #ffffff;
     --popover-foreground: #000000;
     --primary: #3E58DA; /* Brand Blue */
     --primary-foreground: #ffffff;
-    --secondary: #f5f5f7; /* Apple Light Gray */
-    --secondary-foreground: #1d1d1f;
-    --muted: #f5f5f7;
-    --muted-foreground: #86868b;
+    --secondary: #f1f3f4; /* Subtle gray */
+    --secondary-foreground: #1a1a1a;
+    --muted: #f1f3f4;
+    --muted-foreground: #6b7280;
     --accent: #3E58DA; /* Brand Blue */
     --accent-foreground: #ffffff;
     --destructive: #ff3b30; /* Apple Red */
     --destructive-foreground: #ffffff;
-    --border: #e2e2e7; /* Lighter, more subtle border */
-    --input: #f5f5f7;
+    --border: #e5e7eb; /* Clean border */
+    --input: #ffffff;
     --ring: #3E58DA;
     --chart-1: #3E58DA; /* Brand Blue */
     --chart-2: #34c759; /* Apple Green */

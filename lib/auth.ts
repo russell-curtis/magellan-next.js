@@ -11,6 +11,7 @@ import { Polar } from "@polar-sh/sdk";
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
+import { magicLink } from "better-auth/plugins";
 
 // Utility function to safely parse dates
 function safeParseDate(value: string | Date | null | undefined): Date | null {
@@ -177,6 +178,53 @@ export const auth = betterAuth({
           },
         }),
       ],
+    }),
+    magicLink({
+      expiresIn: 60 * 10, // 10 minutes
+      sendMagicLink: async ({ email, url, token }) => {
+        console.log(`Magic link for ${email}: ${url}`);
+        
+        try {
+          // Send actual email using fetch to our email API
+          const response = await fetch(`${process.env.NEXT_PUBLIC_APP_URL || 'http://localhost:3000'}/api/send-email`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              to: email,
+              subject: 'Sign in to CRBI Advisory',
+              html: `
+                <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                  <h2>Sign in to CRBI Advisory</h2>
+                  <p>Click the button below to sign in to your account:</p>
+                  <div style="text-align: center; margin: 30px 0;">
+                    <a href="${url}" 
+                       style="background-color: #007bff; color: white; padding: 12px 24px; 
+                              text-decoration: none; border-radius: 5px; display: inline-block;">
+                      Sign In
+                    </a>
+                  </div>
+                  <p style="color: #666; font-size: 14px;">
+                    This link will expire in 10 minutes. If you didn't request this, you can safely ignore this email.
+                  </p>
+                  <p style="color: #666; font-size: 12px;">
+                    Or copy and paste this URL: ${url}
+                  </p>
+                </div>
+              `,
+            }),
+          });
+
+          if (!response.ok) {
+            console.error('Failed to send email:', await response.text());
+          } else {
+            console.log(`Magic link email sent successfully to ${email}`);
+          }
+        } catch (error) {
+          console.error('Error sending magic link email:', error);
+        }
+      },
     }),
     nextCookies(),
   ],

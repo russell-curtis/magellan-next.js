@@ -338,7 +338,7 @@ export function MessagingInterface({
             </Avatar>
             <div>
               <CardTitle className="text-lg">{conversation.title}</CardTitle>
-              <p className="text-sm text-gray-600">
+              <p className="text-body text-gray-600">
                 {userType === 'client' 
                   ? `with ${conversation.assignedAdvisor?.name || 'Advisor'}`
                   : `${conversation.client.firstName} ${conversation.client.lastName}`
@@ -418,13 +418,13 @@ export function MessagingInterface({
           <div className="flex items-center justify-center h-32">
             <div className="text-center text-gray-500">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto mb-2"></div>
-              <p className="text-sm">Loading messages...</p>
+              <p className="text-body">Loading messages...</p>
             </div>
           </div>
         ) : messages.length === 0 ? (
           <div className="flex items-center justify-center h-32">
             <div className="text-center text-gray-500">
-              <p className="text-sm">No messages yet</p>
+              <p className="text-body">No messages yet</p>
               <p className="text-xs text-gray-400 mt-1">Start the conversation!</p>
             </div>
           </div>
@@ -464,7 +464,7 @@ export function MessagingInterface({
                       </a>
                     </div>
                   ) : (
-                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                    <p className="text-body whitespace-pre-wrap">{message.content}</p>
                   )}
                 </div>
               </div>

@@ -12,8 +12,15 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { Users, FileText, TrendingUp, ArrowRight } from 'lucide-react'
+import { UserRole } from '@/db/schema'
 
-export function DashboardWrapper() {
+interface DashboardWrapperProps {
+  userId: string;
+  userRole: UserRole;
+  firmId: string;
+}
+
+export function DashboardWrapper({ userId, userRole, firmId }: DashboardWrapperProps) {
   const [needsSetup, setNeedsSetup] = useState<boolean | null>(null)
   const [loading, setLoading] = useState(true)
 

@@ -9,3 +9,6 @@ export const authClient = createAuthClient({
       : "http://localhost:3000",
   plugins: [organizationClient(), polarClient()],
 });
+
+// Export individual methods for easier access
+export const { signIn, signUp, signOut, useSession } = authClient;

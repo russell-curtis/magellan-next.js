@@ -562,6 +562,96 @@ export const messageNotifications = pgTable('message_notifications', {
   unreadIdx: index('notifications_unread_idx').on(table.isRead, table.createdAt),
 }))
 
+// Firm Invitations (Invite system for adding agents to firms)
+export const firmInvitations = pgTable('firm_invitations', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  firmId: uuid('firm_id').notNull().references(() => firms.id, { onDelete: 'cascade' }),
+  invitedById: text('invited_by_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  
+  // Invitation Details
+  email: varchar('email', { length: 255 }).notNull(),
+  role: varchar('role', { length: 50 }).notNull().default('advisor'), // Role to assign when accepted
+  invitationCode: varchar('invitation_code', { length: 100 }).unique().notNull(), // Secure random code
+  
+  // Status & Metadata
+  status: varchar('status', { length: 50 }).default('pending'), // pending, accepted, expired, revoked
+  acceptedAt: timestamp('accepted_at'),
+  acceptedById: text('accepted_by_id').references(() => users.id), // Better Auth user ID
+  revokedAt: timestamp('revoked_at'),
+  revokedById: text('revoked_by_id').references(() => users.id),
+  
+  // Expiration
+  expiresAt: timestamp('expires_at').notNull(), // 7 days from creation
+  
+  // Personal message from inviter
+  personalMessage: text('personal_message'),
+  
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => ({
+  firmIdIdx: index('firm_invitations_firm_id_idx').on(table.firmId),
+  emailIdx: index('firm_invitations_email_idx').on(table.email),
+  statusIdx: index('firm_invitations_status_idx').on(table.status),
+  codeIdx: index('firm_invitations_code_idx').on(table.invitationCode),
+  expiresIdx: index('firm_invitations_expires_idx').on(table.expiresAt),
+}))
+
+// User Permissions (Granular permissions system)
+export const userPermissions = pgTable('user_permissions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  firmId: uuid('firm_id').notNull().references(() => firms.id, { onDelete: 'cascade' }),
+  
+  // Permission Categories
+  canManageClients: boolean('can_manage_clients').default(true),
+  canManageApplications: boolean('can_manage_applications').default(true),
+  canManageDocuments: boolean('can_manage_documents').default(true),
+  canManageTeam: boolean('can_manage_team').default(false), // Only admins/owners
+  canManageFirmSettings: boolean('can_manage_firm_settings').default(false), // Only owners
+  canViewAnalytics: boolean('can_view_analytics').default(true),
+  canManageTasks: boolean('can_manage_tasks').default(true),
+  canAccessBilling: boolean('can_access_billing').default(false), // Only owners/admins
+  
+  // Restrictions
+  maxClientsLimit: integer('max_clients_limit'), // null = unlimited
+  maxApplicationsLimit: integer('max_applications_limit'), // null = unlimited
+  
+  // Metadata
+  grantedById: text('granted_by_id').references(() => users.id), // Who granted these permissions
+  
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => ({
+  userFirmIdx: index('user_permissions_user_firm_idx').on(table.userId, table.firmId),
+  // Unique constraint - one permission record per user per firm
+  uniqueUserFirm: unique('user_permissions_unique_user_firm').on(table.userId, table.firmId),
+}))
+
+// User Setup Status (Track onboarding completion)
+export const userSetupStatus = pgTable('user_setup_status', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: text('user_id').notNull().references(() => user.id, { onDelete: 'cascade' }).unique(), // Better Auth user ID
+  
+  // Setup Progress
+  hasCompletedOnboarding: boolean('has_completed_onboarding').default(false),
+  hasJoinedFirm: boolean('has_joined_firm').default(false),
+  onboardingStep: varchar('onboarding_step', { length: 50 }), // current step if incomplete
+  
+  // Firm Association
+  firmId: uuid('firm_id').references(() => firms.id, { onDelete: 'set null' }),
+  roleInFirm: varchar('role_in_firm', { length: 50 }),
+  
+  // Onboarding Data
+  onboardingData: jsonb('onboarding_data'), // Store temporary data during onboarding
+  
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => ({
+  userIdIdx: index('user_setup_status_user_id_idx').on(table.userId),
+  firmIdIdx: index('user_setup_status_firm_id_idx').on(table.firmId),
+  onboardingIdx: index('user_setup_status_onboarding_idx').on(table.hasCompletedOnboarding),
+}))
+
 // ============================================================================
 // RELATIONS
 // ============================================================================
@@ -575,6 +665,8 @@ export const firmsRelations = relations(firms, ({ many }) => ({
   activityLogs: many(activityLogs),
   communications: many(communications),
   conversations: many(conversations),
+  invitations: many(firmInvitations),
+  userPermissions: many(userPermissions),
 }))
 
 export const usersRelations = relations(users, ({ one, many }) => ({
@@ -594,6 +686,9 @@ export const usersRelations = relations(users, ({ one, many }) => ({
   messageParticipants: many(messageParticipants, { relationName: "AdvisorParticipants" }),
   messageNotifications: many(messageNotifications, { relationName: "AdvisorNotifications" }),
   clientInvitations: many(clientAuth, { relationName: "ClientInvitations" }),
+  invitationsSent: many(firmInvitations, { relationName: "InvitationsSent" }),
+  invitationsAccepted: many(firmInvitations, { relationName: "InvitationsAccepted" }),
+  permissions: one(userPermissions),
 }))
 
 export const clientsRelations = relations(clients, ({ one, many }) => ({
@@ -1366,6 +1461,56 @@ export const originalDocumentsRelations = relations(originalDocuments, ({ one })
   }),
 }))
 
+// Firm Invitations Relations
+export const firmInvitationsRelations = relations(firmInvitations, ({ one }) => ({
+  firm: one(firms, {
+    fields: [firmInvitations.firmId],
+    references: [firms.id],
+  }),
+  invitedBy: one(users, {
+    fields: [firmInvitations.invitedById],
+    references: [users.id],
+    relationName: "InvitationsSent",
+  }),
+  acceptedBy: one(users, {
+    fields: [firmInvitations.acceptedById],
+    references: [users.id],
+    relationName: "InvitationsAccepted",
+  }),
+  revokedBy: one(users, {
+    fields: [firmInvitations.revokedById],
+    references: [users.id],
+  }),
+}))
+
+// User Permissions Relations
+export const userPermissionsRelations = relations(userPermissions, ({ one }) => ({
+  user: one(users, {
+    fields: [userPermissions.userId],
+    references: [users.id],
+  }),
+  firm: one(firms, {
+    fields: [userPermissions.firmId],
+    references: [firms.id],
+  }),
+  grantedBy: one(users, {
+    fields: [userPermissions.grantedById],
+    references: [users.id],
+  }),
+}))
+
+// User Setup Status Relations
+export const userSetupStatusRelations = relations(userSetupStatus, ({ one }) => ({
+  user: one(user, {
+    fields: [userSetupStatus.userId],
+    references: [user.id],
+  }),
+  firm: one(firms, {
+    fields: [userSetupStatus.firmId],
+    references: [firms.id],
+  }),
+}))
+
 // ============================================================================
 // TYPE EXPORTS
 // ============================================================================
@@ -1449,11 +1594,21 @@ export type NewCustomDocumentRequirement = typeof customDocumentRequirements.$in
 export type OriginalDocument = typeof originalDocuments.$inferSelect
 export type NewOriginalDocument = typeof originalDocuments.$inferInsert
 
+// New Table Types
+export type FirmInvitation = typeof firmInvitations.$inferSelect
+export type NewFirmInvitation = typeof firmInvitations.$inferInsert
+
+export type UserPermission = typeof userPermissions.$inferSelect
+export type NewUserPermission = typeof userPermissions.$inferInsert
+
+export type UserSetupStatus = typeof userSetupStatus.$inferSelect
+export type NewUserSetupStatus = typeof userSetupStatus.$inferInsert
+
 // ============================================================================
 // ENUMS & CONSTANTS
 // ============================================================================
 
-export const USER_ROLES = ['admin', 'advisor', 'junior'] as const
+export const USER_ROLES = ['firm_owner', 'admin', 'senior_advisor', 'advisor', 'junior'] as const
 export const CLIENT_STATUSES = ['prospect', 'active', 'approved', 'rejected'] as const
 export const APPLICATION_STATUSES = ['draft', 'submitted', 'under_review', 'approved', 'rejected'] as const
 export const TASK_PRIORITIES = ['low', 'medium', 'high', 'urgent'] as const
@@ -1503,6 +1658,10 @@ export const ORIGINAL_DOCUMENT_STATUSES = [
 export const DOCUMENT_CONDITIONS = ['excellent', 'good', 'acceptable', 'damaged'] as const
 export const COURIER_SERVICES = ['DHL', 'FedEx', 'UPS', 'USPS', 'Royal Mail', 'Other'] as const
 
+// Multi-tenant System Constants
+export const INVITATION_STATUSES = ['pending', 'accepted', 'expired', 'revoked'] as const
+export const ONBOARDING_STEPS = ['welcome', 'firm_selection', 'firm_creation', 'role_assignment', 'completed'] as const
+
 export type UserRole = typeof USER_ROLES[number]
 export type ClientStatus = typeof CLIENT_STATUSES[number]
 export type ApplicationStatus = typeof APPLICATION_STATUSES[number]
@@ -1536,3 +1695,7 @@ export type AcceptedFileFormat = typeof ACCEPTED_FILE_FORMATS[number]
 export type OriginalDocumentStatus = typeof ORIGINAL_DOCUMENT_STATUSES[number]
 export type DocumentCondition = typeof DOCUMENT_CONDITIONS[number]
 export type CourierService = typeof COURIER_SERVICES[number]
+
+// Multi-tenant System Types
+export type InvitationStatus = typeof INVITATION_STATUSES[number]
+export type OnboardingStep = typeof ONBOARDING_STEPS[number]

@@ -7,11 +7,11 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Avatar, AvatarFallback, AvatarInitials } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
+// import { Badge } from '@/components/ui/badge' // Removed - badges no longer used
 import { Separator } from '@/components/ui/separator'
 import { OnlineStatusAvatar } from '@/components/ui/status-indicator'
-import { PriorityBadge } from '@/components/ui/priority-badge'
-import { ConversationNotificationBadge, ConversationItemWrapper } from '@/components/ui/conversation-notification-badge'
+// import { PriorityBadge } from '@/components/ui/priority-badge' // Removed - badges no longer used
+import { ConversationItemWrapper } from '@/components/ui/conversation-notification-badge' // ConversationNotificationBadge removed
 import { formatConversationDate, isRecent } from '@/lib/date-utils'
 import { useConversationUnreadCounts } from '@/hooks/use-conversation-unread-counts'
 import { MessageSquare, User, Clock, Search, X, Archive, ArchiveRestore } from 'lucide-react'
@@ -185,7 +185,7 @@ export default function ClientMessagesPage() {
         {/* Header */}
         <div className="p-4 border-b">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Messages</h2>
+            <h2 className="text-lg font-semibold">Messages & Communication</h2>
           </div>
           <p className="text-sm text-gray-600 mb-3">
             Conversations with your advisory team
@@ -339,31 +339,9 @@ export default function ClientMessagesPage() {
                                 
                                 <div className="flex flex-col items-end space-y-1 flex-shrink-0">
                                   <div className="flex items-center space-x-1">
-                                    <Badge
-                                      variant={conversation.status === 'active' ? 'default' : 'secondary'}
-                                      className={`text-xs ${
-                                        conversation.status === 'active' 
-                                          ? 'bg-green-100 text-green-800 border-green-200' 
-                                          : conversation.status === 'archived'
-                                          ? 'bg-orange-100 text-orange-800 border-orange-200'
-                                          : ''
-                                      }`}
-                                    >
-                                      {conversation.status}
-                                    </Badge>
-                                    {hasUnread && (
-                                      <ConversationNotificationBadge
-                                        unreadCount={conversationUnreadCount}
-                                        variant="minimal"
-                                        isSelected={isConversationSelected}
-                                      />
-                                    )}
+                                    {/* Status and notification badges removed */}
                                   </div>
-                                  <PriorityBadge 
-                                    priority={conversation.priority as 'low' | 'normal' | 'high' | 'urgent'}
-                                    variant="minimal"
-                                    showIcon={false}
-                                  />
+                                  {/* Priority badge removed */}
                                 </div>
                               </div>
                             </div>

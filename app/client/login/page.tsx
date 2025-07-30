@@ -106,7 +106,7 @@ export default function ClientLogin() {
           <h2 className="mt-6 text-3xl font-bold text-gray-900">
             Client Portal
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm" style={{color: '#00000080'}}>
             Sign in to access your account
           </p>
         </div>
@@ -171,7 +171,7 @@ export default function ClientLogin() {
             </form>
 
             <div className="mt-6 text-center">
-              <p className="text-sm text-gray-600">
+              <p className="text-sm" style={{color: '#00000080'}}>
                 Need access? Contact your advisor to get invited to the portal.
               </p>
             </div>

@@ -75,7 +75,7 @@ export default function UserProfile({ mini }: { mini?: boolean }) {
           mini ? "" : ""
         )}
       >
-        <div className="text-red-400 text-sm flex-1">
+        <div className="text-red-400 text-body flex-1">
           {mini ? "Error" : error}
         </div>
       </div>
@@ -101,7 +101,7 @@ export default function UserProfile({ mini }: { mini?: boolean }) {
                 {userInfo?.image ? (
                   <AvatarImage src={userInfo?.image} alt="User Avatar" />
                 ) : (
-                  <AvatarFallback className="bg-gray-700 text-white text-sm">
+                  <AvatarFallback className="bg-gray-700 text-white text-body">
                     {userInfo?.name && userInfo.name.charAt(0).toUpperCase()}
                   </AvatarFallback>
                 )}
@@ -110,7 +110,7 @@ export default function UserProfile({ mini }: { mini?: boolean }) {
           </Avatar>
           {mini ? null : (
             <div className="flex-1 min-w-0">
-              <p className="font-medium text-sm text-white truncate">
+              <p className="font-medium text-body text-white truncate">
                 {loading ? "Loading..." : userInfo?.name || "User"}
               </p>
               <p className="text-xs text-gray-400 truncate">

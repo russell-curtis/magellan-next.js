@@ -7,13 +7,13 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog'
 import { Avatar, AvatarFallback, AvatarInitials } from '@/components/ui/avatar'
-import { Badge } from '@/components/ui/badge'
+// import { Badge } from '@/components/ui/badge' // Removed - badges no longer used
 import { Separator } from '@/components/ui/separator'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible'
 import { OnlineStatusAvatar } from '@/components/ui/status-indicator'
-import { PriorityBadge, PriorityIndicator } from '@/components/ui/priority-badge'
-import { ConversationNotificationBadge, ConversationItemWrapper } from '@/components/ui/conversation-notification-badge'
+import { PriorityIndicator } from '@/components/ui/priority-badge' // PriorityBadge removed
+import { ConversationItemWrapper } from '@/components/ui/conversation-notification-badge' // ConversationNotificationBadge removed
 import { formatConversationDate, isRecent } from '@/lib/date-utils'
 import { useConversationUnreadCounts } from '@/hooks/use-conversation-unread-counts'
 import { MessageSquare, Plus, User, Clock, Search, Lightbulb, AlertTriangle, ChevronDown, ChevronRight, Filter, X, Archive, ArchiveRestore } from 'lucide-react'
@@ -331,7 +331,7 @@ export default function MessagesPage() {
         {/* Header */}
         <div className="p-4 border-b">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Messages</h2>
+            <h2 className="text-lg font-semibold">Messages & Communication</h2>
             
             <Dialog open={showNewConversationDialog} onOpenChange={setShowNewConversationDialog}>
               <DialogTrigger asChild>
@@ -384,9 +384,7 @@ export default function MessagesPage() {
                         {existingConversations.map((conv) => (
                           <div key={conv.id} className="flex items-center justify-between p-2 bg-gray-50 rounded text-sm">
                             <span className="truncate flex-1">{conv.title}</span>
-                            <Badge variant="outline" className="ml-2 text-xs">
-                              {conv.priority}
-                            </Badge>
+                            {/* Priority badge removed */}
                           </div>
                         ))}
                       </div>
@@ -602,18 +600,7 @@ export default function MessagesPage() {
                           </div>
                         </div>
                         <div className="flex items-center space-x-2">
-                          <Badge 
-                            variant="outline" 
-                            className="text-xs font-medium bg-gray-50 text-gray-700"
-                          >
-                            {conversationCount}
-                          </Badge>
-                          {group.conversations.some(conv => conv.priority === 'urgent') && (
-                            <PriorityBadge priority="urgent" showText={false} />
-                          )}
-                          {group.conversations.some(conv => conv.priority === 'high' && conv.priority !== 'urgent') && (
-                            <PriorityBadge priority="high" showText={false} />
-                          )}
+                          {/* Conversation count and priority badges removed */}
                           {group.conversations.some(conv => conv.lastMessageAt && isRecent(conv.lastMessageAt)) && (
                             <div className="h-2 w-2 bg-blue-500 rounded-full animate-pulse" />
                           )}
@@ -669,31 +656,9 @@ export default function MessagesPage() {
                                       
                                       <div className="flex flex-col items-end space-y-1 flex-shrink-0">
                                         <div className="flex items-center space-x-1">
-                                          <Badge
-                                            variant={conversation.status === 'active' ? 'default' : 'secondary'}
-                                            className={`text-xs ${
-                                              conversation.status === 'active' 
-                                                ? 'bg-green-100 text-green-800 border-green-200' 
-                                                : conversation.status === 'archived'
-                                                ? 'bg-orange-100 text-orange-800 border-orange-200'
-                                                : ''
-                                            }`}
-                                          >
-                                            {conversation.status}
-                                          </Badge>
-                                          {hasUnread && (
-                                            <ConversationNotificationBadge
-                                              unreadCount={conversationUnreadCount}
-                                              variant="minimal"
-                                              isSelected={isConversationSelected}
-                                            />
-                                          )}
+                                          {/* Status and notification badges removed */}
                                         </div>
-                                        <PriorityBadge 
-                                          priority={conversation.priority as 'low' | 'normal' | 'high' | 'urgent'}
-                                          variant="minimal"
-                                          showIcon={false}
-                                        />
+                                        {/* Priority badge removed */}
                                       </div>
                                     </div>
                                   </button>
@@ -799,31 +764,9 @@ export default function MessagesPage() {
                                 
                                 <div className="flex flex-col items-end space-y-1 flex-shrink-0">
                                   <div className="flex items-center space-x-1">
-                                    <Badge
-                                      variant={conversation.status === 'active' ? 'default' : 'secondary'}
-                                      className={`text-xs ${
-                                        conversation.status === 'active' 
-                                          ? 'bg-green-100 text-green-800 border-green-200' 
-                                          : conversation.status === 'archived'
-                                          ? 'bg-orange-100 text-orange-800 border-orange-200'
-                                          : ''
-                                      }`}
-                                    >
-                                      {conversation.status}
-                                    </Badge>
-                                    {hasUnread && (
-                                      <ConversationNotificationBadge
-                                        unreadCount={conversationUnreadCount}
-                                        variant="minimal"
-                                        isSelected={isConversationSelected}
-                                      />
-                                    )}
+                                    {/* Status and notification badges removed */}
                                   </div>
-                                  <PriorityBadge 
-                                    priority={conversation.priority as 'low' | 'normal' | 'high' | 'urgent'}
-                                    variant="minimal"
-                                    showIcon={false}
-                                  />
+                                  {/* Priority badge removed */}
                                 </div>
                               </div>
                             </div>
