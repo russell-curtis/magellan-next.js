@@ -390,10 +390,17 @@ export default function ClientEditPage() {
                 {(formData.currentCitizenships || []).map((citizenship) => (
                   <Badge key={citizenship} variant="secondary" className="flex items-center gap-1">
                     {citizenship}
-                    <X 
-                      className="h-3 w-3 cursor-pointer" 
-                      onClick={() => removeFromArray('currentCitizenships', citizenship)}
-                    />
+                    <button
+                      type="button"
+                      className="ml-1 hover:bg-gray-300 rounded-full p-0.5 transition-colors"
+                      onClick={(e) => {
+                        e.preventDefault()
+                        e.stopPropagation()
+                        removeFromArray('currentCitizenships', citizenship)
+                      }}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
                   </Badge>
                 ))}
               </div>
@@ -1012,7 +1019,7 @@ export default function ClientEditPage() {
               </Button>
               <Separator orientation="vertical" className="h-6" />
               <div>
-                <h1 className="text-xl font-semibold text-gray-900">
+                <h1 className="text-2xl font-bold text-gray-900">
                   Edit Client: {formData.firstName} {formData.lastName}
                 </h1>
                 <p className="text-sm text-gray-600">

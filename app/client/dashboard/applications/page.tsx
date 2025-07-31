@@ -156,8 +156,8 @@ export default function ClientApplicationsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Applications</h1>
-          <p className="mt-1" style={{color: '#00000080'}}>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Applications</h1>
+          <p className="mt-1 text-sm" style={{color: '#00000080'}}>
             Track the progress of your immigration applications
           </p>
         </div>
@@ -209,7 +209,7 @@ export default function ClientApplicationsPage() {
 
       {/* Empty State */}
       {!loadingApplications && applications.length === 0 && !error && (
-        <Card>
+        <Card className="border border-gray-200">
           <CardContent className="p-12 text-center">
             <Briefcase className="h-16 w-16 text-gray-400 mx-auto mb-4" />
             <h3 className="text-lg font-semibold text-gray-900 mb-2">No Applications Yet</h3>
@@ -234,7 +234,7 @@ export default function ClientApplicationsPage() {
             })
             
             return (
-              <Card key={application.id}>
+              <Card key={application.id} className="border border-gray-200">
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-3">

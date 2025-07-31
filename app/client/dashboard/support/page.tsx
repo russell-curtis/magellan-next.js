@@ -96,7 +96,7 @@ export default function ClientSupportPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Support & Help</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Support & Help</h1>
           <p className="mt-1 text-sm" style={{color: '#00000080'}}>
             Get help and support for your immigration journey
           </p>

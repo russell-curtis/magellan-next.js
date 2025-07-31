@@ -414,7 +414,7 @@ export default function ClientApplicationPage() {
           <h1 className="text-2xl font-bold text-gray-900">
             {application.program.programName}
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-sm text-gray-600 mt-1">
             {application.program.countryName}
           </p>
           <p className="text-gray-500 text-sm mt-1">
@@ -439,7 +439,7 @@ export default function ClientApplicationPage() {
       </div>
 
       {/* Progress Overview */}
-      <Card>
+      <Card className="border border-gray-200">
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
@@ -503,7 +503,7 @@ export default function ClientApplicationPage() {
 
           {/* Current Stage Summary */}
           {currentStage && (
-            <Card>
+            <Card className="border border-gray-200">
               <CardHeader>
                 <CardTitle>Current Stage: {currentStage.stageName}</CardTitle>
               </CardHeader>
@@ -576,7 +576,7 @@ export default function ClientApplicationPage() {
 
         <TabsContent value="documents" className="space-y-6">
           {requirementsData.length === 0 ? (
-            <Card>
+            <Card className="border border-gray-200">
               <CardContent className="flex flex-col items-center justify-center py-12">
                 <FileText className="h-12 w-12 text-gray-400 mb-4" />
                 <h3 className="text-lg font-semibold text-gray-900 mb-2">Loading Document Requirements</h3>
@@ -602,7 +602,7 @@ export default function ClientApplicationPage() {
               const progressPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
 
               return (
-                <Card key={stage.id} className={isCurrentStage ? 'border-blue-300 bg-blue-50' : ''}>
+                <Card key={stage.id} className={isCurrentStage ? 'border-blue-300 bg-blue-50' : 'border border-gray-200'}>
                   <CardHeader>
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-2">
@@ -708,7 +708,7 @@ export default function ClientApplicationPage() {
         </TabsContent>
 
         <TabsContent value="upload" className="space-y-6">
-          <Card>
+          <Card className="border border-gray-200">
             <CardHeader>
               <CardTitle>Upload Documents</CardTitle>
               <p className="text-sm text-gray-600">

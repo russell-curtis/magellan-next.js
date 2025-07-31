@@ -250,7 +250,7 @@ function SettingsContent() {
     <div className="flex flex-col gap-8 p-8">
       {/* Header */}
       <div>
-        <h1 className="text-3xl font-semibold tracking-tight text-foreground">Settings</h1>
+        <h1 className="text-2xl font-bold tracking-tight text-foreground">Settings</h1>
         <p className="mt-2 text-sm" style={{color: '#00000080'}}>
           Manage your account settings and preferences
         </p>

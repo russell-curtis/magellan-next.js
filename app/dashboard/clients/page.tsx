@@ -231,7 +231,7 @@ export default function ClientsPage() {
       <div className="w-full space-y-6">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-3xl font-semibold tracking-tight">Client Directory</h1>
+            <h1 className="text-2xl font-bold tracking-tight">Client Directory</h1>
             <p className="text-sm" style={{color: '#00000080'}}>
               Manage your CRBI clients and track their applications
             </p>

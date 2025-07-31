@@ -168,8 +168,8 @@ export default function TasksPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight">Tasks & Workflow</h1>
-          <p style={{color: '#00000080'}}>
+          <h1 className="text-2xl font-bold tracking-tight">Tasks & Workflow</h1>
+          <p className="text-sm" style={{color: '#00000080'}}>
             Manage and track tasks across all clients and applications
           </p>
         </div>

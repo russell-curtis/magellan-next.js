@@ -102,8 +102,8 @@ export default function ClientDocumentsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Resource Library</h1>
-          <p className="mt-1 text-gray-600">
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Resource Library</h1>
+          <p className="mt-1 text-sm text-gray-600">
             Access document templates and resources shared by your advisory team
           </p>
         </div>

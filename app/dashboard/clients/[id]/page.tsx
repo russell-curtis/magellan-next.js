@@ -348,7 +348,7 @@ export default function ClientProfilePage() {
             </AvatarFallback>
           </Avatar>
           <div>
-            <h1 className="text-3xl font-bold tracking-tight">
+            <h1 className="text-2xl font-bold tracking-tight">
               {client.firstName} {client.lastName}
             </h1>
             <div className="flex items-center space-x-2 mt-2">
@@ -491,25 +491,25 @@ export default function ClientProfilePage() {
         <TabsContent value="overview" className="mt-6 space-y-6">
           {/* Quick Stats Row */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Card>
+            <Card className="border border-gray-200">
               <CardContent className="p-4">
                 <div className="text-2xl font-bold">{client.programQualificationScore || 0}/100</div>
                 <div className="text-sm text-muted-foreground">Qualification Score</div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="border border-gray-200">
               <CardContent className="p-4">
                 <div className="text-2xl font-bold">{client.applicationCount || 0}</div>
                 <div className="text-sm text-muted-foreground">Applications</div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="border border-gray-200">
               <CardContent className="p-4">
                 <div className="text-2xl font-bold">{client.familyMembers?.length || 0}</div>
                 <div className="text-sm text-muted-foreground">Family Members</div>
               </CardContent>
             </Card>
-            <Card>
+            <Card className="border border-gray-200">
               <CardContent className="p-4">
                 <div className="text-2xl font-bold">{client.urgencyLevel?.charAt(0).toUpperCase() + client.urgencyLevel?.slice(1) || 'Low'}</div>
                 <div className="text-sm text-muted-foreground">Priority Level</div>
@@ -519,7 +519,7 @@ export default function ClientProfilePage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Client Qualification Summary */}
-            <Card>
+            <Card className="border border-gray-200">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <CheckCircle className="h-5 w-5" />
@@ -567,7 +567,7 @@ export default function ClientProfilePage() {
             </Card>
 
             {/* Immigration Goals & Timeline */}
-            <Card>
+            <Card className="border border-gray-200">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Calendar className="h-5 w-5" />
@@ -628,7 +628,7 @@ export default function ClientProfilePage() {
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Family Profile */}
-            <Card>
+            <Card className="border border-gray-200">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <User className="h-5 w-5" />
@@ -662,7 +662,7 @@ export default function ClientProfilePage() {
             </Card>
 
             {/* Contact & Professional Summary */}
-            <Card>
+            <Card className="border border-gray-200">
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
                   <Mail className="h-5 w-5" />

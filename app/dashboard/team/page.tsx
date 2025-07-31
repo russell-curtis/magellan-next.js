@@ -29,10 +29,10 @@ export default async function TeamManagementPage() {
     <section className="flex flex-col items-start justify-start p-6 w-full">
       <div className="w-full">
         <div className="flex flex-col items-start justify-center gap-2 mb-6">
-          <h1 className="text-3xl font-semibold tracking-tight">
+          <h1 className="text-2xl font-bold tracking-tight">
             Team Management
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Manage your firm's team members, roles, and permissions
           </p>
         </div>

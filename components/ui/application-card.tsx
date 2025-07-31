@@ -655,7 +655,7 @@ export function ApplicationCard({ application, onStatusChange, onEditApplication
 
   return (
     <>
-    <Card className="hover:shadow-lg transition-all duration-200">
+    <Card className="border border-gray-200">
       <CardContent className="p-6">
         <div className="flex items-center justify-between space-x-6">
           {/* Left section: Status icon, Application info, Client */}

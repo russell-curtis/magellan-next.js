@@ -232,7 +232,7 @@ export default function ApplicationWorkflowPage() {
           <h1 className="text-2xl font-bold text-gray-900">
             {application.program.programName}
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-sm text-gray-600 mt-1">
             {application.program.countryName}
           </p>
           <p className="text-gray-500 text-sm mt-1">

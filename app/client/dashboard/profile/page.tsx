@@ -98,7 +98,7 @@ export default function ClientProfilePage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-3xl font-semibold tracking-tight text-gray-900">Profile Settings</h1>
+          <h1 className="text-2xl font-bold tracking-tight text-gray-900">Profile Settings</h1>
           <p className="mt-1 text-sm" style={{color: '#00000080'}}>
             Manage your personal information and preferences
           </p>

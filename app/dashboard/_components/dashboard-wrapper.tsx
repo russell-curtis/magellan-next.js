@@ -77,11 +77,11 @@ export function DashboardWrapper({ userId, userRole, firmId }: DashboardWrapperP
   return (
     <section className="flex flex-col items-start justify-start p-6 w-full">
       <div className="w-full">
-        <div className="flex flex-col items-start justify-center gap-2 mb-6">
-          <h1 className="text-3xl font-semibold tracking-tight">
+        <div className="flex flex-col items-start justify-center gap-1 mb-6">
+          <h1 className="text-2xl font-bold tracking-tight">
             Client Management Dashboard
           </h1>
-          <p className="text-muted-foreground">
+          <p className="text-sm text-muted-foreground">
             Comprehensive view of your CRBI client portfolio, application progress, and key performance metrics.
           </p>
         </div>
