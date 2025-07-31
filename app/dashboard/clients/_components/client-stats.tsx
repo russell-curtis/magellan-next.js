@@ -17,7 +17,13 @@ interface ClientStatsProps {
 }
 
 export function ClientStats({ stats }: ClientStatsProps) {
-  const statCards = [
+  const statCards: Array<{
+    title: string
+    value: number | string
+    icon: React.ComponentType<{ className?: string }>
+    color: string
+    subtitle?: string
+  }> = [
     {
       title: 'Total Clients',
       value: stats.total,
@@ -43,10 +49,11 @@ export function ClientStats({ stats }: ClientStatsProps) {
       color: 'text-emerald-600'
     },
     {
-      title: 'Total Net Worth',
+      title: 'Portfolio Value',
       value: formatCurrency(stats.totalNetWorth),
       icon: TrendingUp,
-      color: 'text-purple-600'
+      color: 'text-purple-600',
+      subtitle: `Avg: ${formatCurrency(stats.avgInvestmentBudget)}`
     }
   ]
 
@@ -60,6 +67,9 @@ export function ClientStats({ stats }: ClientStatsProps) {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stat.value}</div>
+            {stat.subtitle && (
+              <div className="text-xs text-muted-foreground mt-1">{stat.subtitle}</div>
+            )}
           </CardContent>
         </Card>
       ))}

@@ -1,14 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Plus, RefreshCw } from 'lucide-react'
 import { ClientStats } from './_components/client-stats'
 import { ClientFilters } from './_components/client-filters'
 import { ClientTable } from './_components/client-table'
-import { ClientEditModal } from './_components/client-edit-modal'
-import { ClientCreateModal } from './_components/client-create-modal'
 import { useToast } from '@/hooks/use-toast'
 
 interface ClientWithAdvisor {
@@ -17,13 +16,25 @@ interface ClientWithAdvisor {
   lastName: string
   email: string | null
   phone: string | null
+  alternativePhone?: string | null
+  preferredContactMethod?: string | null
   status: string
-  nationality: string | null
-  netWorthEstimate: string | null
-  investmentBudget: string | null
-  sourceOfFunds: string | null
+  currentCitizenships?: string[] | null
+  currentResidency?: string | null
+  currentProfession?: string | null
+  industry?: string | null
+  urgencyLevel?: string | null
+  budgetRange?: string | null
+  programQualificationScore?: number | null
+  // Legacy fields for backward compatibility
+  nationality?: string | null
+  netWorthEstimate?: string | null
+  investmentBudget?: string | null
+  sourceOfFunds?: string | null
   notes: string | null
   tags: string[] | null
+  lastContactDate?: string | null
+  nextFollowUpDate?: string | null
   assignedAdvisor?: {
     id: string
     name: string
@@ -52,6 +63,7 @@ interface Advisor {
 }
 
 export default function ClientsPage() {
+  const router = useRouter()
   const [clients, setClients] = useState<ClientWithAdvisor[]>([])
   const [stats, setStats] = useState<ClientStats>({
     total: 0,
@@ -64,9 +76,6 @@ export default function ClientsPage() {
   })
   const [advisors, setAdvisors] = useState<Advisor[]>([])
   const [loading, setLoading] = useState(true)
-  const [editingClient, setEditingClient] = useState<ClientWithAdvisor | null>(null)
-  const [editModalOpen, setEditModalOpen] = useState(false)
-  const [createModalOpen, setCreateModalOpen] = useState(false)
   const [filters, setFilters] = useState({
     search: '',
     status: '',
@@ -181,8 +190,7 @@ export default function ClientsPage() {
   }
 
   const handleEdit = (client: ClientWithAdvisor) => {
-    setEditingClient(client)
-    setEditModalOpen(true)
+    router.push(`/dashboard/clients/${client.id}/edit`)
   }
 
 
@@ -233,7 +241,7 @@ export default function ClientsPage() {
               <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
               Refresh
             </Button>
-            <Button onClick={() => setCreateModalOpen(true)}>
+            <Button onClick={() => router.push('/dashboard/clients/intake')}>
               <Plus className="h-4 w-4 mr-2" />
               Add Client
             </Button>
@@ -299,26 +307,6 @@ export default function ClientsPage() {
         </CardContent>
       </Card>
 
-      <ClientEditModal
-        client={editingClient}
-        open={editModalOpen}
-        onOpenChange={setEditModalOpen}
-        onClientUpdated={() => {
-          fetchClients()
-          fetchStats()
-        }}
-        advisors={advisors}
-      />
-
-      <ClientCreateModal
-        open={createModalOpen}
-        onOpenChange={setCreateModalOpen}
-        onClientCreated={() => {
-          fetchClients()
-          fetchStats()
-        }}
-        advisors={advisors}
-      />
 
       </div>
     </section>

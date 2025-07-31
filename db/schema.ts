@@ -227,6 +227,12 @@ export const clients = pgTable('clients', {
   lastContactDate: timestamp('last_contact_date'),
   nextFollowUpDate: timestamp('next_follow_up_date'),
   
+  // Legacy fields for backward compatibility (temporary)
+  nationality: varchar('nationality', { length: 100 }),
+  netWorthEstimate: varchar('net_worth_estimate', { length: 50 }),
+  investmentBudget: varchar('investment_budget', { length: 50 }),
+  sourceOfFunds: text('source_of_funds'),
+  
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
 }, (table) => ({

@@ -17,13 +17,25 @@ interface ClientWithAdvisor {
   lastName: string
   email: string | null
   phone: string | null
+  alternativePhone?: string | null
+  preferredContactMethod?: string | null
   status: string
-  nationality: string | null
-  netWorthEstimate: string | null
-  investmentBudget: string | null
-  sourceOfFunds: string | null
+  currentCitizenships?: string[] | null
+  currentResidency?: string | null
+  currentProfession?: string | null
+  industry?: string | null
+  urgencyLevel?: string | null
+  budgetRange?: string | null
+  programQualificationScore?: number | null
+  // Legacy fields for backward compatibility
+  nationality?: string | null
+  netWorthEstimate?: string | null
+  investmentBudget?: string | null
+  sourceOfFunds?: string | null
   notes: string | null
   tags: string[] | null
+  lastContactDate?: string | null
+  nextFollowUpDate?: string | null
   assignedAdvisor?: {
     id: string
     name: string
@@ -59,8 +71,8 @@ export function ClientTable({ clients, onEdit, onDelete }: ClientTableProps) {
           <TableRow>
             <TableHead>Client</TableHead>
             <TableHead>Status</TableHead>
-            <TableHead>Net Worth</TableHead>
-            <TableHead>Investment Budget</TableHead>
+            <TableHead>Budget Range</TableHead>
+            <TableHead>Goals & Timeline</TableHead>
             <TableHead>Advisor</TableHead>
             <TableHead>Applications</TableHead>
             <TableHead>Created</TableHead>
@@ -85,6 +97,12 @@ export function ClientTable({ clients, onEdit, onDelete }: ClientTableProps) {
                       {client.email && (
                         <div className="text-sm text-muted-foreground">{client.email}</div>
                       )}
+                      {client.currentCitizenships && client.currentCitizenships.length > 0 && (
+                        <div className="text-xs text-muted-foreground">
+                          {client.currentCitizenships.slice(0, 2).join(', ')}
+                          {client.currentCitizenships.length > 2 && ' +more'}
+                        </div>
+                      )}
                     </div>
                   </Link>
                 </div>
@@ -94,8 +112,49 @@ export function ClientTable({ clients, onEdit, onDelete }: ClientTableProps) {
                   {client.status.charAt(0).toUpperCase() + client.status.slice(1)}
                 </Badge>
               </TableCell>
-              <TableCell>{formatCurrency(client.netWorthEstimate)}</TableCell>
-              <TableCell>{formatCurrency(client.investmentBudget)}</TableCell>
+              <TableCell>
+                <div className="text-sm">
+                  <div className="font-medium">
+                    {client.budgetRange ? (
+                      client.budgetRange.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+                    ) : (
+                      formatCurrency(client.investmentBudget) // Fallback to legacy field
+                    )}
+                  </div>
+                  {client.programQualificationScore && (
+                    <div className="text-muted-foreground">
+                      Score: {client.programQualificationScore}/100
+                    </div>
+                  )}
+                </div>
+              </TableCell>
+              <TableCell>
+                <div className="text-sm">
+                  <div className="font-medium">
+                    {client.primaryGoals && client.primaryGoals.length > 0 ? (
+                      client.primaryGoals.slice(0, 2).map(goal => 
+                        goal.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+                      ).join(', ')
+                    ) : (
+                      'Not specified'
+                    )}
+                    {client.primaryGoals && client.primaryGoals.length > 2 && (
+                      <span className="text-muted-foreground"> +{client.primaryGoals.length - 2} more</span>
+                    )}
+                  </div>
+                  <div className="text-muted-foreground">
+                    {client.desiredTimeline 
+                      ? client.desiredTimeline.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())
+                      : 'Timeline not set'
+                    }
+                    {client.urgencyLevel && client.urgencyLevel !== 'low' && (
+                      <Badge variant="outline" className="ml-1 text-xs">
+                        {client.urgencyLevel}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+              </TableCell>
               <TableCell>
                 {client.assignedAdvisor ? (
                   <div className="text-sm">

@@ -38,15 +38,28 @@ interface ClientWithFullDetails {
   lastName: string
   email: string | null
   phone: string | null
-  nationality: string | null
+  alternativePhone: string | null
+  preferredContactMethod: string | null
   dateOfBirth: string | null
+  currentCitizenships: string[] | null
+  currentResidency: string | null
   passportNumber: string | null
+  passportExpiryDate: string | null
+  passportIssuingCountry: string | null
+  employmentStatus: string | null
+  currentProfession: string | null
+  industry: string | null
+  primaryGoals: string[] | null
+  desiredTimeline: string | null
+  urgencyLevel: string | null
+  budgetRange: string | null
+  sourceOfFundsReadiness: string | null
+  programQualificationScore: number | null
   status: string
-  netWorthEstimate: string | null
-  investmentBudget: string | null
-  sourceOfFunds: string | null
   notes: string | null
   tags: string[] | null
+  lastContactDate: string | null
+  nextFollowUpDate: string | null
   createdAt: string
   assignedAdvisor?: {
     id: string
@@ -341,9 +354,14 @@ export default function ClientProfilePage() {
               <Badge className={getStatusColor(client.status)}>
                 {client.status.charAt(0).toUpperCase() + client.status.slice(1)}
               </Badge>
-              {client.nationality && (
+              {client.currentCitizenships && client.currentCitizenships.length > 0 && (
                 <Badge variant="outline">
-                  {client.nationality}
+                  {client.currentCitizenships.join(', ')}
+                </Badge>
+              )}
+              {client.urgencyLevel && (
+                <Badge className={getPriorityColor(client.urgencyLevel)}>
+                  {client.urgencyLevel.charAt(0).toUpperCase() + client.urgencyLevel.slice(1)} Priority
                 </Badge>
               )}
               <span className="text-sm text-muted-foreground">
@@ -354,7 +372,7 @@ export default function ClientProfilePage() {
         </div>
         
         <div className="flex items-center space-x-2">
-          <Button variant="outline">
+          <Button variant="outline" onClick={() => router.push(`/dashboard/clients/${params.id}/edit`)}>
             <Edit className="h-4 w-4 mr-2" />
             Edit Client
           </Button>
@@ -488,10 +506,26 @@ export default function ClientProfilePage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Phone</label>
+                  <label className="text-sm font-medium text-muted-foreground">Primary Phone</label>
                   <div className="flex items-center space-x-2 mt-1">
                     <Phone className="h-4 w-4 text-muted-foreground" />
                     <span className="text-sm">{formatPhone(client.phone)}</span>
+                  </div>
+                </div>
+                {client.alternativePhone && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Alternative Phone</label>
+                    <div className="flex items-center space-x-2 mt-1">
+                      <Phone className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-sm">{formatPhone(client.alternativePhone)}</span>
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Preferred Contact</label>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">{client.preferredContactMethod || 'Email'}</span>
                   </div>
                 </div>
                 <div>
@@ -502,45 +536,166 @@ export default function ClientProfilePage() {
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Passport Number</label>
+                  <label className="text-sm font-medium text-muted-foreground">Current Citizenships</label>
                   <div className="flex items-center space-x-2 mt-1">
                     <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{client.passportNumber || 'Not provided'}</span>
+                    <span className="text-sm">{client.currentCitizenships?.join(', ') || 'Not provided'}</span>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Current Residency</label>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <FileText className="h-4 w-4 text-muted-foreground" />
+                    <span className="text-sm">{client.currentResidency || 'Not provided'}</span>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Financial Information */}
+            {/* Professional & Immigration Goals */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <DollarSign className="h-5 w-5" />
-                  Financial Information
+                  <User className="h-5 w-5" />
+                  Professional & Goals
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Net Worth Estimate</label>
-                  <div className="text-lg font-semibold mt-1">
-                    {formatCurrency(client.netWorthEstimate)}
+                  <label className="text-sm font-medium text-muted-foreground">Employment Status</label>
+                  <div className="text-sm mt-1">
+                    {client.employmentStatus || 'Not specified'}
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Investment Budget</label>
-                  <div className="text-lg font-semibold mt-1">
-                    {formatCurrency(client.investmentBudget)}
+                  <label className="text-sm font-medium text-muted-foreground">Current Profession</label>
+                  <div className="text-sm mt-1">
+                    {client.currentProfession || 'Not specified'}
                   </div>
                 </div>
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Source of Funds</label>
-                  <p className="text-sm mt-1 text-gray-700">
-                    {client.sourceOfFunds || 'Not specified'}
-                  </p>
+                  <label className="text-sm font-medium text-muted-foreground">Industry</label>
+                  <div className="text-sm mt-1">
+                    {client.industry || 'Not specified'}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Primary Goals</label>
+                  <div className="text-sm mt-1">
+                    {client.primaryGoals?.join(', ') || 'Not specified'}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Desired Timeline</label>
+                  <div className="text-sm mt-1">
+                    {client.desiredTimeline || 'Not specified'}
+                  </div>
                 </div>
               </CardContent>
             </Card>
           </div>
+
+          {/* Passport & Documents */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FileText className="h-5 w-5" />
+                Passport & Documents
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Passport Number</label>
+                <div className="text-sm mt-1">
+                  {client.passportNumber || 'Not provided'}
+                </div>
+              </div>
+              {client.passportExpiryDate && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Passport Expiry</label>
+                  <div className="text-sm mt-1">
+                    {formatDate(client.passportExpiryDate)}
+                  </div>
+                </div>
+              )}
+              {client.passportIssuingCountry && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Issuing Country</label>
+                  <div className="text-sm mt-1">
+                    {client.passportIssuingCountry}
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Investment & Financial Readiness */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <DollarSign className="h-5 w-5" />
+                Investment & Financial Readiness
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Budget Range</label>
+                <div className="text-sm mt-1">
+                  {client.budgetRange ? client.budgetRange.replace('_', ' - ').replace('k', 'K').replace('m', 'M').replace('plus', '+') : 'Not specified'}
+                </div>
+              </div>
+              <div>
+                <label className="text-sm font-medium text-muted-foreground">Source of Funds Readiness</label>
+                <div className="text-sm mt-1">
+                  {client.sourceOfFundsReadiness?.replace('_', ' ') || 'Not specified'}
+                </div>
+              </div>
+              {client.programQualificationScore !== null && (
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Qualification Score</label>
+                  <div className="flex items-center space-x-2 mt-1">
+                    <div className="text-lg font-semibold">{client.programQualificationScore}/100</div>
+                    <div className="flex-1 bg-gray-200 rounded-full h-2">
+                      <div 
+                        className="bg-blue-600 h-2 rounded-full" 
+                        style={{ width: `${client.programQualificationScore}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Timeline & Follow-up */}
+          {(client.lastContactDate || client.nextFollowUpDate) && (
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Clock className="h-5 w-5" />
+                  Timeline & Follow-up
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {client.lastContactDate && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Last Contact</label>
+                    <div className="text-sm mt-1">
+                      {formatDate(client.lastContactDate)}
+                    </div>
+                  </div>
+                )}
+                {client.nextFollowUpDate && (
+                  <div>
+                    <label className="text-sm font-medium text-muted-foreground">Next Follow-up</label>
+                    <div className="text-sm mt-1">
+                      {formatDate(client.nextFollowUpDate)}
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Additional sections */}
           {client.assignedAdvisor && (
