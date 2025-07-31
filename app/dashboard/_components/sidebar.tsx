@@ -66,15 +66,6 @@ const getNavigationSections = (userPermissions: UserWithPermissions | null): Nav
     });
   }
 
-  // Resource Library section - based on document permissions
-  if (userPermissions.permissions.canManageDocuments) {
-    sections.push({
-      id: "documents",
-      label: "Document Center",
-      icon: FolderOpen,
-      href: "/dashboard/documents",
-    });
-  }
 
   // Team Management section - only for users who can manage team
   if (userPermissions.permissions.canManageTeam) {
@@ -128,7 +119,6 @@ export default function DashboardSideBar() {
     collapsedSections: {
       "applications": false,
       "client-management": false,
-      "documents": false,
       "system": false,
       "team": false,
     }

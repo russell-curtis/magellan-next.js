@@ -155,20 +155,77 @@ export const clients = pgTable('clients', {
   lastName: varchar('last_name', { length: 255 }).notNull(),
   email: varchar('email', { length: 255 }),
   phone: varchar('phone', { length: 50 }),
-  nationality: varchar('nationality', { length: 100 }),
+  alternativePhone: varchar('alternative_phone', { length: 50 }),
+  preferredContactMethod: varchar('preferred_contact_method', { length: 50 }).default('email'), // email, phone, whatsapp
+  
+  // Identity & Citizenship
   dateOfBirth: date('date_of_birth'),
+  placeOfBirth: varchar('place_of_birth', { length: 255 }),
+  currentCitizenships: text('current_citizenships').array(), // ['US', 'CA']
+  currentResidency: varchar('current_residency', { length: 100 }),
   passportNumber: varchar('passport_number', { length: 100 }),
+  passportExpiryDate: date('passport_expiry_date'),
+  passportIssuingCountry: varchar('passport_issuing_country', { length: 100 }),
+  additionalPassports: jsonb('additional_passports'), // [{country: 'CA', number: 'ABC123', expiry: '2030-01-01'}]
+  languagesSpoken: text('languages_spoken').array(), // ['English', 'Spanish', 'French']
   
-  // CRBI Specific
-  netWorthEstimate: decimal('net_worth_estimate', { precision: 15, scale: 2 }),
-  investmentBudget: decimal('investment_budget', { precision: 15, scale: 2 }),
-  preferredPrograms: text('preferred_programs').array(), // ['portugal', 'cyprus', 'malta']
-  sourceOfFunds: text('source_of_funds'),
+  // Professional & Educational Background
+  educationLevel: varchar('education_level', { length: 100 }), // high_school, bachelor, master, phd, professional
+  educationDetails: text('education_details'), // Degrees, institutions, etc.
+  currentProfession: varchar('current_profession', { length: 255 }),
+  industry: varchar('industry', { length: 255 }),
+  employmentStatus: varchar('employment_status', { length: 100 }), // employed, self_employed, business_owner, retired, unemployed
+  yearsOfExperience: integer('years_of_experience'),
+  currentEmployer: varchar('current_employer', { length: 255 }),
+  professionalLicenses: text('professional_licenses').array(),
+  businessOwnership: jsonb('business_ownership'), // [{company: 'ABC Corp', ownership: '100%', industry: 'Tech'}]
   
-  // Status & Notes
-  status: varchar('status', { length: 50 }).default('prospect'), // prospect, active, approved, rejected
+  // Immigration & Travel Goals
+  primaryGoals: text('primary_goals').array(), // ['global_mobility', 'tax_optimization', 'education', 'lifestyle', 'business']
+  desiredTimeline: varchar('desired_timeline', { length: 50 }), // immediate, 6_months, 1_year, 2_years, exploring
+  geographicPreferences: text('geographic_preferences').array(), // ['Europe', 'Caribbean', 'Pacific']
+  lifestyleRequirements: text('lifestyle_requirements'), // Climate, culture, language, etc.
+  travelFrequency: varchar('travel_frequency', { length: 50 }), // frequent, moderate, occasional, rare
+  currentVisaRestrictions: text('current_visa_restrictions'), // Countries they cannot visit
+  
+  // Immigration History
+  previousApplications: jsonb('previous_applications'), // [{country: 'PT', type: 'residency', status: 'approved', year: 2020}]
+  visaDenials: boolean('visa_denials').default(false),
+  visaDenialDetails: text('visa_denial_details'),
+  immigrationIssues: boolean('immigration_issues').default(false),
+  immigrationIssueDetails: text('immigration_issue_details'),
+  
+  // Financial & Investment Readiness
+  sourceOfFundsReadiness: varchar('source_of_funds_readiness', { length: 50 }), // ready, 1_month, 3_months, 6_months, not_ready
+  sourceOfFundsTypes: text('source_of_funds_types').array(), // ['business_sale', 'investments', 'inheritance', 'employment', 'real_estate']
+  sourceOfFundsDescription: text('source_of_funds_description'),
+  investmentExperience: varchar('investment_experience', { length: 50 }), // none, limited, moderate, extensive
+  investmentPreferences: text('investment_preferences').array(), // ['real_estate', 'government_bonds', 'business', 'donation']
+  liquidityTimeline: varchar('liquidity_timeline', { length: 50 }), // immediate, 1_month, 3_months, 6_months, 1_year
+  financialAdvisorsInvolved: boolean('financial_advisors_involved').default(false),
+  
+  // Compliance & Background
+  isPep: boolean('is_pep').default(false), // Politically Exposed Person
+  pepDetails: text('pep_details'),
+  sanctionsScreening: varchar('sanctions_screening', { length: 50 }), // cleared, pending, flagged
+  criminalBackground: boolean('criminal_background').default(false),
+  criminalBackgroundDetails: text('criminal_background_details'),
+  professionalReferences: jsonb('professional_references'), // [{name: 'John Doe', profession: 'Lawyer', contact: 'john@law.com'}]
+  
+  // Program Preferences & Qualification
+  preferredPrograms: text('preferred_programs').array(), // ['portugal_golden_visa', 'st_kitts_citizenship']
+  programQualificationScore: integer('program_qualification_score'), // 0-100 calculated score
+  budgetRange: varchar('budget_range', { length: 50 }), // under_500k, 500k_1m, 1m_2m, 2m_plus
+  urgencyLevel: varchar('urgency_level', { length: 50 }), // low, medium, high, urgent
+  referralSource: varchar('referral_source', { length: 255 }), // How they found the firm
+  
+  // Internal Notes & Status
+  status: varchar('status', { length: 50 }).default('prospect'), // prospect, qualified, active, approved, rejected, inactive
+  qualificationNotes: text('qualification_notes'),
   notes: text('notes'),
   tags: text('tags').array(),
+  lastContactDate: timestamp('last_contact_date'),
+  nextFollowUpDate: timestamp('next_follow_up_date'),
   
   createdAt: timestamp('created_at').defaultNow(),
   updatedAt: timestamp('updated_at').defaultNow(),
@@ -177,6 +234,49 @@ export const clients = pgTable('clients', {
   advisorIdx: index('clients_advisor_idx').on(table.assignedAdvisorId),
   statusIdx: index('clients_status_idx').on(table.status),
   nameIdx: index('clients_name_idx').on(table.firstName, table.lastName),
+  urgencyIdx: index('clients_urgency_idx').on(table.urgencyLevel),
+  timelineIdx: index('clients_timeline_idx').on(table.desiredTimeline),
+  qualificationIdx: index('clients_qualification_idx').on(table.programQualificationScore),
+  lastContactIdx: index('clients_last_contact_idx').on(table.lastContactDate),
+}))
+
+// Family Members (for family composition tracking)
+export const familyMembers = pgTable('family_members', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  clientId: uuid('client_id').notNull().references(() => clients.id, { onDelete: 'cascade' }),
+  
+  // Personal Information
+  firstName: varchar('first_name', { length: 255 }).notNull(),
+  lastName: varchar('last_name', { length: 255 }).notNull(),
+  relationship: varchar('relationship', { length: 100 }).notNull(), // spouse, child, parent, sibling, dependent
+  dateOfBirth: date('date_of_birth'),
+  placeOfBirth: varchar('place_of_birth', { length: 255 }),
+  
+  // Identity & Citizenship
+  currentCitizenships: text('current_citizenships').array(), // ['US', 'CA']
+  passportNumber: varchar('passport_number', { length: 100 }),
+  passportExpiryDate: date('passport_expiry_date'),
+  passportIssuingCountry: varchar('passport_issuing_country', { length: 100 }),
+  
+  // Application Status
+  includeInApplication: boolean('include_in_application').default(true),
+  applicationStatus: varchar('application_status', { length: 50 }).default('not_applied'), // not_applied, included, approved, rejected
+  
+  // Additional Information
+  education: varchar('education', { length: 255 }), // For children's education details
+  profession: varchar('profession', { length: 255 }), // For spouse profession
+  medicalConditions: text('medical_conditions'), // Any relevant medical considerations
+  specialRequirements: text('special_requirements'), // Any special needs or considerations
+  
+  // Notes
+  notes: text('notes'),
+  
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at').defaultNow(),
+}, (table) => ({
+  clientIdx: index('family_members_client_idx').on(table.clientId),
+  relationshipIdx: index('family_members_relationship_idx').on(table.relationship),
+  includeInAppIdx: index('family_members_include_app_idx').on(table.includeInApplication),
 }))
 
 // CRBI Programs (Master data)
@@ -713,7 +813,15 @@ export const clientsRelations = relations(clients, ({ one, many }) => ({
   messagesSent: many(messages, { relationName: "MessagesSentByClient" }),
   messageParticipants: many(messageParticipants, { relationName: "ClientParticipants" }),
   messageNotifications: many(messageNotifications, { relationName: "ClientNotifications" }),
+  familyMembers: many(familyMembers),
   auth: one(clientAuth),
+}))
+
+export const familyMembersRelations = relations(familyMembers, ({ one }) => ({
+  client: one(clients, {
+    fields: [familyMembers.clientId],
+    references: [clients.id],
+  }),
 }))
 
 export const crbiProgramsRelations = relations(crbiPrograms, ({ many }) => ({

@@ -11,8 +11,6 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Alert, AlertDescription } from '@/components/ui/alert'
-import { DocumentUpload } from '../../_components/document-upload'
-import { DocumentList } from '../../_components/document-list'
 import { ApplicationCreateModal } from '../_components/application-create-modal'
 import { ApplicationCard } from '@/components/ui/application-card'
 import CommunicationHub from '../../_components/communication-hub'
@@ -77,19 +75,6 @@ interface ClientWithFullDetails {
       processingTimeMonths: number
     }
   }>
-  documents?: Array<{
-    id: string
-    filename: string
-    fileUrl: string
-    contentType: string
-    fileSize: number
-    status: string
-    complianceStatus: string
-    uploadedAt: string
-    documentType: string
-    createdAt: string
-    updatedAt: string
-  }>
   communications?: Array<{
     id: string
     type: string
@@ -116,7 +101,6 @@ export default function ClientProfilePage() {
   const [client, setClient] = useState<ClientWithFullDetails | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeTab, setActiveTab] = useState('overview')
-  const [showUpload, setShowUpload] = useState(false)
   const [showApplicationModal, setShowApplicationModal] = useState(false)
   const [currentUser, setCurrentUser] = useState<{
     id: string
@@ -140,27 +124,14 @@ export default function ClientProfilePage() {
 
     setLoading(true)
     try {
-      const [profileResponse, documentsResponse] = await Promise.all([
-        fetch(`/api/clients/${clientId}/profile`),
-        fetch(`/api/clients/${clientId}/documents`)
-      ])
+      const profileResponse = await fetch(`/api/clients/${clientId}/profile`)
       
       if (!profileResponse.ok) {
         throw new Error('Failed to fetch client profile')
       }
       
       const profileData = await profileResponse.json()
-      let documentsData = { documents: [] }
-      
-      // Documents might not exist yet, so handle gracefully
-      if (documentsResponse.ok) {
-        documentsData = await documentsResponse.json()
-      }
-      
-      setClient({
-        ...profileData.client,
-        documents: documentsData.documents || []
-      })
+      setClient(profileData.client)
     } catch (error) {
       console.error('Error fetching client profile:', error)
       setClient(null)
@@ -196,10 +167,6 @@ export default function ClientProfilePage() {
   }, [clientId, fetchClientProfile])
 
 
-  const handleUploadComplete = () => {
-    setShowUpload(false)
-    // The DocumentList component will automatically refresh when new documents are uploaded
-  }
 
   const handleApplicationCreated = () => {
     fetchClientProfile()
@@ -497,7 +464,6 @@ export default function ClientProfilePage() {
         <TabsList>
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="applications">Applications</TabsTrigger>
-          <TabsTrigger value="documents">Documents</TabsTrigger>
           <TabsTrigger value="communications">Communications</TabsTrigger>
           <TabsTrigger value="tasks">Tasks</TabsTrigger>
         </TabsList>
@@ -713,46 +679,6 @@ export default function ClientProfilePage() {
           )}
         </TabsContent>
 
-        {/* Documents Tab */}
-        <TabsContent value="documents" className="mt-6">
-          <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">Documents</h2>
-            <Button 
-              onClick={() => setShowUpload(!showUpload)}
-            >
-              {showUpload ? (
-                <>
-                  <X className="h-4 w-4 mr-2" />
-                  Cancel Upload
-                </>
-              ) : (
-                <>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Upload Document
-                </>
-              )}
-            </Button>
-          </div>
-
-          {/* Document Upload Section */}
-          {showUpload && clientId && (
-            <div className="mb-6">
-              <DocumentUpload
-                clientId={clientId}
-                onUploadComplete={handleUploadComplete}
-                allowMultiple={true}
-                showApplicationSelection={true}
-              />
-            </div>
-          )}
-          
-          {/* Documents List */}
-          <DocumentList 
-            clientId={clientId}
-            showFilters={false}
-            showActions={true}
-          />
-        </TabsContent>
 
         {/* Communications Tab */}
         <TabsContent value="communications" className="mt-6">
