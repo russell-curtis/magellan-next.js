@@ -9,7 +9,8 @@ import {
   communications, 
   tasks, 
   users, 
-  crbiPrograms 
+  crbiPrograms,
+  familyMembers
 } from '@/db/schema'
 import { eq, and } from 'drizzle-orm'
 
@@ -71,6 +72,7 @@ export async function GET(
         applicationNumber: applications.applicationNumber,
         status: applications.status,
         priority: applications.priority,
+        assignedAdvisorId: applications.assignedAdvisorId,
         investmentAmount: applications.investmentAmount,
         investmentType: applications.investmentType,
         submittedAt: applications.submittedAt,
@@ -88,6 +90,12 @@ export async function GET(
       .from(applications)
       .leftJoin(crbiPrograms, eq(applications.programId, crbiPrograms.id))
       .where(eq(applications.clientId, clientId))
+
+    // Get client family members
+    const clientFamilyMembers = await db
+      .select()
+      .from(familyMembers)
+      .where(eq(familyMembers.clientId, clientId))
 
     // Get client documents
     const clientDocuments = await db
@@ -129,8 +137,9 @@ export async function GET(
       {
         id: 'sample-app-1',
         applicationNumber: 'APP-SAMPLE-001',
-        status: 'under_review',
+        status: 'draft',
         priority: 'medium',
+        assignedAdvisorId: currentUser.id,
         investmentAmount: '500000',
         investmentType: 'real_estate',
         submittedAt: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString(),
@@ -152,6 +161,7 @@ export async function GET(
         applicationNumber: 'APP-SAMPLE-002',
         status: 'approved',
         priority: 'high',
+        assignedAdvisorId: currentUser.id,
         investmentAmount: '280000',
         investmentType: 'real_estate',
         submittedAt: new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString(),
@@ -173,6 +183,7 @@ export async function GET(
       applicationNumber: app.applicationNumber,
       status: app.status,
       priority: app.priority,
+      assignedAdvisorId: app.assignedAdvisorId,
       investmentAmount: app.investmentAmount?.toString() || null,
       investmentType: app.investmentType,
       submittedAt: app.submittedAt?.toISOString() || null,
@@ -288,15 +299,46 @@ export async function GET(
       lastName: client.lastName,
       email: client.email,
       phone: client.phone,
-      nationality: client.nationality,
+      alternativePhone: client.alternativePhone,
+      preferredContactMethod: client.preferredContactMethod,
       dateOfBirth: client.dateOfBirth ? new Date(client.dateOfBirth).toISOString() : null,
+      placeOfBirth: client.placeOfBirth,
+      currentCitizenships: client.currentCitizenships,
+      currentResidency: client.currentResidency,
       passportNumber: client.passportNumber,
+      passportExpiryDate: client.passportExpiryDate ? new Date(client.passportExpiryDate).toISOString() : null,
+      passportIssuingCountry: client.passportIssuingCountry,
+      additionalPassports: client.additionalPassports,
+      languagesSpoken: client.languagesSpoken,
+      educationLevel: client.educationLevel,
+      educationDetails: client.educationDetails,
+      currentProfession: client.currentProfession,
+      industry: client.industry,
+      employmentStatus: client.employmentStatus,
+      workExperience: client.workExperience,
+      primaryGoals: client.primaryGoals,
+      preferredPrograms: client.preferredPrograms,
+      geographicPreferences: client.geographicPreferences,
+      desiredTimeline: client.desiredTimeline,
+      urgencyLevel: client.urgencyLevel,
+      budgetRange: client.budgetRange,
+      liquidityTimeline: client.liquidityTimeline,
+      sourceOfFundsReadiness: client.sourceOfFundsReadiness,
+      riskTolerance: client.riskTolerance,
+      previousRejections: client.previousRejections,
+      complianceHistory: client.complianceHistory,
+      sanctionsScreening: client.sanctionsScreening,
+      programQualificationScore: client.programQualificationScore,
       status: client.status,
+      notes: client.notes,
+      tags: client.tags,
+      lastContactDate: client.lastContactDate ? new Date(client.lastContactDate).toISOString() : null,
+      nextFollowUpDate: client.nextFollowUpDate ? new Date(client.nextFollowUpDate).toISOString() : null,
+      // Legacy compatibility fields
+      nationality: client.nationality,
       netWorthEstimate: client.netWorthEstimate?.toString() || null,
       investmentBudget: client.investmentBudget?.toString() || null,
       sourceOfFunds: client.sourceOfFunds,
-      notes: client.notes,
-      tags: client.tags,
       createdAt: client.createdAt?.toISOString() || new Date().toISOString(),
       assignedAdvisor: assignedAdvisor?.id ? {
         id: assignedAdvisor.id,
@@ -307,7 +349,8 @@ export async function GET(
       applications: sampleApplications,
       documents: sampleDocuments,
       communications: sampleCommunications,
-      tasks: sampleTasks
+      tasks: sampleTasks,
+      familyMembers: clientFamilyMembers
     }
 
     return NextResponse.json({ client: clientProfile })

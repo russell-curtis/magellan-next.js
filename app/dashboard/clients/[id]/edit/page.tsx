@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -147,6 +147,9 @@ export default function ClientEditPage() {
   // Load client data
   useEffect(() => {
     const fetchClient = async () => {
+      if (!clientId) return
+      
+      setLoading(true)
       try {
         const response = await fetch(`/api/clients/${clientId}`)
         if (!response.ok) {
@@ -168,10 +171,8 @@ export default function ClientEditPage() {
       }
     }
 
-    if (clientId) {
-      fetchClient()
-    }
-  }, [clientId, router, toast])
+    fetchClient()
+  }, [clientId]) // Removed router and toast from dependencies
 
   const updateFormData = (field: string, value: any) => {
     setFormData(prev => ({
@@ -197,20 +198,25 @@ export default function ClientEditPage() {
   const handleSave = async () => {
     setSaving(true)
     try {
+      const saveData = {
+        ...formData,
+        familyMembers: familyMembers.filter(member => 
+          member.firstName && member.lastName && member.relationship
+        )
+      }
+      
       const response = await fetch(`/api/clients/${clientId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          ...formData,
-          familyMembers: familyMembers.filter(member => 
-            member.firstName && member.lastName && member.relationship
-          )
-        })
+        body: JSON.stringify(saveData)
       })
-
+      
       if (!response.ok) {
-        throw new Error('Failed to update client')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || 'Failed to update client')
       }
+
+      const result = await response.json()
 
       toast({
         title: 'Success',
@@ -218,11 +224,15 @@ export default function ClientEditPage() {
       })
 
       setHasUnsavedChanges(false)
+      
+      // Refresh the form data with the saved data
+      setFormData(result)
+      setFamilyMembers(result.familyMembers || [])
     } catch (error) {
       console.error('Error updating client:', error)
       toast({
         title: 'Error',
-        description: 'Failed to update client profile',
+        description: error instanceof Error ? error.message : 'Failed to update client profile',
         variant: 'destructive'
       })
     } finally {
@@ -338,11 +348,11 @@ export default function ClientEditPage() {
                 </Select>
               </div>
               <div className="space-y-2">
-                <Label htmlFor="hearAboutUs">How did you hear about us?</Label>
+                <Label htmlFor="referralSource">How did you hear about us?</Label>
                 <Input
-                  id="hearAboutUs"
-                  value={formData.hearAboutUs || ''}
-                  onChange={(e) => updateFormData('hearAboutUs', e.target.value)}
+                  id="referralSource"
+                  value={formData.referralSource || ''}
+                  onChange={(e) => updateFormData('referralSource', e.target.value)}
                   placeholder="Referral source, website, etc."
                 />
               </div>
@@ -427,8 +437,482 @@ export default function ClientEditPage() {
           </div>
         )
 
-      // Add other tab cases here (professional, goals, etc.)
-      // For brevity, I'll add placeholders that can be expanded
+      case 'professional':
+        return (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="employmentStatus">Employment Status *</Label>
+                <Select 
+                  value={formData.employmentStatus || ''} 
+                  onValueChange={(value) => updateFormData('employmentStatus', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select employment status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CLIENT_EMPLOYMENT_STATUSES.map((status) => (
+                      <SelectItem key={status} value={status}>
+                        {status.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="currentProfession">Current Profession</Label>
+                <Input
+                  id="currentProfession"
+                  value={formData.currentProfession || ''}
+                  onChange={(e) => updateFormData('currentProfession', e.target.value)}
+                  placeholder="Your current job title or profession"
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="industry">Industry</Label>
+                <Input
+                  id="industry"
+                  value={formData.industry || ''}
+                  onChange={(e) => updateFormData('industry', e.target.value)}
+                  placeholder="e.g., Technology, Finance, Healthcare"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="educationLevel">Education Level</Label>
+                <Select 
+                  value={formData.educationLevel || ''} 
+                  onValueChange={(value) => updateFormData('educationLevel', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select education level" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CLIENT_EDUCATION_LEVELS.map((level) => (
+                      <SelectItem key={level} value={level}>
+                        {level.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'goals':
+        return (
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <Label>Primary Immigration Goals *</Label>
+              <p className="text-sm text-gray-600 mb-4">Select all that apply to your situation</p>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                {[
+                  'second_citizenship',
+                  'residency_permit', 
+                  'business_expansion',
+                  'education_access',
+                  'lifestyle_improvement',
+                  'tax_optimization',
+                  'travel_freedom',
+                  'family_security'
+                ].map((goal) => (
+                  <div key={goal} className="flex items-center space-x-2">
+                    <Checkbox
+                      id={goal}
+                      checked={(formData.primaryGoals || []).includes(goal)}
+                      onCheckedChange={(checked) => {
+                        if (checked) {
+                          addToArray('primaryGoals', goal)
+                        } else {
+                          removeFromArray('primaryGoals', goal)
+                        }
+                      }}
+                    />
+                    <Label htmlFor={goal} className="text-sm">
+                      {goal.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                    </Label>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="desiredTimeline">Desired Timeline *</Label>
+                <Select 
+                  value={formData.desiredTimeline || ''} 
+                  onValueChange={(value) => updateFormData('desiredTimeline', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select timeline" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CLIENT_TIMELINES.map((timeline) => (
+                      <SelectItem key={timeline} value={timeline}>
+                        {timeline.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="urgencyLevel">Urgency Level</Label>
+                <Select 
+                  value={formData.urgencyLevel || ''} 
+                  onValueChange={(value) => updateFormData('urgencyLevel', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select urgency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CLIENT_URGENCY_LEVELS.map((level) => (
+                      <SelectItem key={level} value={level}>
+                        {level.charAt(0).toUpperCase() + level.slice(1)}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </div>
+        )
+
+      case 'preferences':
+        return (
+          <div className="space-y-6">
+            <div className="space-y-2">
+              <Label>Geographic Preferences *</Label>
+              <p className="text-sm text-gray-600 mb-4">Select countries or regions you're interested in</p>
+              <div className="flex flex-wrap gap-2 mb-2">
+                {(formData.geographicPreferences || []).map((preference) => (
+                  <Badge key={preference} variant="secondary" className="flex items-center gap-1">
+                    {preference}
+                    <X 
+                      className="h-3 w-3 cursor-pointer" 
+                      onClick={() => removeFromArray('geographicPreferences', preference)}
+                    />
+                  </Badge>
+                ))}
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  id="newGeographicPreference"
+                  placeholder="Enter country or region (e.g., Portugal, Caribbean)"
+                  onKeyPress={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault()
+                      addToArray('geographicPreferences', (e.target as HTMLInputElement).value)
+                      ;(e.target as HTMLInputElement).value = ''
+                    }
+                  }}
+                />
+                <Button 
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    const input = document.getElementById('newGeographicPreference') as HTMLInputElement
+                    if (input.value) {
+                      addToArray('geographicPreferences', input.value)
+                      input.value = ''
+                    }
+                  }}
+                >
+                  <Plus className="h-4 w-4" />
+                </Button>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-2">
+                <Label htmlFor="travelFrequency">Travel Frequency</Label>
+                <Select 
+                  value={formData.travelFrequency || ''} 
+                  onValueChange={(value) => updateFormData('travelFrequency', value)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="How often do you travel?" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {CLIENT_TRAVEL_FREQUENCIES.map((frequency) => (
+                      <SelectItem key={frequency} value={frequency}>
+                        {frequency.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="currentVisaRestrictions">Current Visa Restrictions</Label>
+                <Input
+                  id="currentVisaRestrictions"
+                  value={formData.currentVisaRestrictions || ''}
+                  onChange={(e) => updateFormData('currentVisaRestrictions', e.target.value)}
+                  placeholder="Any current travel or visa restrictions"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="lifestyleRequirements">Lifestyle Requirements</Label>
+              <Textarea
+                id="lifestyleRequirements"
+                value={formData.lifestyleRequirements || ''}
+                onChange={(e) => updateFormData('lifestyleRequirements', e.target.value)}
+                placeholder="Climate preferences, culture, language, business environment, etc."
+                rows={3}
+              />
+            </div>
+          </div>
+        )
+
+      case 'history':
+        return (
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="visaDenials"
+                  checked={formData.visaDenials || false}
+                  onCheckedChange={(checked) => updateFormData('visaDenials', checked)}
+                />
+                <Label htmlFor="visaDenials" className="text-sm">
+                  I have been denied a visa or entry to any country
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="immigrationIssues"
+                  checked={formData.immigrationIssues || false}
+                  onCheckedChange={(checked) => updateFormData('immigrationIssues', checked)}
+                />
+                <Label htmlFor="immigrationIssues" className="text-sm">
+                  I have had immigration issues or overstayed in any country
+                </Label>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="previousApplications">Previous CRBI Applications</Label>
+              <Textarea
+                id="previousApplications"
+                value={formData.previousApplications || ''}
+                onChange={(e) => updateFormData('previousApplications', e.target.value)}
+                placeholder="Please describe any previous citizenship or residency by investment applications you have made"
+                rows={3}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="visaDenialDetails">Visa Denial Details</Label>
+              <Textarea
+                id="visaDenialDetails"
+                value={formData.visaDenialDetails || ''}
+                onChange={(e) => updateFormData('visaDenialDetails', e.target.value)}
+                placeholder="If you have been denied visas, please provide details"
+                rows={2}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="immigrationIssueDetails">Immigration Issue Details</Label>
+              <Textarea
+                id="immigrationIssueDetails"
+                value={formData.immigrationIssueDetails || ''}
+                onChange={(e) => updateFormData('immigrationIssueDetails', e.target.value)}
+                placeholder="If you have had immigration issues, please provide details"
+                rows={2}
+              />
+            </div>
+          </div>
+        )
+
+      case 'compliance':
+        return (
+          <div className="space-y-6">
+            <div className="space-y-4">
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="isPep"
+                  checked={formData.isPep || false}
+                  onCheckedChange={(checked) => updateFormData('isPep', checked)}
+                />
+                <Label htmlFor="isPep" className="text-sm">
+                  I am a Politically Exposed Person (PEP) or related to one
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="criminalBackground"
+                  checked={formData.criminalBackground || false}
+                  onCheckedChange={(checked) => updateFormData('criminalBackground', checked)}
+                />
+                <Label htmlFor="criminalBackground" className="text-sm">
+                  I have a criminal background or pending legal issues
+                </Label>
+              </div>
+
+              <div className="flex items-center space-x-2">
+                <Checkbox
+                  id="financialAdvisorsInvolved"
+                  checked={formData.financialAdvisorsInvolved || false}
+                  onCheckedChange={(checked) => updateFormData('financialAdvisorsInvolved', checked)}
+                />
+                <Label htmlFor="financialAdvisorsInvolved" className="text-sm">
+                  I have financial advisors or wealth managers involved in this process
+                </Label>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="criminalBackgroundDetails">Criminal Background Details</Label>
+              <Textarea
+                id="criminalBackgroundDetails"
+                value={formData.criminalBackgroundDetails || ''}
+                onChange={(e) => updateFormData('criminalBackgroundDetails', e.target.value)}
+                placeholder="If you have a criminal background, please provide details"
+                rows={2}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="pepDetails">PEP Details</Label>
+              <Textarea
+                id="pepDetails"
+                value={formData.pepDetails || ''}
+                onChange={(e) => updateFormData('pepDetails', e.target.value)}
+                placeholder="If you are a PEP, please provide details"
+                rows={2}
+              />
+            </div>
+          </div>
+        )
+
+      case 'family':
+        return (
+          <div className="space-y-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h3 className="text-lg font-medium">Family Members</h3>
+                <p className="text-sm text-gray-600">Add family members who may be included in your application</p>
+              </div>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setFamilyMembers(prev => [...prev, {
+                    firstName: '',
+                    lastName: '',
+                    relationship: 'child',
+                    includeInApplication: true
+                  }])
+                }}
+              >
+                <Plus className="h-4 w-4 mr-2" />
+                Add Family Member
+              </Button>
+            </div>
+
+            {familyMembers.length === 0 ? (
+              <div className="text-center py-8 text-gray-500">
+                <Users className="h-12 w-12 mx-auto mb-4 text-gray-300" />
+                <p>No family members added yet</p>
+                <p className="text-sm">Click "Add Family Member" to include dependents in your application</p>
+              </div>
+            ) : (
+              <div className="space-y-4">
+                {familyMembers.map((member, index) => (
+                  <Card key={index}>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                      <CardTitle className="text-base">
+                        Family Member {index + 1}
+                      </CardTitle>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => {
+                          setFamilyMembers(prev => prev.filter((_, i) => i !== index))
+                        }}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                        <div className="space-y-2">
+                          <Label>First Name</Label>
+                          <Input
+                            value={member.firstName || ''}
+                            onChange={(e) => {
+                              const newMembers = [...familyMembers]
+                              newMembers[index] = { ...newMembers[index], firstName: e.target.value }
+                              setFamilyMembers(newMembers)
+                            }}
+                            placeholder="First name"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Last Name</Label>
+                          <Input
+                            value={member.lastName || ''}
+                            onChange={(e) => {
+                              const newMembers = [...familyMembers]
+                              newMembers[index] = { ...newMembers[index], lastName: e.target.value }
+                              setFamilyMembers(newMembers)
+                            }}
+                            placeholder="Last name"
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label>Relationship</Label>
+                          <Select 
+                            value={member.relationship || 'child'} 
+                            onValueChange={(value) => {
+                              const newMembers = [...familyMembers]
+                              newMembers[index] = { ...newMembers[index], relationship: value }
+                              setFamilyMembers(newMembers)
+                            }}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="spouse">Spouse</SelectItem>
+                              <SelectItem value="child">Child</SelectItem>
+                              <SelectItem value="parent">Parent</SelectItem>
+                              <SelectItem value="sibling">Sibling</SelectItem>
+                              <SelectItem value="dependent">Dependent</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                      </div>
+                      
+                      <div className="flex items-center space-x-2">
+                        <Checkbox
+                          id={`include-${index}`}
+                          checked={member.includeInApplication !== false}
+                          onCheckedChange={(checked) => {
+                            const newMembers = [...familyMembers]
+                            newMembers[index] = { ...newMembers[index], includeInApplication: checked as boolean }
+                            setFamilyMembers(newMembers)
+                          }}
+                        />
+                        <Label htmlFor={`include-${index}`} className="text-sm">
+                          Include in citizenship/residency application
+                        </Label>
+                      </div>
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
+            )}
+          </div>
+        )
+
       case 'financial':
         return (
           <div className="space-y-6">

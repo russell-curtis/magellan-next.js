@@ -12,7 +12,7 @@ export async function GET(request: NextRequest, { params }: RouteContext) {
   try {
     const user = await requireAuth()
     const { id } = await params
-    const client = await ClientService.getClientById(id, user.firmId)
+    const client = await ClientService.getClientWithFamilyById(id, user.firmId)
     
     if (!client) {
       return NextResponse.json({ error: 'Client not found' }, { status: 404 })

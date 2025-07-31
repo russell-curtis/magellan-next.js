@@ -7,10 +7,12 @@ import {
   tasks, 
   activityLogs, 
   crbiPrograms,
-  users
+  users,
+  clients
 } from '@/db/schema'
 import { eq, and } from 'drizzle-orm'
 import { generateTasksForStatusChange } from './task-automation'
+import { ClientService } from './db/clients'
 
 // ============================================================================
 // WORKFLOW TYPES & INTERFACES
@@ -42,7 +44,7 @@ export interface WorkflowCondition {
 }
 
 export interface WorkflowAction {
-  type: 'create_task' | 'update_status' | 'send_notification' | 'create_milestone' | 'assign_user'
+  type: 'create_task' | 'update_status' | 'send_notification' | 'create_milestone' | 'assign_user' | 'update_client_status'
   target: string
   parameters: Record<string, string | number | boolean>
   delayMinutes?: number
@@ -365,6 +367,38 @@ export class WorkflowEngine {
         }],
         isActive: true,
         priority: 6
+      },
+
+      // Client Status Update Rules
+      {
+        id: 'auto-update-client-status-on-application-start',
+        name: 'Auto-update client status when application starts',
+        description: 'Automatically update client status from prospect to active when first application moves from draft to started',
+        trigger: {
+          type: 'status_change',
+          entity: 'application',
+          eventType: 'status_changed'
+        },
+        conditions: [{
+          field: 'newStatus',
+          operator: 'equals',
+          value: 'started'
+        }, {
+          field: 'oldStatus',
+          operator: 'equals',
+          value: 'draft'
+        }],
+        actions: [{
+          type: 'update_client_status',
+          target: 'client',
+          parameters: {
+            newStatus: 'active',
+            condition: 'only_if_prospect',
+            reason: 'Application work started'
+          }
+        }],
+        isActive: true,
+        priority: 7
       }
     ]
   }
@@ -385,8 +419,14 @@ export class WorkflowEngine {
 
       // Execute rules in priority order
       for (const rule of matchingRules.sort((a, b) => a.priority - b.priority)) {
+        console.log(`🔍 WORKFLOW: Evaluating rule "${rule.name}" (${rule.id})`)
+        console.log(`🔍 WORKFLOW: Context data:`, context.triggerData)
+        
         if (await this.evaluateConditions(rule.conditions, context)) {
+          console.log(`✅ WORKFLOW: Rule "${rule.name}" conditions matched, executing actions`)
           await this.executeActions(rule.actions, context)
+        } else {
+          console.log(`❌ WORKFLOW: Rule "${rule.name}" conditions not matched`)
         }
       }
 
@@ -483,6 +523,9 @@ export class WorkflowEngine {
             break
           case 'assign_user':
             await this.assignUser(action)
+            break
+          case 'update_client_status':
+            await this.updateClientStatus(action, context)
             break
         }
       } catch (error) {
@@ -667,6 +710,78 @@ export class WorkflowEngine {
   private async assignUser(action: WorkflowAction): Promise<void> {
     // TODO: Implement user assignment logic
     console.log('Assigning user:', action.parameters)
+  }
+
+  // Update client status
+  private async updateClientStatus(action: WorkflowAction, context: WorkflowContext): Promise<void> {
+    console.log('🔄 WORKFLOW: updateClientStatus action triggered', {
+      applicationId: context.applicationId,
+      firmId: context.firmId,
+      parameters: action.parameters
+    })
+
+    if (!context.applicationId || !context.firmId) {
+      console.error('Missing applicationId or firmId for client status update')
+      return
+    }
+
+    try {
+      // Get application details to find the client
+      const application = await db
+        .select({
+          clientId: applications.clientId,
+          applicationNumber: applications.applicationNumber
+        })
+        .from(applications)
+        .where(eq(applications.id, context.applicationId))
+        .limit(1)
+
+      if (!application[0]) {
+        console.error(`Application not found: ${context.applicationId}`)
+        return
+      }
+
+      const { clientId } = application[0]
+      const newStatus = String(action.parameters.newStatus)
+      const condition = String(action.parameters.condition || '')
+      const reason = String(action.parameters.reason || 'Automated status update')
+
+      // If condition is 'only_if_prospect', check current client status first
+      if (condition === 'only_if_prospect') {
+        const currentClient = await db
+          .select({ status: clients.status })
+          .from(clients)
+          .where(eq(clients.id, clientId))
+          .limit(1)
+
+        // Skip if client is not currently a prospect
+        if (currentClient[0] && currentClient[0].status !== 'prospect') {
+          console.log(`Skipping client status update - client ${clientId} is not a prospect (current: ${currentClient[0].status})`)
+          return
+        }
+      }
+
+      // Update client status using ClientService
+      const success = await ClientService.updateClientStatus(
+        clientId,
+        context.firmId,
+        newStatus as 'prospect' | 'active' | 'approved' | 'rejected',
+        context.userId,
+        {
+          applicationId: context.applicationId,
+          reason
+        }
+      )
+
+      if (success) {
+        console.log(`✅ Client status automated update: ${clientId} → ${newStatus} (triggered by application ${context.applicationId})`)
+      } else {
+        console.error(`❌ Failed to update client status: ${clientId} → ${newStatus}`)
+      }
+
+    } catch (error) {
+      console.error('Error in updateClientStatus workflow action:', error)
+    }
   }
 
   // Calculate due date

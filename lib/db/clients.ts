@@ -97,6 +97,7 @@ export class ClientService {
     const [clientsData, totalCountResult] = await Promise.all([
       db
         .select({
+          // Basic Information
           id: clients.id,
           firmId: clients.firmId,
           assignedAdvisorId: clients.assignedAdvisorId,
@@ -104,17 +105,47 @@ export class ClientService {
           lastName: clients.lastName,
           email: clients.email,
           phone: clients.phone,
+          alternativePhone: clients.alternativePhone,
+          preferredContactMethod: clients.preferredContactMethod,
+          
+          // Identity & Citizenship
           dateOfBirth: clients.dateOfBirth,
+          placeOfBirth: clients.placeOfBirth,
+          currentCitizenships: clients.currentCitizenships,
+          currentResidency: clients.currentResidency,
           passportNumber: clients.passportNumber,
-          // Basic fields that should always exist
+          passportExpiryDate: clients.passportExpiryDate,
+          passportIssuingCountry: clients.passportIssuingCountry,
+          
+          // Professional & Educational Background
+          currentProfession: clients.currentProfession,
+          industry: clients.industry,
+          employmentStatus: clients.employmentStatus,
+          
+          // Immigration & Travel Goals
+          primaryGoals: clients.primaryGoals,
+          desiredTimeline: clients.desiredTimeline,
+          urgencyLevel: clients.urgencyLevel,
+          
+          // Program Preferences & Qualification
+          preferredPrograms: clients.preferredPrograms,
+          programQualificationScore: clients.programQualificationScore,
+          budgetRange: clients.budgetRange,
+          
+          // Internal Notes & Status
+          status: clients.status,
+          notes: clients.notes,
+          tags: clients.tags,
+          lastContactDate: clients.lastContactDate,
+          nextFollowUpDate: clients.nextFollowUpDate,
+          
+          // Legacy fields for backward compatibility
           nationality: clients.nationality,
           netWorthEstimate: clients.netWorthEstimate,
           investmentBudget: clients.investmentBudget,
           sourceOfFunds: clients.sourceOfFunds,
-          preferredPrograms: clients.preferredPrograms,
-          status: clients.status,
-          notes: clients.notes,
-          tags: clients.tags,
+          
+          // System fields
           createdAt: clients.createdAt,
           updatedAt: clients.updatedAt,
           assignedAdvisor: {
@@ -188,6 +219,7 @@ export class ClientService {
   static async getClientById(clientId: string, firmId: string): Promise<ClientWithAdvisor | null> {
     const result = await db
       .select({
+        // Basic Information
         id: clients.id,
         firmId: clients.firmId,
         assignedAdvisorId: clients.assignedAdvisorId,
@@ -195,16 +227,85 @@ export class ClientService {
         lastName: clients.lastName,
         email: clients.email,
         phone: clients.phone,
+        alternativePhone: clients.alternativePhone,
+        preferredContactMethod: clients.preferredContactMethod,
+        
+        // Identity & Citizenship
         dateOfBirth: clients.dateOfBirth,
+        placeOfBirth: clients.placeOfBirth,
+        currentCitizenships: clients.currentCitizenships,
+        currentResidency: clients.currentResidency,
         passportNumber: clients.passportNumber,
+        passportExpiryDate: clients.passportExpiryDate,
+        passportIssuingCountry: clients.passportIssuingCountry,
+        additionalPassports: clients.additionalPassports,
+        languagesSpoken: clients.languagesSpoken,
+        
+        // Professional & Educational Background
+        educationLevel: clients.educationLevel,
+        educationDetails: clients.educationDetails,
+        currentProfession: clients.currentProfession,
+        industry: clients.industry,
+        employmentStatus: clients.employmentStatus,
+        yearsOfExperience: clients.yearsOfExperience,
+        currentEmployer: clients.currentEmployer,
+        professionalLicenses: clients.professionalLicenses,
+        businessOwnership: clients.businessOwnership,
+        
+        // Immigration & Travel Goals
+        primaryGoals: clients.primaryGoals,
+        desiredTimeline: clients.desiredTimeline,
+        geographicPreferences: clients.geographicPreferences,
+        lifestyleRequirements: clients.lifestyleRequirements,
+        travelFrequency: clients.travelFrequency,
+        currentVisaRestrictions: clients.currentVisaRestrictions,
+        
+        // Immigration History
+        previousApplications: clients.previousApplications,
+        visaDenials: clients.visaDenials,
+        visaDenialDetails: clients.visaDenialDetails,
+        immigrationIssues: clients.immigrationIssues,
+        immigrationIssueDetails: clients.immigrationIssueDetails,
+        
+        // Financial & Investment Readiness
+        sourceOfFundsReadiness: clients.sourceOfFundsReadiness,
+        sourceOfFundsTypes: clients.sourceOfFundsTypes,
+        sourceOfFundsDescription: clients.sourceOfFundsDescription,
+        investmentExperience: clients.investmentExperience,
+        investmentPreferences: clients.investmentPreferences,
+        liquidityTimeline: clients.liquidityTimeline,
+        financialAdvisorsInvolved: clients.financialAdvisorsInvolved,
+        
+        // Compliance & Background
+        isPep: clients.isPep,
+        pepDetails: clients.pepDetails,
+        sanctionsScreening: clients.sanctionsScreening,
+        criminalBackground: clients.criminalBackground,
+        criminalBackgroundDetails: clients.criminalBackgroundDetails,
+        professionalReferences: clients.professionalReferences,
+        
+        // Program Preferences & Qualification
+        preferredPrograms: clients.preferredPrograms,
+        programQualificationScore: clients.programQualificationScore,
+        budgetRange: clients.budgetRange,
+        urgencyLevel: clients.urgencyLevel,
+        referralSource: clients.referralSource,
+        
+        // Internal Notes & Status
+        status: clients.status,
+        qualificationNotes: clients.qualificationNotes,
+        notes: clients.notes,
+        tags: clients.tags,
+        lastContactDate: clients.lastContactDate,
+        nextFollowUpDate: clients.nextFollowUpDate,
+        
+        // Legacy fields for backward compatibility
         nationality: clients.nationality,
         netWorthEstimate: clients.netWorthEstimate,
         investmentBudget: clients.investmentBudget,
         sourceOfFunds: clients.sourceOfFunds,
-        preferredPrograms: clients.preferredPrograms,
-        status: clients.status,
-        notes: clients.notes,
-        tags: clients.tags,
+        
+        // System fields
         createdAt: clients.createdAt,
         updatedAt: clients.updatedAt,
         assignedAdvisor: {
@@ -276,18 +377,89 @@ export class ClientService {
   static async updateClient(
     clientId: string, 
     firmId: string, 
-    updates: Partial<Omit<Client, 'id' | 'firmId' | 'createdAt' | 'updatedAt'>>
-  ): Promise<Client | null> {
-    const result = await db
-      .update(clients)
-      .set({
-        ...updates,
-        updatedAt: new Date()
-      })
-      .where(and(eq(clients.id, clientId), eq(clients.firmId, firmId)))
-      .returning()
+    updates: Partial<CreateClientInput>
+  ): Promise<ClientWithDetails | null> {
+    try {
+      // Extract family members data from updates
+      const { familyMembers: familyMembersData, ...clientData } = updates
 
-    return result[0] || null
+      // Clean up client data by removing undefined values and system fields
+      const cleanClientData = Object.fromEntries(
+        Object.entries(clientData).filter(([key, value]) => {
+          // Skip system fields that shouldn't be updated
+          if (['id', 'firmId', 'createdAt', 'updatedAt'].includes(key)) {
+            return false
+          }
+          // Skip undefined values
+          if (value === undefined) {
+            return false
+          }
+          return true
+        })
+      )
+
+      // Update main client data
+      const clientResult = await db
+        .update(clients)
+        .set({
+          ...cleanClientData,
+          updatedAt: new Date()
+        })
+        .where(and(eq(clients.id, clientId), eq(clients.firmId, firmId)))
+        .returning()
+      
+      if (!clientResult[0]) {
+        return null
+      }
+
+      const updatedClient = clientResult[0]
+
+      // Handle family members updates if provided
+      let updatedFamilyMembers: FamilyMember[] = []
+      if (familyMembersData !== undefined) {
+        // Delete existing family members for this client
+        await db
+          .delete(familyMembers)
+          .where(eq(familyMembers.clientId, clientId))
+
+        // Insert new family members if any
+        if (familyMembersData && familyMembersData.length > 0) {
+          const validFamilyMembers = familyMembersData.filter(member => 
+            member.firstName && member.lastName && member.relationship
+          )
+
+          if (validFamilyMembers.length > 0) {
+            const familyMemberResults = await db
+              .insert(familyMembers)
+              .values(validFamilyMembers.map(member => ({
+                ...member,
+                clientId: clientId,
+                createdAt: new Date(),
+                updatedAt: new Date()
+              })) as any)
+              .returning()
+
+            updatedFamilyMembers = familyMemberResults as FamilyMember[]
+          }
+        }
+      } else {
+        // If family members not provided in update, fetch existing ones
+        const existingFamilyMembers = await db
+          .select()
+          .from(familyMembers)
+          .where(eq(familyMembers.clientId, clientId))
+        
+        updatedFamilyMembers = existingFamilyMembers as FamilyMember[]
+      }
+
+      return {
+        ...updatedClient,
+        familyMembers: updatedFamilyMembers
+      } as ClientWithDetails
+    } catch (error) {
+      console.error('Error updating client:', error)
+      throw error
+    }
   }
 
   static async deleteClient(clientId: string, firmId: string): Promise<boolean> {
@@ -472,5 +644,52 @@ export class ClientService {
       .where(eq(clients.id, clientId))
 
     return score
+  }
+
+  // Update client status with validation and logging
+  static async updateClientStatus(
+    clientId: string, 
+    firmId: string, 
+    newStatus: ClientStatus,
+    triggeredBy?: string,
+    context?: { applicationId?: string; reason?: string }
+  ): Promise<boolean> {
+    try {
+      // Verify client exists and belongs to firm
+      const existingClient = await db
+        .select({ id: clients.id, status: clients.status })
+        .from(clients)
+        .where(and(eq(clients.id, clientId), eq(clients.firmId, firmId)))
+        .limit(1)
+
+      if (!existingClient.length) {
+        console.error(`Client not found: ${clientId} for firm: ${firmId}`)
+        return false
+      }
+
+      const oldStatus = existingClient[0].status
+
+      // Skip update if status is already the target status
+      if (oldStatus === newStatus) {
+        console.log(`Client ${clientId} already has status: ${newStatus}`)
+        return true
+      }
+
+      // Update client status
+      await db
+        .update(clients)
+        .set({ 
+          status: newStatus,
+          updatedAt: new Date()
+        })
+        .where(and(eq(clients.id, clientId), eq(clients.firmId, firmId)))
+
+      console.log(`Client status updated: ${clientId} from ${oldStatus} to ${newStatus}`)
+      return true
+
+    } catch (error) {
+      console.error('Error updating client status:', error)
+      return false
+    }
   }
 }

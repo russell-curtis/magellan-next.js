@@ -73,11 +73,17 @@ export const createClientSchema = z.object({
   languagesSpoken: optionalStringArray(),
   
   // Professional & Educational Background
-  educationLevel: z.enum(EDUCATION_LEVELS).optional(),
+  educationLevel: z.preprocess(
+    (val) => val === null || val === undefined || val === '' ? undefined : val,
+    z.enum(EDUCATION_LEVELS).optional()
+  ),
   educationDetails: optionalString(),
   currentProfession: optionalString(255),
   industry: optionalString(255),
-  employmentStatus: z.enum(EMPLOYMENT_STATUSES).optional(),
+  employmentStatus: z.preprocess(
+    (val) => val === null || val === undefined || val === '' ? undefined : val,
+    z.enum(EMPLOYMENT_STATUSES).optional()
+  ),
   yearsOfExperience: z.preprocess(
     (val) => val === null || val === undefined || val === '' ? undefined : Number(val),
     z.number().int().min(0).max(70).optional()
@@ -91,10 +97,16 @@ export const createClientSchema = z.object({
   
   // Immigration & Travel Goals
   primaryGoals: optionalStringArray(),
-  desiredTimeline: z.enum(TIMELINES).optional(),
+  desiredTimeline: z.preprocess(
+    (val) => val === null || val === undefined || val === '' ? undefined : val,
+    z.enum(TIMELINES).optional()
+  ),
   geographicPreferences: optionalStringArray(),
   lifestyleRequirements: optionalString(),
-  travelFrequency: z.enum(TRAVEL_FREQUENCIES).optional(),
+  travelFrequency: z.preprocess(
+    (val) => val === null || val === undefined || val === '' ? undefined : val,
+    z.enum(TRAVEL_FREQUENCIES).optional()
+  ),
   currentVisaRestrictions: optionalString(),
   
   // Immigration History
@@ -108,18 +120,30 @@ export const createClientSchema = z.object({
   immigrationIssueDetails: optionalString(),
   
   // Financial & Investment Readiness
-  sourceOfFundsReadiness: z.enum(READINESS_LEVELS).optional(),
+  sourceOfFundsReadiness: z.preprocess(
+    (val) => val === null || val === undefined || val === '' ? undefined : val,
+    z.enum(READINESS_LEVELS).optional()
+  ),
   sourceOfFundsTypes: optionalStringArray(),
   sourceOfFundsDescription: optionalString(),
-  investmentExperience: z.enum(INVESTMENT_EXPERIENCES).optional(),
+  investmentExperience: z.preprocess(
+    (val) => val === null || val === undefined || val === '' ? undefined : val,
+    z.enum(INVESTMENT_EXPERIENCES).optional()
+  ),
   investmentPreferences: optionalStringArray(),
-  liquidityTimeline: z.enum(READINESS_LEVELS).optional(),
+  liquidityTimeline: z.preprocess(
+    (val) => val === null || val === undefined || val === '' ? undefined : val,
+    z.enum(READINESS_LEVELS).optional()
+  ),
   financialAdvisorsInvolved: z.boolean().default(false),
   
   // Compliance & Background
   isPep: z.boolean().default(false),
   pepDetails: optionalString(),
-  sanctionsScreening: z.enum(SANCTIONS_SCREENING_STATUSES).optional(),
+  sanctionsScreening: z.preprocess(
+    (val) => val === null || val === undefined || val === '' ? undefined : val,
+    z.enum(SANCTIONS_SCREENING_STATUSES).optional()
+  ),
   criminalBackground: z.boolean().default(false),
   criminalBackgroundDetails: optionalString(),
   professionalReferences: z.preprocess(
@@ -133,8 +157,14 @@ export const createClientSchema = z.object({
     (val) => val === null || val === undefined || val === '' ? undefined : Number(val),
     z.number().int().min(0).max(100).optional()
   ),
-  budgetRange: z.enum(BUDGET_RANGES).optional(),
-  urgencyLevel: z.enum(URGENCY_LEVELS).optional(),
+  budgetRange: z.preprocess(
+    (val) => val === null || val === undefined || val === '' ? undefined : val,
+    z.enum(BUDGET_RANGES).optional()
+  ),
+  urgencyLevel: z.preprocess(
+    (val) => val === null || val === undefined || val === '' ? undefined : val,
+    z.enum(URGENCY_LEVELS).optional()
+  ),
   referralSource: optionalString(255),
   
   // Internal Notes & Status

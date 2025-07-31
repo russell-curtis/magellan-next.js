@@ -143,8 +143,8 @@ export default function ClientProfilePage() {
         throw new Error('Failed to fetch client profile')
       }
       
-      const profileData = await profileResponse.json()
-      setClient(profileData.client)
+      const data = await profileResponse.json()
+      setClient(data.client)
     } catch (error) {
       console.error('Error fetching client profile:', error)
       setClient(null)
@@ -336,6 +336,7 @@ export default function ClientProfilePage() {
     )
   }
 
+
   return (
     <div className="flex-1 space-y-6 p-6">
       {/* Header with Navigation */}
@@ -483,189 +484,239 @@ export default function ClientProfilePage() {
           <TabsTrigger value="overview">Overview</TabsTrigger>
           <TabsTrigger value="applications">Applications</TabsTrigger>
           <TabsTrigger value="communications">Communications</TabsTrigger>
-          <TabsTrigger value="tasks">Tasks</TabsTrigger>
+          <TabsTrigger value="tasks">Client Strategy</TabsTrigger>
         </TabsList>
 
         {/* Overview Tab */}
         <TabsContent value="overview" className="mt-6 space-y-6">
+          {/* Quick Stats Row */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-2xl font-bold">{client.programQualificationScore || 0}/100</div>
+                <div className="text-sm text-muted-foreground">Qualification Score</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-2xl font-bold">{client.applicationCount || 0}</div>
+                <div className="text-sm text-muted-foreground">Applications</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-2xl font-bold">{client.familyMembers?.length || 0}</div>
+                <div className="text-sm text-muted-foreground">Family Members</div>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardContent className="p-4">
+                <div className="text-2xl font-bold">{client.urgencyLevel?.charAt(0).toUpperCase() + client.urgencyLevel?.slice(1) || 'Low'}</div>
+                <div className="text-sm text-muted-foreground">Priority Level</div>
+              </CardContent>
+            </Card>
+          </div>
+
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            {/* Personal Information */}
+            {/* Client Qualification Summary */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Personal Information
+                  <CheckCircle className="h-5 w-5" />
+                  Qualification Summary
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Email</label>
-                  <div className="flex items-center space-x-2 mt-1">
-                    <Mail className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{client.email || 'Not provided'}</span>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Primary Phone</label>
-                  <div className="flex items-center space-x-2 mt-1">
-                    <Phone className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{formatPhone(client.phone)}</span>
-                  </div>
-                </div>
-                {client.alternativePhone && (
+                {client.programQualificationScore !== null && (
                   <div>
-                    <label className="text-sm font-medium text-muted-foreground">Alternative Phone</label>
-                    <div className="flex items-center space-x-2 mt-1">
-                      <Phone className="h-4 w-4 text-muted-foreground" />
-                      <span className="text-sm">{formatPhone(client.alternativePhone)}</span>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium">Overall Score</span>
+                      <span className="text-lg font-semibold">{client.programQualificationScore}/100</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-2">
+                      <div 
+                        className={`h-2 rounded-full ${
+                          client.programQualificationScore >= 80 ? 'bg-green-500' :
+                          client.programQualificationScore >= 60 ? 'bg-yellow-500' :
+                          'bg-red-500'
+                        }`}
+                        style={{ width: `${client.programQualificationScore}%` }}
+                      ></div>
                     </div>
                   </div>
                 )}
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Preferred Contact</label>
-                  <div className="flex items-center space-x-2 mt-1">
-                    <MessageSquare className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{client.preferredContactMethod || 'Email'}</span>
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Citizenship Status</span>
+                    <Badge variant="outline">{client.currentCitizenships?.join(', ') || 'Not specified'}</Badge>
                   </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Date of Birth</label>
-                  <div className="flex items-center space-x-2 mt-1">
-                    <Calendar className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{formatDate(client.dateOfBirth)}</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Financial Readiness</span>
+                    <Badge variant={client.budgetRange ? 'default' : 'outline'}>
+                      {client.budgetRange?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Not specified'}
+                    </Badge>
                   </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Current Citizenships</label>
-                  <div className="flex items-center space-x-2 mt-1">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{client.currentCitizenships?.join(', ') || 'Not provided'}</span>
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Current Residency</label>
-                  <div className="flex items-center space-x-2 mt-1">
-                    <FileText className="h-4 w-4 text-muted-foreground" />
-                    <span className="text-sm">{client.currentResidency || 'Not provided'}</span>
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm">Source of Funds</span>
+                    <Badge variant={client.sourceOfFundsReadiness ? 'default' : 'outline'}>
+                      {client.sourceOfFundsReadiness?.replace('_', ' ') || 'Not specified'}
+                    </Badge>
                   </div>
                 </div>
               </CardContent>
             </Card>
 
-            {/* Professional & Immigration Goals */}
+            {/* Immigration Goals & Timeline */}
             <Card>
               <CardHeader>
                 <CardTitle className="flex items-center gap-2">
-                  <User className="h-5 w-5" />
-                  Professional & Goals
+                  <Calendar className="h-5 w-5" />
+                  Immigration Goals
                 </CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Employment Status</label>
-                  <div className="text-sm mt-1">
-                    {client.employmentStatus || 'Not specified'}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Current Profession</label>
-                  <div className="text-sm mt-1">
-                    {client.currentProfession || 'Not specified'}
-                  </div>
-                </div>
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Industry</label>
-                  <div className="text-sm mt-1">
-                    {client.industry || 'Not specified'}
-                  </div>
-                </div>
-                <div>
                   <label className="text-sm font-medium text-muted-foreground">Primary Goals</label>
-                  <div className="text-sm mt-1">
-                    {client.primaryGoals?.join(', ') || 'Not specified'}
+                  <div className="mt-1">
+                    {client.primaryGoals && client.primaryGoals.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {client.primaryGoals.map((goal) => (
+                          <Badge key={goal} variant="secondary" className="text-xs">
+                            {goal.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">Not specified</span>
+                    )}
                   </div>
                 </div>
                 <div>
                   <label className="text-sm font-medium text-muted-foreground">Desired Timeline</label>
+                  <div className="text-sm mt-1 flex items-center gap-2">
+                    <Clock className="h-4 w-4" />
+                    {client.desiredTimeline?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase()) || 'Not specified'}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Geographic Preferences</label>
+                  <div className="mt-1">
+                    {client.geographicPreferences && client.geographicPreferences.length > 0 ? (
+                      <div className="flex flex-wrap gap-1">
+                        {client.geographicPreferences.map((pref) => (
+                          <Badge key={pref} variant="outline" className="text-xs">
+                            {pref}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <span className="text-sm text-muted-foreground">No preferences specified</span>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Urgency Level</label>
                   <div className="text-sm mt-1">
-                    {client.desiredTimeline || 'Not specified'}
+                    <Badge className={getPriorityColor(client.urgencyLevel || 'low')}>
+                      {client.urgencyLevel?.charAt(0).toUpperCase() + client.urgencyLevel?.slice(1) || 'Low'}
+                    </Badge>
                   </div>
                 </div>
               </CardContent>
             </Card>
           </div>
 
-          {/* Passport & Documents */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <FileText className="h-5 w-5" />
-                Passport & Documents
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Passport Number</label>
-                <div className="text-sm mt-1">
-                  {client.passportNumber || 'Not provided'}
-                </div>
-              </div>
-              {client.passportExpiryDate && (
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Passport Expiry</label>
-                  <div className="text-sm mt-1">
-                    {formatDate(client.passportExpiryDate)}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Family Profile */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <User className="h-5 w-5" />
+                  Family Profile
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                {client.familyMembers && client.familyMembers.length > 0 ? (
+                  <div className="space-y-3">
+                    {client.familyMembers.map((member, index) => (
+                      <div key={member.id || index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        <div>
+                          <div className="font-medium">{member.firstName} {member.lastName}</div>
+                          <div className="text-sm text-muted-foreground capitalize">
+                            {member.relationship} • {member.dateOfBirth ? formatDate(member.dateOfBirth) : 'Age not specified'}
+                          </div>
+                        </div>
+                        <Badge variant={member.includeInApplication ? 'default' : 'outline'}>
+                          {member.includeInApplication ? 'Included' : 'Not included'}
+                        </Badge>
+                      </div>
+                    ))}
                   </div>
-                </div>
-              )}
-              {client.passportIssuingCountry && (
-                <div>
-                  <label className="text-sm font-medium text-muted-foreground">Issuing Country</label>
-                  <div className="text-sm mt-1">
-                    {client.passportIssuingCountry}
+                ) : (
+                  <div className="text-center py-6 text-muted-foreground">
+                    <User className="h-8 w-8 mx-auto mb-2 opacity-50" />
+                    <p className="text-sm">No family members registered</p>
                   </div>
-                </div>
-              )}
-            </CardContent>
-          </Card>
+                )}
+              </CardContent>
+            </Card>
 
-          {/* Investment & Financial Readiness */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <DollarSign className="h-5 w-5" />
-                Investment & Financial Readiness
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Budget Range</label>
-                <div className="text-sm mt-1">
-                  {client.budgetRange ? client.budgetRange.replace('_', ' - ').replace('k', 'K').replace('m', 'M').replace('plus', '+') : 'Not specified'}
-                </div>
-              </div>
-              <div>
-                <label className="text-sm font-medium text-muted-foreground">Source of Funds Readiness</label>
-                <div className="text-sm mt-1">
-                  {client.sourceOfFundsReadiness?.replace('_', ' ') || 'Not specified'}
-                </div>
-              </div>
-              {client.programQualificationScore !== null && (
+            {/* Contact & Professional Summary */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <Mail className="h-5 w-5" />
+                  Contact & Professional
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
                 <div>
-                  <label className="text-sm font-medium text-muted-foreground">Qualification Score</label>
-                  <div className="flex items-center space-x-2 mt-1">
-                    <div className="text-lg font-semibold">{client.programQualificationScore}/100</div>
-                    <div className="flex-1 bg-gray-200 rounded-full h-2">
-                      <div 
-                        className="bg-blue-600 h-2 rounded-full" 
-                        style={{ width: `${client.programQualificationScore}%` }}
-                      ></div>
+                  <label className="text-sm font-medium text-muted-foreground">Primary Contact</label>
+                  <div className="mt-1 space-y-1">
+                    {client.email && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Mail className="h-3 w-3" />
+                        {client.email}
+                      </div>
+                    )}
+                    {client.phone && (
+                      <div className="flex items-center gap-2 text-sm">
+                        <Phone className="h-3 w-3" />
+                        {formatPhone(client.phone)}
+                      </div>
+                    )}
+                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                      <MessageSquare className="h-3 w-3" />
+                      Prefers {client.preferredContactMethod || 'email'}
                     </div>
                   </div>
                 </div>
-              )}
-            </CardContent>
-          </Card>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Professional</label>
+                  <div className="mt-1">
+                    <div className="text-sm">{client.currentProfession || 'Not specified'}</div>
+                    {client.industry && (
+                      <div className="text-xs text-muted-foreground">{client.industry}</div>
+                    )}
+                    {client.employmentStatus && (
+                      <Badge variant="outline" className="mt-1 text-xs">
+                        {client.employmentStatus.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                      </Badge>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Location</label>
+                  <div className="mt-1">
+                    <div className="text-sm">{client.currentResidency || 'Not specified'}</div>
+                    {client.placeOfBirth && client.placeOfBirth !== client.currentResidency && (
+                      <div className="text-xs text-muted-foreground">Born in {client.placeOfBirth}</div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
 
           {/* Timeline & Follow-up */}
           {(client.lastContactDate || client.nextFollowUpDate) && (
@@ -765,7 +816,18 @@ export default function ClientProfilePage() {
           
           {client.applications && client.applications.length > 0 ? (
             <div className="space-y-4">
-              {client.applications.map((app) => (
+              {client.applications.map((app) => {
+                console.log('=== CLIENT PROFILE DEBUG ===')
+                console.log('App ID:', app.id)
+                console.log('App Status:', app.status)
+                console.log('App assignedAdvisorId:', app.assignedAdvisorId)
+                console.log('Current User:', currentUser)
+                console.log('User ID matches assigned advisor:', currentUser?.id === app.assignedAdvisorId)
+                console.log('User is admin:', currentUser?.role === 'admin')
+                console.log('Is Sample App:', app.id.startsWith('sample-'))
+                console.log('==========================')
+                
+                return (
                 <ApplicationCard
                   key={app.id}
                   application={{
@@ -773,6 +835,7 @@ export default function ClientProfilePage() {
                     applicationNumber: app.applicationNumber,
                     status: app.status,
                     priority: app.priority,
+                    assignedAdvisorId: app.assignedAdvisorId,
                     investmentAmount: app.investmentAmount,
                     investmentType: app.investmentType,
                     submittedAt: app.submittedAt,
@@ -799,6 +862,10 @@ export default function ClientProfilePage() {
                   }}
                   currentUser={currentUser}
                   hideClientInfo={true}
+                  onEditApplication={(applicationId) => {
+                    console.log('Edit application clicked:', applicationId)
+                    // TODO: Add edit functionality
+                  }}
                   onStatusChange={(applicationId, newStatus) => {
                     if (newStatus === 'deleted') {
                       // Refresh client profile to remove deleted application
@@ -817,7 +884,8 @@ export default function ClientProfilePage() {
                     }
                   }}
                 />
-              ))}
+                )
+              })}
             </div>
           ) : (
             <div className="text-center py-12">
@@ -843,63 +911,191 @@ export default function ClientProfilePage() {
           />
         </TabsContent>
 
-        {/* Tasks Tab */}
+        {/* Client Strategy Tab */}
         <TabsContent value="tasks" className="mt-6">
           <div className="flex items-center justify-between mb-6">
-            <h2 className="text-2xl font-bold">Tasks</h2>
+            <div>
+              <h2 className="text-2xl font-bold">Client Strategy</h2>
+              <p className="text-sm text-muted-foreground">Immigration planning and strategic client management</p>
+            </div>
             <Button>
               <Plus className="h-4 w-4 mr-2" />
-              New Task
+              Add Strategic Note
             </Button>
           </div>
-          
-          {client.tasks && client.tasks.length > 0 ? (
-            <div className="space-y-3">
-              {client.tasks.map((task) => (
-                <Card key={task.id} className="hover:bg-gray-50">
-                  <CardContent className="pt-4">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center space-x-3">
-                        <div className={`p-2 rounded ${getPriorityColor(task.priority)}`}>
-                          {task.status === 'completed' ? (
-                            <CheckCircle className="h-5 w-5" />
-                          ) : task.priority === 'urgent' ? (
-                            <AlertTriangle className="h-5 w-5" />
-                          ) : (
-                            <Clock className="h-5 w-5" />
-                          )}
-                        </div>
-                        <div>
-                          <div className={`font-medium text-lg ${task.status === 'completed' ? 'line-through' : ''}`}>
-                            {task.title}
-                          </div>
-                          <div className="text-sm text-muted-foreground">
-                            Due: {formatDate(task.dueDate)}
-                            {task.assignedTo && ` • Assigned to ${task.assignedTo}`}
-                          </div>
-                        </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Program Exploration */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  Program Exploration
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Preferred Programs</label>
+                  <div className="mt-1">
+                    {client.preferredPrograms && client.preferredPrograms.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {client.preferredPrograms.map((program) => (
+                          <Badge key={program} variant="secondary" className="text-xs">
+                            {program}
+                          </Badge>
+                        ))}
                       </div>
-                      <Badge className={getStatusColor(task.status)}>
-                        {task.status.replace('_', ' ')}
+                    ) : (
+                      <div className="text-sm text-muted-foreground">No programs researched yet</div>
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Research Status</label>
+                  <div className="mt-2 space-y-2">
+                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <span className="text-sm">Initial Consultation</span>
+                      <Badge variant="default">Completed</Badge>
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <span className="text-sm">Program Recommendations</span>
+                      <Badge variant={client.preferredPrograms?.length ? 'default' : 'outline'}>
+                        {client.preferredPrograms?.length ? 'Provided' : 'Pending'}
                       </Badge>
                     </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          ) : (
-            <div className="text-center py-12">
-              <CheckCircle className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-muted-foreground mb-2">No tasks assigned</h3>
-              <p className="text-sm text-muted-foreground mb-4">
-                Create tasks to track work for this client
-              </p>
-              <Button>
-                <Plus className="h-4 w-4 mr-2" />
-                Create First Task
-              </Button>
-            </div>
-          )}
+                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <span className="text-sm">Financial Planning</span>
+                      <Badge variant={client.budgetRange ? 'default' : 'outline'}>
+                        {client.budgetRange ? 'Assessed' : 'Pending'}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+
+            {/* Readiness Assessment */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2">
+                  <CheckCircle className="h-5 w-5" />
+                  Readiness Assessment
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Documentation Status</label>
+                  <div className="mt-2 space-y-2">
+                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <span className="text-sm">Passport Valid</span>
+                      <Badge variant={client.passportNumber ? 'default' : 'outline'}>
+                        {client.passportNumber ? 'Yes' : 'Unknown'}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <span className="text-sm">Professional Documents</span>
+                      <Badge variant={client.currentProfession ? 'default' : 'outline'}>
+                        {client.currentProfession ? 'Available' : 'Pending'}
+                      </Badge>
+                    </div>
+                    <div className="flex items-center justify-between p-2 bg-gray-50 rounded">
+                      <span className="text-sm">Financial Documents</span>
+                      <Badge variant={client.sourceOfFundsReadiness === 'ready' ? 'default' : 'outline'}>
+                        {client.sourceOfFundsReadiness === 'ready' ? 'Ready' : 'In Progress'}
+                      </Badge>
+                    </div>
+                  </div>
+                </div>
+                <div>
+                  <label className="text-sm font-medium text-muted-foreground">Family Coordination</label>
+                  <div className="mt-1">
+                    {client.familyMembers && client.familyMembers.length > 0 ? (
+                      <div className="text-sm">
+                        {client.familyMembers.length} family member(s) involved
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {client.familyMembers.filter(m => m.includeInApplication).length} to be included in applications
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="text-sm text-muted-foreground">Single applicant</div>
+                    )}
+                  </div>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+
+          {/* Strategic Timeline */}
+          <Card className="mt-6">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5" />
+                Strategic Timeline & Next Steps
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-4">
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  <div className="p-4 border rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Clock className="h-4 w-4 text-blue-500" />
+                      <span className="font-medium text-sm">Immediate (Next 30 days)</span>
+                    </div>
+                    <ul className="text-sm space-y-1">
+                      {!client.preferredPrograms?.length && <li>• Research program options</li>}
+                      {!client.budgetRange && <li>• Assess financial capacity</li>}
+                      {client.familyMembers?.some(m => !m.includeInApplication) && <li>• Confirm family inclusion</li>}
+                      <li>• Schedule follow-up consultation</li>
+                    </ul>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Calendar className="h-4 w-4 text-yellow-500" />
+                      <span className="font-medium text-sm">Short Term (1-3 months)</span>
+                    </div>
+                    <ul className="text-sm space-y-1">
+                      <li>• Finalize program selection</li>
+                      <li>• Begin document collection</li>
+                      <li>• Complete due diligence</li>
+                      <li>• Prepare investment funds</li>
+                    </ul>
+                  </div>
+                  <div className="p-4 border rounded-lg">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                      <span className="font-medium text-sm">Long Term (3+ months)</span>
+                    </div>
+                    <ul className="text-sm space-y-1">
+                      <li>• Submit applications</li>
+                      <li>• Monitor processing</li>
+                      <li>• Plan relocation timeline</li>
+                      <li>• Post-approval services</li>
+                    </ul>
+                  </div>
+                </div>
+                {(client.lastContactDate || client.nextFollowUpDate) && (
+                  <div className="pt-4 border-t">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        {client.lastContactDate && (
+                          <span className="text-sm text-muted-foreground">
+                            Last contact: {formatDate(client.lastContactDate)}
+                          </span>
+                        )}
+                      </div>
+                      <div>
+                        {client.nextFollowUpDate && (
+                          <span className="text-sm font-medium">
+                            Next follow-up: {formatDate(client.nextFollowUpDate)}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
       </Tabs>
 
