@@ -26,7 +26,7 @@ const clientNavSections: NavSection[] = [
         href: "/client/dashboard/applications",
       },
       {
-        label: "Documents",
+        label: "Resource Library",
         href: "/client/dashboard/documents",
       },
       {

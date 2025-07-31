@@ -154,31 +154,9 @@ function SettingsContent() {
 
     setUploadingImage(true);
     try {
-      const formData = new FormData();
-      formData.append("file", profileImage);
-
-      // Upload to your R2 storage endpoint
-      const response = await fetch("/api/upload-image", {
-        method: "POST",
-        body: formData,
-      });
-
-      if (response.ok) {
-        const { url } = await response.json();
-
-        // Update user profile with new image URL
-        await authClient.updateUser({
-          name,
-          image: url,
-        });
-
-        setUser((prev) => (prev ? { ...prev, image: url } : null));
-        setImagePreview(null);
-        setProfileImage(null);
-        toast.success("Profile picture updated successfully");
-      } else {
-        throw new Error("Upload failed");
-      }
+      // Profile picture upload is currently disabled
+      // TODO: Implement profile picture upload if needed
+      toast.error('Profile picture upload is currently disabled');
     } catch {
       toast.error("Failed to upload profile picture");
     } finally {

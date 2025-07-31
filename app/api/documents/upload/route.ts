@@ -1,4 +1,4 @@
-import { uploadImageAssets } from "@/lib/upload-image";
+import { uploadToR2 } from "@/lib/r2-storage";
 import { NextRequest, NextResponse } from "next/server";
 import { requireAuth } from "@/lib/auth-utils";
 import { db } from "@/db/drizzle";
@@ -63,7 +63,8 @@ export async function POST(req: NextRequest) {
     const filename = `doc-${timestamp}-${baseName.replace(/[^a-zA-Z0-9-_]/g, "_")}.${fileExt}`;
 
     // Upload the file to R2 storage
-    const url = await uploadImageAssets(buffer, filename);
+    const uploadResult = await uploadToR2(buffer, filename, file.type, 'general')
+    const url = uploadResult.url;
 
 
     // Save document metadata to database  

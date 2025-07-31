@@ -66,22 +66,13 @@ const getNavigationSections = (userPermissions: UserWithPermissions | null): Nav
     });
   }
 
-  // Documents section - based on document permissions
+  // Resource Library section - based on document permissions
   if (userPermissions.permissions.canManageDocuments) {
     sections.push({
       id: "documents",
-      label: "Documents",
+      label: "Document Center",
       icon: FolderOpen,
-      subItems: [
-        {
-          label: "Document Center",
-          href: "/dashboard/documents",
-        },
-        {
-          label: "Upload Management", 
-          href: "/dashboard/upload",
-        },
-      ],
+      href: "/dashboard/documents",
     });
   }
 

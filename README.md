@@ -78,7 +78,7 @@ A comprehensive, production-ready SaaS starter kit built with Next.js 15, featur
 ├── lib/
 │   ├── auth/              # Authentication config
 │   ├── subscription.ts    # Subscription utilities
-│   └── upload-image.ts    # R2 file upload utilities
+│   └── r2-storage.ts      # R2 file storage utilities
 └── db/
     ├── schema.ts          # Database schema
     └── drizzle.ts         # Database connection
@@ -174,13 +174,6 @@ Open [http://localhost:3000](http://localhost:3000) to see your application.
 - Markdown rendering for rich responses
 - Conversation history and context
 
-### File Upload System
-- **Cloudflare R2 integration** with S3-compatible API
-- **Drag & drop interface** with visual feedback
-- **File validation** - Type checking and size limits
-- **Progress tracking** - Real-time upload progress
-- **Image gallery** - View uploaded files with metadata
-- **Copy URLs** - Easy sharing and integration
 
 ### Analytics & Tracking
 - PostHog event tracking
