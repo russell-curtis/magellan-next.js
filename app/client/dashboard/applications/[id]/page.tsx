@@ -15,7 +15,8 @@ import {
   AlertCircle,
   RefreshCcw,
   MessageSquare,
-  HelpCircle
+  HelpCircle,
+  CheckSquare
 } from 'lucide-react'
 import { WorkflowProgressTracker, WorkflowStage } from '@/components/ui/workflow-progress-tracker'
 import { DocumentRequirement } from '@/components/ui/document-checklist-card'
@@ -67,7 +68,7 @@ export default function ClientApplicationPage() {
   const [requirements, setRequirements] = useState<DocumentRequirement[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [activeTab, setActiveTab] = useState('overview')
+  const [activeTab, setActiveTab] = useState('progress')
   const [uploading, setUploading] = useState(false)
 
   useEffect(() => {
@@ -487,13 +488,11 @@ export default function ClientApplicationPage() {
       {/* Main Content Tabs */}
       <Tabs value={activeTab} onValueChange={setActiveTab}>
         <TabsList>
-          <TabsTrigger value="overview">Workflow Overview</TabsTrigger>
-          <TabsTrigger value="documents">Document Management</TabsTrigger>
-          <TabsTrigger value="upload">Upload Center</TabsTrigger>
-          <TabsTrigger value="originals">Original Documents</TabsTrigger>
+          <TabsTrigger value="progress">My Progress</TabsTrigger>
+          <TabsTrigger value="documents">Documents</TabsTrigger>
         </TabsList>
 
-        <TabsContent value="overview" className="space-y-6">
+        <TabsContent value="progress" className="space-y-6">
           {/* Clean Workflow Progress Tracker */}
           <WorkflowProgressTracker
             stages={workflowData.stages}
@@ -522,33 +521,43 @@ export default function ClientApplicationPage() {
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
                   <div className="p-4 border rounded-lg">
-                    <h4 className="font-semibold text-gray-900 mb-2">Pending Actions</h4>
-                    <ul className="space-y-2 text-sm text-gray-600">
+                    <h4 className="font-semibold text-gray-900 mb-2">Action Required</h4>
+                    <div className="space-y-3">
                       {requirementsData.length === 0 ? (
-                        <li className="flex items-center text-gray-500">
+                        <div className="flex items-center text-gray-500">
                           <HelpCircle className="h-4 w-4 mr-2" />
                           Loading document requirements...
-                        </li>
+                        </div>
                       ) : (
                         <>
                           {requirementsData
                             .filter(req => req.status === 'pending' || req.status === 'rejected')
                             .slice(0, 3)
                             .map((req) => (
-                              <li key={req.id} className="flex items-center">
-                                <AlertCircle className="h-4 w-4 text-orange-500 mr-2" />
-                                Upload {req.documentName}
-                              </li>
+                              <div key={req.id} className="flex items-center justify-between p-2 bg-orange-50 rounded-lg">
+                                <div className="flex items-center">
+                                  <AlertCircle className="h-4 w-4 text-orange-500 mr-2" />
+                                  <span className="text-sm text-gray-700">Upload {req.documentName}</span>
+                                </div>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline"
+                                  onClick={() => setActiveTab('documents')}
+                                  className="text-xs px-2 py-1"
+                                >
+                                  Upload
+                                </Button>
+                              </div>
                             ))}
                           {requirementsData.filter(req => req.status === 'pending' || req.status === 'rejected').length === 0 && (
-                            <li className="flex items-center text-green-600">
+                            <div className="flex items-center text-green-600 p-2 bg-green-50 rounded-lg">
                               <CheckCircle className="h-4 w-4 mr-2" />
-                              All documents submitted
-                            </li>
+                              <span className="text-sm">All documents submitted</span>
+                            </div>
                           )}
                         </>
                       )}
-                    </ul>
+                    </div>
                   </div>
 
                   <div className="p-4 border rounded-lg">
@@ -572,6 +581,66 @@ export default function ClientApplicationPage() {
               </CardContent>
             </Card>
           )}
+
+          {/* Quick Actions */}
+          <Card className="border border-gray-200">
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <CheckSquare className="h-5 w-5 mr-2 text-blue-600" />
+                Quick Actions
+              </CardTitle>
+              <p className="text-sm text-gray-600">Take immediate action to keep your application moving forward</p>
+            </CardHeader>
+            <CardContent>
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {/* Upload Documents Action */}
+                {requirementsData.filter(req => req.status === 'pending' || req.status === 'rejected').length > 0 && (
+                  <Button 
+                    onClick={() => setActiveTab('documents')}
+                    className="h-20 flex-col space-y-2 bg-orange-500 hover:bg-orange-600"
+                  >
+                    <FileText className="h-6 w-6" />
+                    <div className="text-center">
+                      <div className="font-medium">Upload Documents</div>
+                      <div className="text-xs opacity-90">
+                        {requirementsData.filter(req => req.status === 'pending' || req.status === 'rejected').length} pending
+                      </div>
+                    </div>
+                  </Button>
+                )}
+
+                {/* Contact Advisor Action */}
+                <Button 
+                  onClick={() => router.push('/client/dashboard/messages')}
+                  variant="outline"
+                  className="h-20 flex-col space-y-2 border-blue-300 hover:bg-blue-50"
+                >
+                  <MessageSquare className="h-6 w-6 text-blue-600" />
+                  <div className="text-center">
+                    <div className="font-medium text-blue-600">Contact Advisor</div>
+                    <div className="text-xs text-blue-500">
+                      {application.assignedAdvisor?.name || 'Get Help'}
+                    </div>
+                  </div>
+                </Button>
+
+                {/* View All Documents */}
+                <Button 
+                  onClick={() => setActiveTab('documents')}
+                  variant="outline"
+                  className="h-20 flex-col space-y-2 border-green-300 hover:bg-green-50"
+                >
+                  <FileText className="h-6 w-6 text-green-600" />
+                  <div className="text-center">
+                    <div className="font-medium text-green-600">View All Documents</div>
+                    <div className="text-xs text-green-500">
+                      {requirementsData.filter(r => r.status === 'approved').length} approved
+                    </div>
+                  </div>
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
         </TabsContent>
 
         <TabsContent value="documents" className="space-y-6">
@@ -590,195 +659,273 @@ export default function ClientApplicationPage() {
               </CardContent>
             </Card>
           ) : (
-            workflowData.stages.map((stage) => {
-              // Find requirements that belong to this specific stage
-              const stageRequirements = requirementsData.filter(req => req.stageId === stage.id)
-              
-              if (stageRequirements.length === 0) return null
+            <>
+              {/* Document Status Overview */}
+              <Card className="border border-gray-200">
+                <CardHeader>
+                  <CardTitle className="flex items-center">
+                    <FileText className="h-5 w-5 mr-2 text-blue-600" />
+                    Document Overview
+                  </CardTitle>
+                  <p className="text-sm text-gray-600">Track the status of all your application documents</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
+                      <div className="text-2xl font-bold text-red-700">
+                        {requirementsData.filter(r => r.status === 'pending' || r.status === 'rejected').length}
+                      </div>
+                      <div className="text-sm text-red-600 font-medium">Action Required</div>
+                    </div>
+                    <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
+                      <div className="text-2xl font-bold text-yellow-700">
+                        {requirementsData.filter(r => r.status === 'submitted' || r.status === 'under_review').length}
+                      </div>
+                      <div className="text-sm text-yellow-600 font-medium">Under Review</div>
+                    </div>
+                    <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+                      <div className="text-2xl font-bold text-green-700">
+                        {requirementsData.filter(r => r.status === 'approved').length}
+                      </div>
+                      <div className="text-sm text-green-600 font-medium">Approved</div>
+                    </div>
+                    <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
+                      <div className="text-2xl font-bold text-blue-700">
+                        {requirementsData.length}
+                      </div>
+                      <div className="text-sm text-blue-600 font-medium">Total Documents</div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
 
-              const isCurrentStage = stage.id === workflowData.currentStageId
-              const completedCount = stageRequirements.filter(req => req.fileName).length
-              const totalCount = stageRequirements.length
-              const progressPercentage = totalCount > 0 ? Math.round((completedCount / totalCount) * 100) : 0
-
-              return (
-                <Card key={stage.id} className={isCurrentStage ? 'border-blue-300 bg-blue-50' : 'border border-gray-200'}>
+              {/* Action Required Documents */}
+              {requirementsData.filter(r => r.status === 'pending' || r.status === 'rejected').length > 0 && (
+                <Card className="border border-red-200 bg-red-50/30">
                   <CardHeader>
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center gap-2">
-                        <CardTitle className="text-lg">
-                          {stage.stageName}
-                        </CardTitle>
-                        {isCurrentStage && (
-                          <Badge variant="outline" className="bg-blue-100 text-blue-800 border-blue-300">
-                            Current Stage
-                          </Badge>
-                        )}
-                      </div>
-                      <div className="text-right">
-                        <div className="text-sm font-medium text-gray-900">
-                          {completedCount}/{totalCount}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          Required
-                        </div>
-                      </div>
-                    </div>
-                    <p className="text-sm text-muted-foreground mt-1">
-                      {stage.description}
-                    </p>
-                    
-                    {/* Progress Bar */}
-                    <div className="mt-3">
-                      <div className="flex items-center justify-between mb-2">
-                        <span className="text-sm text-gray-600">Required Documents Progress</span>
-                        <span className="text-sm font-medium text-gray-900">{progressPercentage}%</span>
-                      </div>
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className={`h-2 rounded-full transition-all duration-300 ${
-                            progressPercentage === 100 ? 'bg-green-500' : 'bg-blue-500'
-                          }`}
-                          style={{ width: `${progressPercentage}%` }}
-                        />
-                      </div>
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {progressPercentage}% complete
-                      </div>
-                    </div>
+                    <CardTitle className="flex items-center text-red-700">
+                      <AlertCircle className="h-5 w-5 mr-2" />
+                      Action Required ({requirementsData.filter(r => r.status === 'pending' || r.status === 'rejected').length})
+                    </CardTitle>
+                    <p className="text-sm text-red-600">These documents need your immediate attention</p>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {stageRequirements.map(requirement => (
-                        <EnhancedDocumentUpload
-                          key={requirement.id}
-                          requirement={requirement}
-                          onUpload={async (file, _validationResult) => {
-                            // Create enhanced upload handler with correct requirement ID
-                            const formData = new FormData()
-                            formData.append('file', file)
-                            formData.append('requirementId', requirement.id)
-                            formData.append('replaceExisting', 'true')
-                            
-                            try {
-                              setUploading(true)
-                              const token = localStorage.getItem('clientToken')
-                              const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
+                      {requirementsData
+                        .filter(req => req.status === 'pending' || req.status === 'rejected')
+                        .map(requirement => (
+                          <EnhancedDocumentUpload
+                            key={requirement.id}
+                            requirement={requirement}
+                            onUpload={async (file) => {
+                              const formData = new FormData()
+                              formData.append('file', file)
+                              formData.append('requirementId', requirement.id)
+                              formData.append('replaceExisting', 'true')
                               
-                              const response = await fetch(`/api/client/applications/${applicationId}/documents/upload`, {
-                                method: 'POST',
-                                headers,
-                                body: formData
-                              })
-                              
-                              if (!response.ok) {
-                                const errorData = await response.json()
-                                throw new Error(errorData.error || `Upload failed with status: ${response.status}`)
+                              try {
+                                setUploading(true)
+                                const token = localStorage.getItem('clientToken')
+                                const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
+                                
+                                const response = await fetch(`/api/client/applications/${applicationId}/documents/upload`, {
+                                  method: 'POST',
+                                  headers,
+                                  body: formData
+                                })
+                                
+                                if (!response.ok) {
+                                  const errorData = await response.json()
+                                  throw new Error(errorData.error || `Upload failed with status: ${response.status}`)
+                                }
+                                
+                                await fetchApplicationData()
+                              } catch (err) {
+                                console.error('Enhanced upload error:', err)
+                                throw err
+                              } finally {
+                                setUploading(false)
                               }
-                              
-                              const result = await response.json()
-                              console.log('Enhanced upload successful with quality validation:', {
-                                fileName: result.fileName,
-                                qualityScore: result.qualityValidation?.score,
-                                issues: result.qualityValidation?.issues?.length || 0
-                              })
-                              
-                              await fetchApplicationData()
-                            } catch (err) {
-                              console.error('Enhanced upload error:', err)
-                              throw err
-                            } finally {
-                              setUploading(false)
-                            }
-                          }}
-                          onView={() => {
-                            if (requirement.fileName) {
-                              window.open(`/api/client/applications/${applicationId}/documents/${requirement.id}/download`, '_blank')
-                            }
-                          }}
-                          canUpload={true}
-                        />
-                      ))}
+                            }}
+                            onView={() => {
+                              if (requirement.fileName) {
+                                window.open(`/api/client/applications/${applicationId}/documents/${requirement.id}/download`, '_blank')
+                              }
+                            }}
+                            canUpload={true}
+                          />
+                        ))}
                     </div>
                   </CardContent>
                 </Card>
-              )
-            })
+              )}
+
+              {/* Under Review Documents */}
+              {requirementsData.filter(r => r.status === 'submitted' || r.status === 'under_review').length > 0 && (
+                <Card className="border border-yellow-200 bg-yellow-50/30">
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-yellow-700">
+                      <Clock className="h-5 w-5 mr-2" />
+                      Under Review ({requirementsData.filter(r => r.status === 'submitted' || r.status === 'under_review').length})
+                    </CardTitle>
+                    <p className="text-sm text-yellow-600">These documents are being reviewed by your advisor</p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {requirementsData
+                        .filter(req => req.status === 'submitted' || req.status === 'under_review')
+                        .map(requirement => (
+                          <EnhancedDocumentUpload
+                            key={requirement.id}
+                            requirement={requirement}
+                            onUpload={async (file) => {
+                              const formData = new FormData()
+                              formData.append('file', file)
+                              formData.append('requirementId', requirement.id)
+                              formData.append('replaceExisting', 'true')
+                              
+                              try {
+                                setUploading(true)
+                                const token = localStorage.getItem('clientToken')
+                                const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
+                                
+                                const response = await fetch(`/api/client/applications/${applicationId}/documents/upload`, {
+                                  method: 'POST',
+                                  headers,
+                                  body: formData
+                                })
+                                
+                                if (!response.ok) {
+                                  const errorData = await response.json()
+                                  throw new Error(errorData.error || `Upload failed with status: ${response.status}`)
+                                }
+                                
+                                await fetchApplicationData()
+                              } catch (err) {
+                                console.error('Enhanced upload error:', err)
+                                throw err
+                              } finally {
+                                setUploading(false)
+                              }
+                            }}
+                            onView={() => {
+                              if (requirement.fileName) {
+                                window.open(`/api/client/applications/${applicationId}/documents/${requirement.id}/download`, '_blank')
+                              }
+                            }}
+                            canUpload={true}
+                          />
+                        ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Approved Documents */}
+              {requirementsData.filter(r => r.status === 'approved').length > 0 && (
+                <Card className="border border-green-200 bg-green-50/30">
+                  <CardHeader>
+                    <CardTitle className="flex items-center text-green-700">
+                      <CheckCircle className="h-5 w-5 mr-2" />
+                      Approved Documents ({requirementsData.filter(r => r.status === 'approved').length})
+                    </CardTitle>
+                    <p className="text-sm text-green-600">These documents have been approved by your advisor</p>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {requirementsData
+                        .filter(req => req.status === 'approved')
+                        .map(requirement => (
+                          <EnhancedDocumentUpload
+                            key={requirement.id}
+                            requirement={requirement}
+                            onUpload={async (file) => {
+                              const formData = new FormData()
+                              formData.append('file', file)
+                              formData.append('requirementId', requirement.id)
+                              formData.append('replaceExisting', 'true')
+                              
+                              try {
+                                setUploading(true)
+                                const token = localStorage.getItem('clientToken')
+                                const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
+                                
+                                const response = await fetch(`/api/client/applications/${applicationId}/documents/upload`, {
+                                  method: 'POST',
+                                  headers,
+                                  body: formData
+                                })
+                                
+                                if (!response.ok) {
+                                  const errorData = await response.json()
+                                  throw new Error(errorData.error || `Upload failed with status: ${response.status}`)
+                                }
+                                
+                                await fetchApplicationData()
+                              } catch (err) {
+                                console.error('Enhanced upload error:', err)
+                                throw err
+                              } finally {
+                                setUploading(false)
+                              }
+                            }}
+                            onView={() => {
+                              if (requirement.fileName) {
+                                window.open(`/api/client/applications/${applicationId}/documents/${requirement.id}/download`, '_blank')
+                              }
+                            }}
+                            canUpload={true}
+                          />
+                        ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Original Documents Status */}
+              <OriginalDocumentsStatus applicationId={applicationId} />
+
+              {/* General Upload Area */}
+              {requirementsData.filter(r => r.status === 'pending').length > 0 && (
+                <Card className="border border-gray-200">
+                  <CardHeader>
+                    <CardTitle className="flex items-center">
+                      <FileText className="h-5 w-5 mr-2 text-gray-600" />
+                      Quick Upload
+                    </CardTitle>
+                    <p className="text-sm text-gray-600">
+                      Drag and drop files here for quick upload to pending requirements
+                    </p>
+                  </CardHeader>
+                  <CardContent>
+                    <DocumentUploadZone
+                      acceptedFormats={['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx']}
+                      maxFileSizeMB={10}
+                      multiple={true}
+                      onFilesSelected={(files) => {
+                        if (requirementsData.length === 0) {
+                          alert('No document requirements are loaded yet. Please wait for the requirements to load or refresh the page.')
+                          return
+                        }
+                        
+                        // Use the first pending requirement
+                        const pendingRequirement = requirementsData.find(req => req.status === 'pending')
+                        if (!pendingRequirement) {
+                          alert('No pending document requirements found.')
+                          return
+                        }
+                        
+                        handleDocumentUpload(files, pendingRequirement.id)
+                      }}
+                      className="mb-4"
+                    />
+                  </CardContent>
+                </Card>
+              )}
+            </>
           )}
         </TabsContent>
 
-        <TabsContent value="upload" className="space-y-6">
-          <Card className="border border-gray-200">
-            <CardHeader>
-              <CardTitle>Upload Documents</CardTitle>
-              <p className="text-sm text-gray-600">
-                Upload required documents for your application
-              </p>
-              <div className="mt-3 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-                <p className="text-sm text-amber-800">
-                  <strong>Note:</strong> This upload center is for any additional documents requested by your advisor outside of the standard workflow requirements. 
-                  For standard document requirements, use the Document Management tab.
-                </p>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <DocumentUploadZone
-                acceptedFormats={['pdf', 'jpg', 'jpeg', 'png', 'doc', 'docx']}
-                maxFileSizeMB={10}
-                multiple={true}
-                onFilesSelected={(files) => {
-                  console.log('Upload attempt:', { 
-                    filesCount: files.length, 
-                    requirementsCount: requirementsData.length,
-                    requirements: requirementsData.map(r => ({ id: r.id, name: r.documentName, status: r.status }))
-                  })
-                  
-                  if (requirementsData.length === 0) {
-                    alert('No document requirements are loaded yet. Please wait for the requirements to load or refresh the page.')
-                    return
-                  }
-                  
-                  if (files.length === 0) {
-                    alert('No files selected.')
-                    return
-                  }
-                  
-                  // For general uploads, prefer Passport Copy (which accepts multiple formats) or any pending requirement
-                  const passportRequirement = requirementsData.find(req => req.documentName === 'Passport Copy')
-                  const pendingRequirement = requirementsData.find(req => req.status === 'pending')
-                  const anyRequirement = requirementsData[0]
-                  const targetRequirement = passportRequirement || pendingRequirement || anyRequirement
-                  
-                  if (!targetRequirement || !targetRequirement.id) {
-                    alert('No valid document requirement found. Please contact your advisor.')
-                    return
-                  }
-                  
-                  // Validate that the requirement ID looks like a UUID
-                  const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
-                  if (!uuidRegex.test(targetRequirement.id)) {
-                    console.error('Invalid requirement ID (not a UUID):', targetRequirement.id)
-                    alert(`Cannot upload: Invalid requirement ID. Please refresh the page and try again.`)
-                    return
-                  }
-                  
-                  console.log('Using requirement:', {
-                    id: targetRequirement.id,
-                    name: targetRequirement.documentName,
-                    status: targetRequirement.status
-                  })
-                  
-                  handleDocumentUpload(files, targetRequirement.id)
-                }}
-                className="mb-6"
-              />
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="originals" className="space-y-6">
-          <OriginalDocumentsStatus applicationId={applicationId} />
-        </TabsContent>
       </Tabs>
     </div>
   )
