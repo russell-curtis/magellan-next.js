@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     const client = await ClientService.createClient({
       ...validatedData,
       firmId: user.firmId,
-      assignedAdvisorId: validatedData.assignedAdvisorId || null
+      assignedAdvisorId: validatedData.assignedAdvisorId || user.id
     })
 
     return NextResponse.json(client, { status: 201 })

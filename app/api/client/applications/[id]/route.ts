@@ -89,6 +89,7 @@ export async function GET(
       } : null,
       assignedAdvisor: assignedAdvisor ? {
         id: assignedAdvisor.id,
+        name: assignedAdvisor.name,
         firstName: assignedAdvisor.firstName,
         lastName: assignedAdvisor.lastName,
         email: assignedAdvisor.email
