@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback, useMemo } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { useClientAuth } from '@/lib/client-auth-context'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -77,23 +77,27 @@ export default function ClientApplicationPage() {
     }
   }, [client, isLoading, router])
 
-  useEffect(() => {
-    if (client) {
-      fetchApplicationData()
-    }
-  }, [client, applicationId])
+  // Memoize localStorage access for performance
+  const authToken = useMemo(() => {
+    return typeof window !== 'undefined' ? localStorage.getItem('clientToken') : null
+  }, [])
 
-  const fetchApplicationData = async () => {
+  const fetchApplicationData = useCallback(async () => {
     try {
       console.log('fetchApplicationData started')
       setLoading(true)
       
-      // Get client token for authentication
-      const token = localStorage.getItem('clientToken')
-      const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
+      // Use memoized token for authentication
+      const headers = authToken ? { 'Authorization': `Bearer ${authToken}` } : {}
       
-      // Fetch application details
-      const appResponse = await fetch(`/api/client/applications/${applicationId}`, { headers })
+      // Parallel API calls for better performance
+      const [appResponse, workflowResponse, reqResponse] = await Promise.all([
+        fetch(`/api/client/applications/${applicationId}`, { headers }),
+        fetch(`/api/client/applications/${applicationId}/workflow`, { headers }),
+        fetch(`/api/client/applications/${applicationId}/documents/requirements`, { headers })
+      ])
+
+      // Process application data
       if (appResponse.ok) {
         const appData = await appResponse.json()
         setApplication(appData)
@@ -111,8 +115,7 @@ export default function ClientApplicationPage() {
         return
       }
 
-      // Fetch workflow data
-      const workflowResponse = await fetch(`/api/client/applications/${applicationId}/workflow`, { headers })
+      // Process workflow data (optional)
       if (workflowResponse.ok) {
         const workflowData = await workflowResponse.json()
         setWorkflow(workflowData)
@@ -122,8 +125,7 @@ export default function ClientApplicationPage() {
         // Don't return here - workflow might be optional
       }
 
-      // Fetch document requirements
-      const reqResponse = await fetch(`/api/client/applications/${applicationId}/documents/requirements`, { headers })
+      // Process document requirements (optional)
       if (reqResponse.ok) {
         const reqData = await reqResponse.json()
         console.log('Requirements API response:', reqData)
@@ -145,7 +147,56 @@ export default function ClientApplicationPage() {
       console.log('fetchApplicationData completed, setting loading to false')
       setLoading(false)
     }
-  }
+  }, [applicationId, authToken])
+
+  useEffect(() => {
+    if (client) {
+      fetchApplicationData()
+    }
+  }, [client, applicationId, fetchApplicationData])
+
+  // Memoized document status calculations for performance
+  const documentStats = useMemo(() => {
+    if (!requirements || requirements.length === 0) {
+      return {
+        actionRequired: 0,
+        underReview: 0,
+        approved: 0,
+        total: 0,
+        actionRequiredDocs: [],
+        underReviewDocs: [],
+        approvedDocs: []
+      }
+    }
+
+    // Single pass through requirements array
+    const stats = requirements.reduce((acc, req) => {
+      acc.total++
+      
+      if (req.status === 'pending' || req.status === 'rejected') {
+        acc.actionRequired++
+        acc.actionRequiredDocs.push(req)
+      } else if (req.status === 'submitted' || req.status === 'under_review') {
+        acc.underReview++
+        acc.underReviewDocs.push(req)
+      } else if (req.status === 'approved') {
+        acc.approved++
+        acc.approvedDocs.push(req)
+      }
+      
+      return acc
+    }, {
+      actionRequired: 0,
+      underReview: 0,
+      approved: 0,
+      total: 0,
+      actionRequiredDocs: [] as typeof requirements,
+      underReviewDocs: [] as typeof requirements,
+      approvedDocs: [] as typeof requirements
+    })
+
+    return stats
+  }, [requirements])
 
   const handleDocumentUpload = async (files: File[], requirementId: string) => {
     try {
@@ -170,8 +221,7 @@ export default function ClientApplicationPage() {
         constructor: f?.constructor?.name
       })))
       
-      const token = localStorage.getItem('clientToken')
-      const headers = token ? { 'Authorization': `Bearer ${token}` } : {}
+      const headers = authToken ? { 'Authorization': `Bearer ${authToken}` } : {}
 
       for (const file of fileArray) {
         console.log('Processing file:', {
@@ -390,8 +440,8 @@ export default function ClientApplicationPage() {
     workflowProgress: workflowData.overallProgress,
     completedStages,
     totalStages: workflowData.totalStages,
-    documentsApproved: requirements.filter(r => r.status === 'approved').length,
-    totalDocuments: requirements.length
+    documentsApproved: documentStats.approved,
+    totalDocuments: documentStats.total
   })
   
   console.log('Workflow data:', {
@@ -530,8 +580,7 @@ export default function ClientApplicationPage() {
                         </div>
                       ) : (
                         <>
-                          {requirementsData
-                            .filter(req => req.status === 'pending' || req.status === 'rejected')
+                          {documentStats.actionRequiredDocs
                             .slice(0, 3)
                             .map((req) => (
                               <div key={req.id} className="flex items-center justify-between p-2 bg-orange-50 rounded-lg">
@@ -549,7 +598,7 @@ export default function ClientApplicationPage() {
                                 </Button>
                               </div>
                             ))}
-                          {requirementsData.filter(req => req.status === 'pending' || req.status === 'rejected').length === 0 && (
+                          {documentStats.actionRequired === 0 && (
                             <div className="flex items-center text-green-600 p-2 bg-green-50 rounded-lg">
                               <CheckCircle className="h-4 w-4 mr-2" />
                               <span className="text-sm">All documents submitted</span>
@@ -594,7 +643,7 @@ export default function ClientApplicationPage() {
             <CardContent>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                 {/* Upload Documents Action */}
-                {requirementsData.filter(req => req.status === 'pending' || req.status === 'rejected').length > 0 && (
+                {documentStats.actionRequired > 0 && (
                   <Button 
                     onClick={() => setActiveTab('documents')}
                     className="h-20 flex-col space-y-2 bg-orange-500 hover:bg-orange-600"
@@ -603,7 +652,7 @@ export default function ClientApplicationPage() {
                     <div className="text-center">
                       <div className="font-medium">Upload Documents</div>
                       <div className="text-xs opacity-90">
-                        {requirementsData.filter(req => req.status === 'pending' || req.status === 'rejected').length} pending
+                        {documentStats.actionRequired} pending
                       </div>
                     </div>
                   </Button>
@@ -634,7 +683,7 @@ export default function ClientApplicationPage() {
                   <div className="text-center">
                     <div className="font-medium text-green-600">View All Documents</div>
                     <div className="text-xs text-green-500">
-                      {requirementsData.filter(r => r.status === 'approved').length} approved
+                      {documentStats.approved} approved
                     </div>
                   </div>
                 </Button>
@@ -673,25 +722,25 @@ export default function ClientApplicationPage() {
                   <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
                       <div className="text-2xl font-bold text-red-700">
-                        {requirementsData.filter(r => r.status === 'pending' || r.status === 'rejected').length}
+                        {documentStats.actionRequired}
                       </div>
                       <div className="text-sm text-red-600 font-medium">Action Required</div>
                     </div>
                     <div className="text-center p-4 bg-yellow-50 rounded-lg border border-yellow-200">
                       <div className="text-2xl font-bold text-yellow-700">
-                        {requirementsData.filter(r => r.status === 'submitted' || r.status === 'under_review').length}
+                        {documentStats.underReview}
                       </div>
                       <div className="text-sm text-yellow-600 font-medium">Under Review</div>
                     </div>
                     <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
                       <div className="text-2xl font-bold text-green-700">
-                        {requirementsData.filter(r => r.status === 'approved').length}
+                        {documentStats.approved}
                       </div>
                       <div className="text-sm text-green-600 font-medium">Approved</div>
                     </div>
                     <div className="text-center p-4 bg-blue-50 rounded-lg border border-blue-200">
                       <div className="text-2xl font-bold text-blue-700">
-                        {requirementsData.length}
+                        {documentStats.total}
                       </div>
                       <div className="text-sm text-blue-600 font-medium">Total Documents</div>
                     </div>
@@ -700,20 +749,18 @@ export default function ClientApplicationPage() {
               </Card>
 
               {/* Action Required Documents */}
-              {requirementsData.filter(r => r.status === 'pending' || r.status === 'rejected').length > 0 && (
+              {documentStats.actionRequired > 0 && (
                 <Card className="border border-red-200 bg-red-50/30">
                   <CardHeader>
                     <CardTitle className="flex items-center text-red-700">
                       <AlertCircle className="h-5 w-5 mr-2" />
-                      Action Required ({requirementsData.filter(r => r.status === 'pending' || r.status === 'rejected').length})
+                      Action Required ({documentStats.actionRequired})
                     </CardTitle>
                     <p className="text-sm text-red-600">These documents need your immediate attention</p>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {requirementsData
-                        .filter(req => req.status === 'pending' || req.status === 'rejected')
-                        .map(requirement => (
+                      {documentStats.actionRequiredDocs.map(requirement => (
                           <EnhancedDocumentUpload
                             key={requirement.id}
                             requirement={requirement}
@@ -761,20 +808,18 @@ export default function ClientApplicationPage() {
               )}
 
               {/* Under Review Documents */}
-              {requirementsData.filter(r => r.status === 'submitted' || r.status === 'under_review').length > 0 && (
+              {documentStats.underReview > 0 && (
                 <Card className="border border-yellow-200 bg-yellow-50/30">
                   <CardHeader>
                     <CardTitle className="flex items-center text-yellow-700">
                       <Clock className="h-5 w-5 mr-2" />
-                      Under Review ({requirementsData.filter(r => r.status === 'submitted' || r.status === 'under_review').length})
+                      Under Review ({documentStats.underReview})
                     </CardTitle>
                     <p className="text-sm text-yellow-600">These documents are being reviewed by your advisor</p>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {requirementsData
-                        .filter(req => req.status === 'submitted' || req.status === 'under_review')
-                        .map(requirement => (
+                      {documentStats.underReviewDocs.map(requirement => (
                           <EnhancedDocumentUpload
                             key={requirement.id}
                             requirement={requirement}
@@ -822,20 +867,18 @@ export default function ClientApplicationPage() {
               )}
 
               {/* Approved Documents */}
-              {requirementsData.filter(r => r.status === 'approved').length > 0 && (
+              {documentStats.approved > 0 && (
                 <Card className="border border-green-200 bg-green-50/30">
                   <CardHeader>
                     <CardTitle className="flex items-center text-green-700">
                       <CheckCircle className="h-5 w-5 mr-2" />
-                      Approved Documents ({requirementsData.filter(r => r.status === 'approved').length})
+                      Approved Documents ({documentStats.approved})
                     </CardTitle>
                     <p className="text-sm text-green-600">These documents have been approved by your advisor</p>
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-4">
-                      {requirementsData
-                        .filter(req => req.status === 'approved')
-                        .map(requirement => (
+                      {documentStats.approvedDocs.map(requirement => (
                           <EnhancedDocumentUpload
                             key={requirement.id}
                             requirement={requirement}
@@ -886,7 +929,7 @@ export default function ClientApplicationPage() {
               <OriginalDocumentsStatus applicationId={applicationId} />
 
               {/* General Upload Area */}
-              {requirementsData.filter(r => r.status === 'pending').length > 0 && (
+              {documentStats.actionRequired > 0 && (
                 <Card className="border border-gray-200">
                   <CardHeader>
                     <CardTitle className="flex items-center">
@@ -908,8 +951,8 @@ export default function ClientApplicationPage() {
                           return
                         }
                         
-                        // Use the first pending requirement
-                        const pendingRequirement = requirementsData.find(req => req.status === 'pending')
+                        // Use the first pending requirement from optimized data
+                        const pendingRequirement = documentStats.actionRequiredDocs[0]
                         if (!pendingRequirement) {
                           alert('No pending document requirements found.')
                           return
