@@ -2,7 +2,7 @@
 
 import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent } from '@/components/ui/card'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { 
   CheckCircle, 
   Clock, 
@@ -653,160 +653,240 @@ export function ApplicationCard({ application, onStatusChange, onEditApplication
     validTransitions: getValidStatusTransitions(application.status)
   })
 
+  // Calculate progress based on status (similar to client view)
+  const calculateProgress = () => {
+    const statusProgress: Record<string, { progress: number; stage: string; description: string }> = {
+      'draft': { progress: 5, stage: 'Initial Setup', description: 'Application created, ready to begin' },
+      'started': { progress: 20, stage: 'In Progress', description: 'Gathering documents and information' },
+      'submitted': { progress: 40, stage: 'Internal Review', description: 'Under review by advisory team' },
+      'ready_for_submission': { progress: 70, stage: 'Government Prep', description: 'Prepared for government submission' },
+      'submitted_to_government': { progress: 85, stage: 'Gov Review', description: 'Submitted to government portal' },
+      'under_review': { progress: 90, stage: 'Gov Processing', description: 'Under government review' },
+      'approved': { progress: 100, stage: 'Approved', description: 'Application successfully approved' },
+      'rejected': { progress: 100, stage: 'Rejected', description: 'Application was rejected' },
+      'archived': { progress: 0, stage: 'Archived', description: 'Application archived' }
+    }
+    return statusProgress[application.status] || statusProgress['draft']
+  }
+
+  const progressData = calculateProgress()
+  const getNextStep = () => {
+    switch (application.status) {
+      case 'draft': return 'Begin application process'
+      case 'started': return 'Complete document collection'
+      case 'submitted': return 'Internal review completion'
+      case 'ready_for_submission': return 'Submit to government'
+      case 'submitted_to_government': return 'Await government review'
+      case 'under_review': return 'Decision pending'
+      case 'approved': return 'Process complete'
+      case 'rejected': return 'Review rejection reasons'
+      default: return 'Next steps pending'
+    }
+  }
+
   return (
     <>
-    <Card className="border border-gray-200">
-      <CardContent className="p-6">
-        <div className="flex items-center justify-between space-x-6">
-          {/* Left section: Status icon, Application info, Client */}
-          <div className="flex items-center space-x-4 min-w-0 flex-1">
-            {/* Status icon */}
-            <div className="flex-shrink-0">
-              {getStatusIcon(application.status)}
-            </div>
-
-            {/* Application details */}
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center space-x-3 mb-2">
-                <h3 className="text-lg font-semibold text-gray-900 truncate">
-                  {application.applicationNumber}
-                </h3>
-                <Badge className={getStatusColor(application.status)}>
-                  {formatStatus(application.status)}
-                </Badge>
-                {application.priority !== 'medium' && (
-                  <Badge variant="outline" className={getPriorityColor(application.priority)}>
-                    {formatPriority(application.priority)}
-                  </Badge>
-                )}
-              </div>
-
-              <div className="flex items-center space-x-4 text-sm text-gray-600">
-                {/* Client info - conditionally rendered */}
-                {!hideClientInfo && (
-                  <>
-                    <div className="flex items-center space-x-2 min-w-0">
-                      <Avatar className="h-6 w-6 flex-shrink-0">
+    <Card className="border border-gray-200 hover:bg-gray-50 transition-colors">
+      <CardHeader>
+        <div className="flex items-center justify-between">
+          <div className="flex items-center space-x-3">
+            {getStatusIcon(application.status)}
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">
+                {application.program?.programName || 'Unknown Program'}
+              </h3>
+              <div className="text-sm text-gray-600 space-y-1">
+                <p>Application #{application.applicationNumber}</p>
+                <div className="flex items-center space-x-4">
+                  {!hideClientInfo && (
+                    <div className="flex items-center space-x-2">
+                      <Avatar className="h-4 w-4">
                         <AvatarFallback>
                           <AvatarInitials 
                             name={application.client ? `${application.client.firstName} ${application.client.lastName}` : 'Unknown'} 
                           />
                         </AvatarFallback>
                       </Avatar>
-                      <span className="font-medium truncate">
-                        {application.client ? `${application.client.firstName} ${application.client.lastName}` : 'Unknown Client'}
-                      </span>
+                      <span>{application.client ? `${application.client.firstName} ${application.client.lastName}` : 'Unknown Client'}</span>
                     </div>
-
-                    <span className="text-gray-300">•</span>
-                  </>
-                )}
-
-                {/* Program info */}
-                <div className="flex items-center space-x-1 min-w-0">
-                  <Globe className="h-4 w-4 text-gray-400 flex-shrink-0" />
-                  <span className="truncate">
-                    {application.program?.countryName || 'Unknown Program'}
-                  </span>
+                  )}
+                  <p>
+                    Created {formatDate(application.createdAt)}
+                    {application.submittedAt && (
+                      <span> • Submitted {formatDate(application.submittedAt)}</span>
+                    )}
+                  </p>
                 </div>
               </div>
             </div>
           </div>
-
-          {/* Center section: Investment & Contextual info */}
-          <div className="flex items-center space-x-8 flex-shrink-0">
-            {/* Investment amount */}
-            <div className="text-center">
-              <div className="flex items-center space-x-1 text-sm text-gray-500 mb-1">
-                <DollarSign className="h-4 w-4" />
-                <span>Investment</span>
+          <div className="text-right space-y-2">
+            <div className="flex items-center space-x-2">
+              <Badge className={getStatusColor(application.status)}>
+                {formatStatus(application.status)}
+              </Badge>
+              {application.priority !== 'medium' && (
+                <Badge variant="outline" className={getPriorityColor(application.priority)}>
+                  {formatPriority(application.priority)}
+                </Badge>
+              )}
+            </div>
+            {application.program && (
+              <div className="text-xs text-gray-500">
+                {application.program.countryName} • {application.program.programType}
               </div>
-              <div className="font-semibold text-gray-900">
+            )}
+          </div>
+        </div>
+      </CardHeader>
+      <CardContent className="space-y-6">
+        {/* Progress Section - Only show for non-draft applications */}
+        {application.status !== 'draft' && (
+          <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <h4 className="text-sm font-semibold text-blue-900">Application Progress</h4>
+                <p className="text-xs text-blue-700">{progressData.description}</p>
+              </div>
+              <div className="text-right">
+                <div className="text-lg font-bold text-blue-900">{progressData.progress}%</div>
+                <div className="text-xs text-blue-700">Complete</div>
+              </div>
+            </div>
+            <div className="w-full bg-blue-200 rounded-full h-2.5">
+              <div 
+                className={`h-2.5 rounded-full transition-all duration-500 ${
+                  progressData.progress === 100 
+                    ? (application.status === 'approved' ? 'bg-green-500' : 'bg-red-500')
+                    : 'bg-blue-600'
+                }`}
+                style={{ width: `${progressData.progress}%` }}
+              ></div>
+            </div>
+            <div className="mt-2 flex items-center justify-between">
+              <span className="text-xs text-blue-700">Current: {progressData.stage}</span>
+              <span className="text-xs text-blue-700">Next: {getNextStep()}</span>
+            </div>
+          </div>
+        )}
+
+        {/* Application Details Section */}
+        <div>
+          <h4 className="text-sm font-semibold text-gray-900 mb-3">Application Details</h4>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Investment Amount</p>
+              <p className="text-sm font-semibold text-gray-900 mt-1">
                 {application.investmentAmount ? 
                   formatCurrency(parseFloat(application.investmentAmount)) : 
                   'Not specified'
                 }
-              </div>
+              </p>
             </div>
-
-            {/* Contextual information */}
-            <div className="text-center">
-              <div className="flex items-center space-x-1 text-sm text-gray-500 mb-1">
-                {contextualInfo.icon}
-                <span>{contextualInfo.label}</span>
-              </div>
-              <div className="font-semibold text-gray-900">
-                {contextualInfo.value}
-              </div>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">{contextualInfo.label}</p>
+              <p className="text-sm font-semibold text-gray-900 mt-1">{contextualInfo.value}</p>
+            </div>
+            <div className="bg-gray-50 rounded-lg p-3">
+              <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Program</p>
+              <p className="text-sm font-semibold text-gray-900 mt-1">
+                {application.program?.countryName || 'Unknown'}
+              </p>
             </div>
           </div>
+        </div>
 
-          {/* Right section: Actions */}
-          <div className="flex items-center space-x-3 flex-shrink-0">
-            {/* Primary action - Open Application (only for applications with workflow access) */}
+        {/* Assigned Advisor - Only show if different from current user */}
+        {application.assignedAdvisorId && application.assignedAdvisorId !== currentUser?.id && (
+          <div className="p-3 bg-gray-50 rounded-lg">
+            <p className="text-sm font-medium text-gray-700 mb-1">Assigned Advisor</p>
+            <p className="text-sm text-gray-900">
+              {/* We'll need to fetch advisor name - for now show ID */}
+              Advisor ID: {application.assignedAdvisorId}
+            </p>
+          </div>
+        )}
+
+        {/* Notes */}
+        {(application.notes || application.internalNotes) && (
+          <div className="space-y-3">
+            {application.notes && (
+              <div className="p-3 bg-blue-50 rounded-lg">
+                <p className="text-sm font-medium text-gray-700 mb-1">Client Notes</p>
+                <p className="text-sm text-gray-900">{application.notes}</p>
+              </div>
+            )}
+            {application.internalNotes && (
+              <div className="p-3 bg-yellow-50 rounded-lg">
+                <p className="text-sm font-medium text-gray-700 mb-1">Internal Notes</p>
+                <p className="text-sm text-gray-900">{application.internalNotes}</p>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex items-center justify-between pt-4 border-t">
+          <div className="flex items-center space-x-3">
+            {/* Primary action - Open Application */}
             {hasWorkflowAccess(application.status) && (
               <Link href={`/dashboard/applications/${application.id}/workflow`}>
-                <Button 
-                  className="bg-[#3E58DA] hover:bg-[#3E58DA] text-white font-medium px-3 py-2 rounded-md text-sm"
-                  style={{ padding: '8px 12px' }}
-                >
-                  <Eye className="h-4 w-4 mr-2" />
+                <Button className="bg-[#3E58DA] text-white hover:bg-[#3E58DA]/90">
+                  <Eye className="mr-2 h-4 w-4" />
                   Open Application
                 </Button>
               </Link>
             )}
 
-            {/* Secondary actions dropdown */}
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
-                  <MoreHorizontal className="h-4 w-4" />
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end">
-                {/* Status transition actions - Only show if user has proper permissions */}
-                {statusActions.length > 0 && currentUser && (
-                  <>
-                    {statusActions.map((action) => (
-                      <DropdownMenuItem
-                        key={action.action}
-                        onClick={() => handleStatusAction(action)}
-                        className={action.destructive ? 'text-red-600 focus:text-red-600' : ''}
-                      >
-                        {action.icon}
-                        {action.label}
-                      </DropdownMenuItem>
-                    ))}
-                    <DropdownMenuSeparator />
-                  </>
-                )}
-                
-                {/* Edit action - only for draft applications and users with permissions */}
-                {application.status === 'draft' && currentUser && (
-                  currentUser.role === 'admin' || 
-                  application.assignedAdvisorId === currentUser.id
-                ) && onEditApplication && (
-                  <DropdownMenuItem
-                    onClick={() => onEditApplication(application.id)}
-                  >
-                    <Edit className="mr-2 h-4 w-4" />
-                    Edit Application
-                  </DropdownMenuItem>
-                )}
-                <DropdownMenuItem>
-                  <MessageSquare className="mr-2 h-4 w-4" />
-                  Message Client
-                </DropdownMenuItem>
-                
-                {/* Debug info when no currentUser */}
-                {!currentUser && (
-                  <DropdownMenuItem disabled>
-                    <span className="text-xs text-gray-500">Debug: No user data</span>
-                  </DropdownMenuItem>
-                )}
-              </DropdownMenuContent>
-            </DropdownMenu>
+            {/* Edit button for draft applications */}
+            {application.status === 'draft' && currentUser && (
+              currentUser.role === 'admin' || 
+              application.assignedAdvisorId === currentUser.id
+            ) && onEditApplication && (
+              <Button variant="outline" onClick={() => onEditApplication(application.id)}>
+                <Edit className="mr-2 h-4 w-4" />
+                Edit Application
+              </Button>
+            )}
           </div>
+
+          {/* Secondary actions dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="h-8 w-8 p-0">
+                <MoreHorizontal className="h-4 w-4" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {/* Status transition actions */}
+              {statusActions.length > 0 && currentUser && (
+                <>
+                  {statusActions.map((action) => (
+                    <DropdownMenuItem
+                      key={action.action}
+                      onClick={() => handleStatusAction(action)}
+                      className={action.destructive ? 'text-red-600 focus:text-red-600' : ''}
+                    >
+                      {action.icon}
+                      {action.label}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                </>
+              )}
+              
+              <DropdownMenuItem>
+                <MessageSquare className="mr-2 h-4 w-4" />
+                Message Client
+              </DropdownMenuItem>
+              
+              {!currentUser && (
+                <DropdownMenuItem disabled>
+                  <span className="text-xs text-gray-500">Debug: No user data</span>
+                </DropdownMenuItem>
+              )}
+            </DropdownMenuContent>
+          </DropdownMenu>
         </div>
       </CardContent>
     </Card>
