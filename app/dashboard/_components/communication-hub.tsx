@@ -373,7 +373,7 @@ export default function CommunicationHub({
                     .map((comm) => {
                       const Icon = communicationTypeIcons[comm.type]
                       return (
-                        <Card key={comm.id} className="hover:shadow-md transition-shadow">
+                        <Card key={comm.id} className="border border-gray-200">
                           <CardContent className="p-4">
                             <div className="flex items-start space-x-4">
                               <div className={`p-2 rounded-full ${getTypeColor(comm.type)}`}>

@@ -270,7 +270,7 @@ export default function ClientDashboardOverview() {
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <Card className="relative overflow-hidden">
+        <Card className="relative overflow-hidden border border-gray-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Active Conversations</CardTitle>
             <div className="p-2 bg-blue-100 rounded-full">
@@ -291,7 +291,7 @@ export default function ClientDashboardOverview() {
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-blue-500 to-blue-600" />
         </Card>
 
-        <Card className="relative overflow-hidden">
+        <Card className="relative overflow-hidden border border-gray-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">My Applications</CardTitle>
             <div className="p-2 bg-green-100 rounded-full">
@@ -310,7 +310,7 @@ export default function ClientDashboardOverview() {
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-green-500 to-green-600" />
         </Card>
 
-        <Card className="relative overflow-hidden">
+        <Card className="relative overflow-hidden border border-gray-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Documents</CardTitle>
             <div className="p-2 bg-purple-100 rounded-full">
@@ -329,7 +329,7 @@ export default function ClientDashboardOverview() {
           <div className="absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r from-purple-500 to-purple-600" />
         </Card>
 
-        <Card className="relative overflow-hidden">
+        <Card className="relative overflow-hidden border border-gray-200">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Next Steps</CardTitle>
             <div className="p-2 bg-orange-100 rounded-full">
@@ -351,7 +351,7 @@ export default function ClientDashboardOverview() {
 
       {/* Recent Activity, Tasks, and Quick Actions */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card>
+        <Card className="border border-gray-200">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>Recent Activity</CardTitle>
@@ -421,7 +421,7 @@ export default function ClientDashboardOverview() {
         </Card>
 
         {/* Task Management */}
-        <Card>
+        <Card className="border border-gray-200">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center space-x-2">
@@ -506,7 +506,7 @@ export default function ClientDashboardOverview() {
         </Card>
 
         {/* Quick Actions */}
-        <Card>
+        <Card className="border border-gray-200">
           <CardHeader>
             <CardTitle className="flex items-center space-x-2">
               <span>Quick Actions</span>

@@ -8,6 +8,7 @@ import { Label } from '@/components/ui/label'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { Alert, AlertDescription } from '@/components/ui/alert'
 import { Loader2 } from 'lucide-react'
+import Image from 'next/image'
 
 export default function ClientLogin() {
   const [email, setEmail] = useState('')
@@ -100,18 +101,27 @@ export default function ClientLogin() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 via-purple-500 to-orange-400 py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-md w-full space-y-8">
         <div className="text-center">
-          <h2 className="mt-6 text-3xl font-bold text-gray-900">
-            Client Portal
+          <div className="flex justify-center mb-4">
+            <Image
+              src="/logos/m-logo.svg"
+              alt="Magellan Logo"
+              width={48}
+              height={34}
+              className="drop-shadow-sm"
+            />
+          </div>
+          <h2 className="mt-6 text-3xl font-bold text-white drop-shadow-sm">
+            Magellan Client Portal
           </h2>
-          <p className="mt-2 text-sm" style={{color: '#00000080'}}>
+          <p className="mt-2 text-sm text-white/80">
             Sign in to access your account
           </p>
         </div>
 
-        <Card>
+        <Card className="backdrop-blur-sm bg-white/95 shadow-2xl border-0">
           <CardHeader>
             <CardTitle>Sign In</CardTitle>
             <CardDescription>
@@ -171,7 +181,7 @@ export default function ClientLogin() {
             </form>
 
             <div className="mt-6 text-center">
-              <p className="text-sm" style={{color: '#00000080'}}>
+              <p className="text-sm text-gray-600">
                 Need access? Contact your advisor to get invited to the portal.
               </p>
             </div>

@@ -17,6 +17,7 @@ import { Suspense, useState, useEffect } from "react";
 import { toast } from "sonner";
 import { Mail } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import Image from 'next/image';
 
 function SignInContent() {
   const [loading, setLoading] = useState(false);
@@ -33,16 +34,35 @@ function SignInContent() {
   }, [message]);
 
   return (
-    <div className="flex flex-col justify-center items-center w-full h-screen">
-      <Card className="max-w-md w-full">
-        <CardHeader>
-          <CardTitle className="text-lg md:text-xl">
-            Welcome to CRBI Advisory
-          </CardTitle>
-          <CardDescription className="text-xs md:text-sm">
-            Sign in to your account using Google or email
-          </CardDescription>
-        </CardHeader>
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 via-purple-500 to-orange-400 py-12 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-md w-full space-y-8">
+        <div className="text-center">
+          <div className="flex justify-center mb-4">
+            <Image
+              src="/logos/m-logo.svg"
+              alt="Magellan Logo"
+              width={48}
+              height={34}
+              className="drop-shadow-sm"
+            />
+          </div>
+          <h2 className="mt-6 text-3xl font-bold text-white drop-shadow-sm">
+            Magellan Platform
+          </h2>
+          <p className="mt-2 text-sm text-white/80">
+            Sign in to your advisor account
+          </p>
+        </div>
+
+        <Card className="backdrop-blur-sm bg-white/95 shadow-2xl border-0">
+          <CardHeader>
+            <CardTitle className="text-lg md:text-xl text-center">
+              Welcome Back
+            </CardTitle>
+            <CardDescription className="text-xs md:text-sm text-center">
+              Sign in to your account using Google or email
+            </CardDescription>
+          </CardHeader>
         <CardContent>
           {message === "invitation-accepted" && (
             <Alert className="mb-4">
@@ -140,23 +160,25 @@ function SignInContent() {
             </div>
           </div>
         </CardContent>
-      </Card>
-      <p className="mt-6 text-xs text-center text-gray-500 dark:text-gray-400 max-w-md">
-        By signing in, you agree to our{" "}
-        <Link
-          href="/terms-of-service"
-          className="underline hover:text-gray-700 dark:hover:text-gray-300"
-        >
-          Terms of Service
-        </Link>{" "}
-        and{" "}
-        <Link
-          href="/privacy-policy"
-          className="underline hover:text-gray-700 dark:hover:text-gray-300"
-        >
-          Privacy Policy
-        </Link>
-      </p>
+        </Card>
+        
+        <p className="mt-6 text-xs text-center text-white/70 max-w-md">
+          By signing in, you agree to our{" "}
+          <Link
+            href="/terms-of-service"
+            className="underline hover:text-white/90 transition-colors"
+          >
+            Terms of Service
+          </Link>{" "}
+          and{" "}
+          <Link
+            href="/privacy-policy"
+            className="underline hover:text-white/90 transition-colors"
+          >
+            Privacy Policy
+          </Link>
+        </p>
+      </div>
     </div>
   );
 }
@@ -165,8 +187,8 @@ export default function SignIn() {
   return (
     <Suspense
       fallback={
-        <div className="flex flex-col justify-center items-center w-full h-screen">
-          <div className="max-w-md w-full bg-gray-200 dark:bg-gray-800 animate-pulse rounded-lg h-96"></div>
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-600 via-purple-500 to-orange-400 py-12 px-4 sm:px-6 lg:px-8">
+          <div className="max-w-md w-full bg-white/20 backdrop-blur-sm animate-pulse rounded-lg h-96"></div>
         </div>
       }
     >
