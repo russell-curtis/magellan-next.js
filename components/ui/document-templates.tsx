@@ -269,7 +269,7 @@ export function DocumentTemplates({
 
                 {/* Other Templates */}
                 {otherTemplates.map((template) => (
-                  <div key={template.id} className="border rounded-lg p-4 hover:bg-gray-50 transition-colors">
+                  <div key={template.id} className="border border-gray-200 rounded-lg p-4">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <h4 className="font-semibold text-gray-900 mb-1">{template.name}</h4>

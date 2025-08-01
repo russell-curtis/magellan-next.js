@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { db } from '@/db/drizzle'
-import { applications, clients, crbiPrograms, users } from '@/db/schema'
+import { applications, clients, crbiPrograms, users, investmentOptions } from '@/db/schema'
 import { requireClientAuth } from '@/lib/client-auth'
 import { eq, and } from 'drizzle-orm'
 
@@ -68,6 +68,17 @@ export async function GET(
       assignedAdvisor = advisorData || null
     }
 
+    // Get selected investment option details if selectedInvestmentOptionId exists
+    let selectedInvestmentOption = null
+    if (application.selectedInvestmentOptionId) {
+      const [investmentOptionData] = await db
+        .select()
+        .from(investmentOptions)
+        .where(eq(investmentOptions.id, application.selectedInvestmentOptionId))
+        .limit(1)
+      selectedInvestmentOption = investmentOptionData || null
+    }
+
     // Build response object
     const response = {
       id: application.id,
@@ -93,6 +104,12 @@ export async function GET(
         firstName: assignedAdvisor.firstName,
         lastName: assignedAdvisor.lastName,
         email: assignedAdvisor.email
+      } : null,
+      selectedInvestmentOption: selectedInvestmentOption ? {
+        id: selectedInvestmentOption.id,
+        optionName: selectedInvestmentOption.optionName,
+        optionType: selectedInvestmentOption.optionType,
+        baseAmount: selectedInvestmentOption.baseAmount
       } : null
     }
 

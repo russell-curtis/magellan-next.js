@@ -184,8 +184,8 @@ export default function ClientMessagesPage() {
       <div className="w-[400px] bg-white border-r flex flex-col">
         {/* Header */}
         <div className="p-4 border-b">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Messages & Communication</h2>
+          <div className="flex items-center justify-between mb-1">
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900">Messages</h1>
           </div>
           <p className="text-sm text-gray-600 mb-3">
             Conversations with your advisory team

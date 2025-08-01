@@ -331,7 +331,7 @@ export default function MessagesPage() {
         {/* Header */}
         <div className="p-4 border-b">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold">Messages & Communication</h2>
+            <h1 className="text-2xl font-bold tracking-tight text-gray-900">Messages</h1>
             
             <Dialog open={showNewConversationDialog} onOpenChange={setShowNewConversationDialog}>
               <DialogTrigger asChild>

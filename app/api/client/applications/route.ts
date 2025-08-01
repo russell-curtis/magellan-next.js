@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { db } from '@/db/drizzle'
-import { applications, crbiPrograms, users } from '@/db/schema'
+import { applications, crbiPrograms, users, investmentOptions } from '@/db/schema'
 import { requireClientAuth } from '@/lib/client-auth'
 import { eq, and, ne } from 'drizzle-orm'
 
@@ -35,11 +35,18 @@ export async function GET() {
           id: users.id,
           name: users.name,
           email: users.email
+        },
+        selectedInvestmentOption: {
+          id: investmentOptions.id,
+          optionName: investmentOptions.optionName,
+          optionType: investmentOptions.optionType,
+          baseAmount: investmentOptions.baseAmount
         }
       })
       .from(applications)
       .leftJoin(crbiPrograms, eq(applications.programId, crbiPrograms.id))
       .leftJoin(users, eq(applications.assignedAdvisorId, users.id))
+      .leftJoin(investmentOptions, eq(applications.selectedInvestmentOptionId, investmentOptions.id))
       .where(and(
         eq(applications.clientId, client.clientId),
         ne(applications.status, 'draft'),

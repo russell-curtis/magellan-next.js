@@ -36,6 +36,12 @@ interface Application {
     name: string
     email: string
   } | null
+  selectedInvestmentOption: {
+    id: string
+    optionName: string
+    optionType: string
+    baseAmount: string
+  } | null
 }
 
 export default function ClientApplicationsPage() {
@@ -302,8 +308,10 @@ export default function ClientApplicationsPage() {
                         <p className="text-sm font-semibold text-gray-900 mt-1">{formatCurrency(application.investmentAmount)}</p>
                       </div>
                       <div className="bg-gray-50 rounded-lg p-3">
-                        <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Investment Type</p>
-                        <p className="text-sm font-semibold text-gray-900 mt-1">{application.investmentType || 'Not specified'}</p>
+                        <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Investment Option</p>
+                        <p className="text-sm font-semibold text-gray-900 mt-1">
+                          {application.selectedInvestmentOption?.optionName || 'Not selected'}
+                        </p>
                       </div>
                       <div className="bg-gray-50 rounded-lg p-3">
                         <p className="text-xs font-medium text-gray-600 uppercase tracking-wide">Expected Decision</p>

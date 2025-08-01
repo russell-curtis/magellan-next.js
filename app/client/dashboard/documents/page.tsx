@@ -169,7 +169,7 @@ export default function ClientDocumentsPage() {
           ) : (
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {agentResources.map((resource) => (
-                <Card key={resource.id} className="hover:shadow-sm transition-shadow">
+                <Card key={resource.id} className="border border-gray-200">
                   <CardHeader>
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
