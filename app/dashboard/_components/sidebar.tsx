@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import UserProfile from "@/components/user-profile";
 import { CollapsibleNav, SidebarProfileArea, SidebarSettingsItem } from "@/components/ui/collapsible-nav";
+import { VersionBadge } from "@/components/ui/version-badge";
 import { useUnreadMessageCount } from "@/hooks/use-unread-message-count";
 import { NavSection, SidebarState } from "@/types/navigation";
 import { UserWithPermissions } from "@/lib/permissions";
@@ -236,6 +237,11 @@ export default function DashboardSideBar() {
                 onToggle={handleSectionToggle}
               />
             ))}
+          </div>
+
+          {/* Version Badge */}
+          <div className="px-4 pb-3">
+            <VersionBadge />
           </div>
 
           {/* Bottom Profile Area */}

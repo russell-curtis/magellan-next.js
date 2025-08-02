@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { CollapsibleNav, SidebarProfileArea } from "@/components/ui/collapsible-nav";
+import { VersionBadge } from "@/components/ui/version-badge";
 import ClientUserProfile from "@/components/client-user-profile";
 import { useUnreadMessageCount } from "@/hooks/use-unread-message-count";
 import { NavSection, SidebarState } from "@/types/navigation";
@@ -123,6 +124,11 @@ export default function ClientDashboardSideBar() {
                 onToggle={handleSectionToggle}
               />
             ))}
+          </div>
+
+          {/* Version Badge */}
+          <div className="px-4 pb-3">
+            <VersionBadge />
           </div>
 
           {/* Bottom Profile Area */}
